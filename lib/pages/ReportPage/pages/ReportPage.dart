@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../components/additional_notes.dart';
 import '../components/convenience.dart';
 import '../components/customer_concentration.dart';
-import '../components/customer_flow.dart';
 import '../components/customer_model.dart';
+import '../components/customer_traffic.dart';
 import '../components/environmental_factors.dart';
 import '../components/site_area.dart';
 import '../components/visibility_obstruction.dart';
@@ -61,6 +61,7 @@ class _ReportPageState extends State<ReportPage> {
       'hasObstruction': false,
       'obstructionType': null,
       'obstructionLevel': null,
+      'overallRating': null,
     },
     'convenience': {
       'terrain': null,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/utils/ReportPage/animated_expansion_card.dart';
 import 'package:siteplus_mb/utils/ReportPage/custom_chip_group.dart';
+import 'package:siteplus_mb/utils/ReportPage/info_card.dart';
 import 'package:siteplus_mb/utils/ReportPage/rating_buttons.dart';
 import 'package:siteplus_mb/utils/ReportPage/selectable_option_button.dart';
 
@@ -140,25 +141,23 @@ class CustomerConcentrationSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.people,
-                color: widget.theme.colorScheme.primary,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Customer Concentration',
-                style: widget.theme.textTheme.headlineSmall?.copyWith(
-                  color: widget.theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+           Text(
+            'II. Customer Concentration',
+            style: widget.theme.textTheme.headlineLarge?.copyWith(
+              color: widget.theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 24),
-
+          InfoCard(
+            icon: Icons.lightbulb_outline,
+            content: 'Identify customer types and average foot traffic.',
+            backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
+            iconColor: Theme.of(context).colorScheme.secondary,
+            borderRadius: 20.0,
+            padding: EdgeInsets.all(20.0),
+          ),
+          SizedBox(height: 12.0),
           AnimatedExpansionCard(
             icon: Icons.group,
             title: 'Customer Types',
@@ -216,7 +215,6 @@ class CustomerConcentrationSectionState
             title: 'Overall Rating',
             subtitle: localCustomerData['overallRating'] ?? 'Not rated',
             theme: widget.theme,
-            initiallyExpanded: true,
             children: [
               RatingButtons(
                 currentRating: localCustomerData['overallRating'] ?? '',

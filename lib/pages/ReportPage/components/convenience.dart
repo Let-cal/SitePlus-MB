@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:siteplus_mb/utils/ReportPage/animated_expansion_card.dart';
+import 'package:siteplus_mb/utils/ReportPage/info_card.dart';
+import 'package:siteplus_mb/utils/ReportPage/rating_buttons.dart';
 
-class ConvenienceSection extends StatelessWidget {
+class ConvenienceSection extends StatefulWidget {
   final Map<String, dynamic> reportData;
   final Function(void Function()) setState;
   final ThemeData theme;
@@ -12,6 +15,45 @@ class ConvenienceSection extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  ConvenienceSectionState createState() => ConvenienceSectionState();
+}
+
+class ConvenienceSectionState extends State<ConvenienceSection> {
+  late Map<String, dynamic> localConvenienceData;
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+
+  void _initializeData() {
+    localConvenienceData = Map<String, dynamic>.from(
+      widget.reportData['convenience'] ?? {},
+    );
+
+    final defaultValues = {
+      'terrain': '',
+      'accessibility': '',
+      'overallRating': '',
+    };
+
+    defaultValues.forEach((key, value) {
+      localConvenienceData.putIfAbsent(key, () => value);
+    });
+  }
+
+  void _handleRatingSelection(String rating) {
+    setState(() {
+      localConvenienceData['overallRating'] = rating;
+      widget.setState(() {
+        widget.reportData['convenience'] = Map<String, dynamic>.from(
+          localConvenienceData,
+        );
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.0),
@@ -20,14 +62,24 @@ class ConvenienceSection extends StatelessWidget {
         children: [
           Text(
             'VII. Convenience',
-            style: theme.textTheme.headlineLarge?.copyWith(
-              color: theme.colorScheme.primary,
+            style: widget.theme.textTheme.headlineLarge?.copyWith(
+              color: widget.theme.colorScheme.primary,
             ),
           ),
           SizedBox(height: 16),
-          Text('Site terrain:'),
+          InfoCard(
+            icon: Icons.lightbulb_outline,
+            content: 'Evaluate terrain and ease of entry.',
+            backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
+            iconColor: Theme.of(context).colorScheme.secondary,
+            borderRadius: 20.0,
+            padding: EdgeInsets.all(20.0),
+          ),
+          SizedBox(height: 12.0),
+          Text('Site terrain:', style: widget.theme.textTheme.titleMedium),
           DropdownButtonFormField<String>(
-            value: reportData['convenience']['terrain'],
+            value: localConvenienceData['terrain'],
+            hint: Text('Select site terrain range'),
             items:
                 [
                   'Flat',
@@ -42,15 +94,26 @@ class ConvenienceSection extends StatelessWidget {
                 }).toList(),
             onChanged: (value) {
               setState(() {
-                reportData['convenience']['terrain'] = value;
+                localConvenienceData['terrain'] = value;
               });
             },
-            decoration: InputDecoration(border: OutlineInputBorder()),
+            decoration: InputDecoration(
+              prefixIcon: Icon(
+                Icons.landscape,
+                color: widget.theme.colorScheme.primary,
+              ), // Icon đồng bộ
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              filled: true,
+              fillColor: widget.theme.colorScheme.surfaceVariant,
+            ),
           ),
           SizedBox(height: 16),
-          Text('Accessibility:'),
+          Text('Accessibility:', style: widget.theme.textTheme.titleMedium),
           DropdownButtonFormField<String>(
-            value: reportData['convenience']['accessibility'],
+            value: localConvenienceData['accessibility'],
+            hint: Text('Select accessibility range'),
             items:
                 ['Convenient', 'Slightly difficult', 'Hard to access'].map((
                   String value,
@@ -62,33 +125,34 @@ class ConvenienceSection extends StatelessWidget {
                 }).toList(),
             onChanged: (value) {
               setState(() {
-                reportData['convenience']['accessibility'] = value;
+                localConvenienceData['accessibility'] = value;
               });
             },
-            decoration: InputDecoration(border: OutlineInputBorder()),
+            decoration: InputDecoration(
+              prefixIcon: Icon(
+                Icons.route,
+                color: widget.theme.colorScheme.primary,
+              ), // Icon đồng bộ
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              filled: true,
+              fillColor: widget.theme.colorScheme.surfaceVariant,
+            ),
           ),
           SizedBox(height: 16),
-          Text('Overall rating:'),
-          Row(
+
+          AnimatedExpansionCard(
+            icon: Icons.star_outline,
+            title: 'Overall Rating',
+            subtitle: localConvenienceData['overallRating'] ?? 'Not rated',
+            theme: widget.theme,
             children: [
-              Radio(
-                value: 'Good',
-                groupValue: reportData['convenience']['overallRating'],
-                onChanged:
-                    (value) => setState(
-                      () => reportData['convenience']['overallRating'] = value,
-                    ),
+              RatingButtons(
+                currentRating: localConvenienceData['overallRating'] ?? '',
+                onRatingSelected: _handleRatingSelection,
+                theme: widget.theme,
               ),
-              Text('Good'),
-              Radio(
-                value: 'Poor',
-                groupValue: reportData['convenience']['overallRating'],
-                onChanged:
-                    (value) => setState(
-                      () => reportData['convenience']['overallRating'] = value,
-                    ),
-              ),
-              Text('Poor'),
             ],
           ),
         ],

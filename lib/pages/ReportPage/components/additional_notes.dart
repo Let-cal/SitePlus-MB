@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:siteplus_mb/utils/ReportPage/info_card.dart';
 
 class AdditionalNotesSection extends StatelessWidget {
   final Map<String, dynamic> reportData;
@@ -22,9 +23,19 @@ class AdditionalNotesSection extends StatelessWidget {
             'VIII. Additional Notes',
             style: theme.textTheme.headlineLarge?.copyWith(
               color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
             ),
           ),
           SizedBox(height: 16),
+          InfoCard(
+            icon: Icons.lightbulb_outline,
+            content: 'Include any other relevant details.',
+            backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
+            iconColor: Theme.of(context).colorScheme.secondary,
+            borderRadius: 20.0,
+            padding: EdgeInsets.all(20.0),
+          ),
+          SizedBox(height: 12.0),
           TextFormField(
             decoration: InputDecoration(
               labelText: 'Additional Notes',

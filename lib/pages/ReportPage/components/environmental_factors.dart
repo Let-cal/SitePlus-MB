@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:siteplus_mb/utils/ReportPage/animated_expansion_card.dart';
 import 'package:siteplus_mb/utils/ReportPage/custom_chip_group.dart';
+import 'package:siteplus_mb/utils/ReportPage/info_card.dart';
 import 'package:siteplus_mb/utils/ReportPage/rating_buttons.dart';
 import 'package:siteplus_mb/utils/ReportPage/selectable_option_button.dart';
 
@@ -26,8 +27,6 @@ class EnvironmentalFactorsSectionState
     extends State<EnvironmentalFactorsSection> {
   final Logger _logger = Logger('EnvironmentalFactorsSection');
   late Map<String, dynamic> localEnvironmentalFactors;
-  final TextEditingController _otherStoreController = TextEditingController();
-  bool _isExpanded = false;
 
   final Map<String, Map<String, dynamic>> factorConfigs = {
     'airQuality': {
@@ -190,25 +189,23 @@ class EnvironmentalFactorsSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.eco,
-                color: widget.theme.colorScheme.primary,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Environmental Factors',
-                style: widget.theme.textTheme.headlineSmall?.copyWith(
-                  color: widget.theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+         Text(
+            'V. Environmental Factors',
+            style: widget.theme.textTheme.headlineLarge?.copyWith(
+              color: widget.theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 24),
-
+          InfoCard(
+            icon: Icons.lightbulb_outline,
+            content: 'Assess air quality, lighting, and greenery.',
+            backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
+            iconColor: Theme.of(context).colorScheme.secondary,
+            borderRadius: 20.0,
+            padding: EdgeInsets.all(20.0),
+          ),
+          SizedBox(height: 12.0),
           ...factorConfigs.keys.map((key) {
             final config = factorConfigs[key]!;
             return AnimatedExpansionCard(
@@ -246,7 +243,6 @@ class EnvironmentalFactorsSectionState
             title: 'Surrounding Stores',
             subtitle: _totalSelectedStores,
             theme: widget.theme,
-            initiallyExpanded: true,
             children: [
               CustomChipGroup(
                 options: surroundingStoresIcons.keys.toList(),
@@ -269,7 +265,6 @@ class EnvironmentalFactorsSectionState
             title: 'Overall Rating',
             subtitle: localEnvironmentalFactors['overallRating'] ?? 'Not rated',
             theme: widget.theme,
-            initiallyExpanded: true,
             children: [
               RatingButtons(
                 currentRating: localEnvironmentalFactors['overallRating'] ?? '',

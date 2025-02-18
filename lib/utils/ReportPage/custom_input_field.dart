@@ -6,6 +6,7 @@ class CustomInputField extends StatelessWidget {
   final IconData icon;
   final Function(String) onSaved;
   final ThemeData theme;
+  final String initialValue;  // Add this
 
   const CustomInputField({
     Key? key,
@@ -13,6 +14,7 @@ class CustomInputField extends StatelessWidget {
     required this.icon,
     required this.onSaved,
     required this.theme,
+    this.initialValue = '',  // Add this
   }) : super(key: key);
 
   @override
@@ -20,6 +22,7 @@ class CustomInputField extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
+        initialValue: initialValue,  // Add this
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: theme.colorScheme.primary),
@@ -27,7 +30,7 @@ class CustomInputField extends StatelessWidget {
         ),
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        onSaved: (value) => onSaved(value ?? '0'),
+        onChanged: onSaved,  // Change this from onSaved to onChanged
       ),
     );
   }
