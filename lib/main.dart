@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'util.dart';
+
+// import 'pages/ReportPage/pages/ReportPage.dart';
+import 'pages/LoginPage/pages/login_page.dart';
 import 'theme.dart';
-import 'pages/ReportPage/pages/ReportPage.dart';
+import 'util.dart';
 
 void main() {
   runApp(const MyApp());
@@ -25,10 +27,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: brightness == Brightness.light ? theme.light() : theme.dark(),
-      home: ReportPage(),
+      home: LoginPage(),
     );
   }
 }
-
-
-
