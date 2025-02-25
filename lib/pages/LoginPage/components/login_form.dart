@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:siteplus_mb/main_scaffold.dart';
+import 'package:siteplus_mb/service/api_service.dart';
+
 import 'custom_text_field.dart';
 import 'login_button.dart';
 
@@ -21,8 +25,78 @@ class LoginForm extends StatefulWidget {
 class _LoginFormState extends State<LoginForm> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _apiService = ApiService();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  Future<void> _handleLogin() async {
+    if (!widget.formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    try {
+      final response = await _apiService.login(
+        _usernameController.text,
+        _passwordController.text,
+      );
+      if (!mounted) return;
+      if (response['success']) {
+        final prefs = await SharedPreferences.getInstance();
+
+        // Xử lý token
+        if (response.containsKey('token') && response['token'] != null) {
+          final token = response['token'];
+          await prefs.setString('auth_token', token);
+          print('Token đã được lưu: ${token.substring(0, 15)}...');
+        } else {
+          print('Lỗi: response không chứa token hoặc không hợp lệ');
+        }
+
+        // Xử lý hint
+        if (response.containsKey('hint') && response['hint'] != null) {
+          final hint = response['hint'].toString();
+          await prefs.setString('hintId', hint);
+          print('Hint đã được lưu: $hint');
+        } else {
+          print('Lỗi: response không chứa hint hoặc không hợp lệ');
+        }
+        await prefs.setString('username', _usernameController.text);
+
+        // Hiển thị thông báo thành công
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Đăng nhập thành công'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Chuyển hướng đến MainScaffold
+        Navigator.pushReplacement(
+          // ignore: use_build_context_synchronously
+          context,
+          MaterialPageRoute(builder: (context) => const MainScaffold()),
+        );
+        widget.onLoginSuccess();
+      } else {
+        // Hiển thị thông báo lỗi
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Đăng nhập thất bại'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã xảy ra lỗi: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,22 +152,7 @@ class _LoginFormState extends State<LoginForm> {
 
           const SizedBox(height: 24),
 
-          LoginButton(
-            isLoading: _isLoading,
-            onPressed: () {
-              if (widget.formKey.currentState!.validate()) {
-                setState(() => _isLoading = true);
-                // Simulate API call
-                Future.delayed(
-                  const Duration(seconds: 2),
-                  () {
-                    setState(() => _isLoading = false);
-                    widget.onLoginSuccess();
-                  },
-                );
-              }
-            },
-          ),
+          LoginButton(isLoading: _isLoading, onPressed: _handleLogin),
 
           const SizedBox(height: 36),
         ],

@@ -38,6 +38,9 @@ dependencies:
   logging: ^1.1.0
   image_picker: ^0.8.7+5
   flutter_animate: ^4.3.0
+  fl_chart: ^0.63.0
+  lucide_icons_flutter: ^1.2.7
+  shared_preferences: ^2.5.2
 
 dev_dependencies:
   flutter_test:
