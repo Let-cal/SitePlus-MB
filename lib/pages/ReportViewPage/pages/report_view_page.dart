@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task_card.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task_filter_chips.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task_stats_grid.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
+
+import 'package:siteplus_mb/pages/TaskPage/components/samble_data.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -13,11 +14,6 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> {
-  Map<String, List<double>> _weeklyData = {
-    'total': [10, 12, 8, 15, 11, 13, 14],
-    'inProgress': [5, 6, 4, 7, 5, 6, 8],
-    'completed': [3, 4, 2, 6, 4, 5, 4],
-  };
   final scaffoldKey = GlobalKey<ScaffoldState>();
   String selectedStatus = 'Active';
   List<Task> tasks = [];
@@ -40,33 +36,18 @@ class _ReportsPageState extends State<ReportsPage> {
 
     try {
       print("Loading tasks...");
+      // Simulate network delay
       await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
 
-      final newTasks = List.generate(
-        4,
-        (index) => Task(
-          id: 'TASK-$index',
-          name: 'Task $index',
-          description: 'Description for Task $index',
-          status: index == 0 ? 'Active' : (index == 1 ? 'In Progress' : 'Done'),
-          priority: index % 2 == 0 ? 'High' : 'Low',
-          areaId: 'AREA-${index % 3}',
-          requestId: 'REQ-$index',
-          assignedTo: 'User $index',
-          deadline: DateTime.parse(
-            "2025-02-23T12:00:00Z",
-          ), // Nếu dữ liệu từ API
-          createdAt: DateTime.now().subtract(Duration(days: 10 - index)),
-          updatedAt: DateTime.now(),
-        ),
-      );
+      // Use SampleData instead of generating fake data
+      final sampleTasks = SampleData.getTasks();
 
       setState(() {
-        tasks = newTasks;
+        tasks = sampleTasks;
         isLoading = false;
-        _updateFilteredTasks(); // Cập nhật danh sách lọc ngay sau khi tải xong
+        _updateFilteredTasks(); // Update filtered tasks after loading
       });
 
       print("Tasks loaded: ${tasks.length}");
@@ -206,8 +187,6 @@ class _ReportsPageState extends State<ReportsPage> {
                   onStatusSelected: _onStatusSelected,
                 ),
                 const SizedBox(height: 24),
-                _buildTaskStats(),
-                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -225,10 +204,6 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Widget _buildTaskStats() {
-    return TaskStatsGrid(tasks: tasks, weeklyData: _weeklyData);
-  }
-
   Widget _buildTaskGrid() {
     if (filteredTasks.isEmpty) {
       return const SliverFillRemaining(
@@ -243,7 +218,7 @@ class _ReportsPageState extends State<ReportsPage> {
       sliver: SliverGrid(
         delegate: SliverChildBuilderDelegate((context, index) {
           final task = filteredTasks[index];
-          return TaskCard(task: task)
+          return EnhancedTaskCard(task: task)
               .animate()
               .fadeIn(
                 delay: Duration(milliseconds: 100 * index),

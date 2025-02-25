@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task_card.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task_filter_chips.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
+
+import '../components/samble_data.dart';
 
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
@@ -34,33 +36,18 @@ class _TasksPageState extends State<TasksPage> {
 
     try {
       print("Loading tasks...");
+      // Simulate network delay
       await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
 
-      final newTasks = List.generate(
-        4,
-        (index) => Task(
-          id: 'TASK-$index',
-          name: 'Task $index',
-          description: 'Description for Task $index',
-          status: index == 0 ? 'Active' : (index == 1 ? 'In Progress' : 'Done'),
-          priority: index % 2 == 0 ? 'High' : 'Low',
-          areaId: 'AREA-${index % 3}',
-          requestId: 'REQ-$index',
-          assignedTo: 'User $index',
-          deadline: DateTime.parse(
-            "2025-02-23T12:00:00Z",
-          ), // Nếu dữ liệu từ API
-          createdAt: DateTime.now().subtract(Duration(days: 10 - index)),
-          updatedAt: DateTime.now(),
-        ),
-      );
+      // Use SampleData instead of generating fake data
+      final sampleTasks = SampleData.getTasks();
 
       setState(() {
-        tasks = newTasks;
+        tasks = sampleTasks;
         isLoading = false;
-        _updateFilteredTasks(); // Cập nhật danh sách lọc ngay sau khi tải xong
+        _updateFilteredTasks(); // Update filtered tasks after loading
       });
 
       print("Tasks loaded: ${tasks.length}");
@@ -81,7 +68,12 @@ class _TasksPageState extends State<TasksPage> {
     _cachedFilteredTasks =
         selectedStatus == 'All'
             ? tasks
-            : tasks.where((task) => task.status == selectedStatus).toList();
+            : tasks
+                .where(
+                  (task) =>
+                      task.status.toLowerCase() == selectedStatus.toLowerCase(),
+                )
+                .toList();
   }
 
   List<Task> get filteredTasks => _cachedFilteredTasks;
@@ -99,13 +91,11 @@ class _TasksPageState extends State<TasksPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: scaffoldKey,
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (MediaQuery.of(context).size.width >= 1200)
-              _buildSidebar().animate().fadeIn(duration: 500.ms).slideX(),
             Expanded(
               child: _buildMainContent().animate().fadeIn(
                 duration: 800.ms,
@@ -114,32 +104,6 @@ class _TasksPageState extends State<TasksPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSidebar() {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: 250,
-      height: double.infinity,
-      color: theme.colorScheme.surface,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(Icons.dashboard, color: theme.colorScheme.primary),
-                const SizedBox(width: 12),
-                Text('Dashboard', style: theme.textTheme.titleLarge),
-              ],
-            ),
-          ),
-          const Divider(),
-          // Add your sidebar menu items here
-        ],
       ),
     );
   }
@@ -251,28 +215,20 @@ class _TasksPageState extends State<TasksPage> {
       );
     }
 
-    int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 2 : 1;
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      sliver: SliverGrid(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final task = filteredTasks[index];
-          return TaskCard(task: task)
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final task = filteredTasks[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: EnhancedTaskCard(task: task)
               .animate()
               .fadeIn(
                 delay: Duration(milliseconds: 100 * index),
                 duration: 400.ms,
               )
-              .slideY(begin: 0.2, curve: Curves.easeOutQuad);
-        }, childCount: filteredTasks.length),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.5,
-        ),
-      ),
+              .slideY(begin: 0.2, curve: Curves.easeOutQuad),
+        );
+      }, childCount: filteredTasks.length),
     );
   }
 }

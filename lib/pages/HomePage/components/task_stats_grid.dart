@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import 'task.dart';
+import '../../TaskPage/components/task.dart';
 
 class TaskStatsGrid extends StatelessWidget {
   final List<Task> tasks;

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
 
-import 'package:siteplus_mb/pages/HomePage/components/task.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task_card.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task_filter_chips.dart';
-import 'package:siteplus_mb/pages/HomePage/components/task_stats_grid.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/samble_data.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -14,11 +14,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  Map<String, List<double>> _weeklyData = {
-    'total': [10, 12, 8, 15, 11, 13, 14],
-    'inProgress': [5, 6, 4, 7, 5, 6, 8],
-    'completed': [3, 4, 2, 6, 4, 5, 4],
-  };
   final scaffoldKey = GlobalKey<ScaffoldState>();
   String selectedStatus = 'Active';
   List<Task> tasks = [];
@@ -41,33 +36,18 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       print("Loading tasks...");
+      // Simulate network delay
       await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
 
-      final newTasks = List.generate(
-        4,
-        (index) => Task(
-          id: 'TASK-$index',
-          name: 'Task $index',
-          description: 'Description for Task $index',
-          status: index == 0 ? 'Active' : (index == 1 ? 'In Progress' : 'Done'),
-          priority: index % 2 == 0 ? 'High' : 'Low',
-          areaId: 'AREA-${index % 3}',
-          requestId: 'REQ-$index',
-          assignedTo: 'User $index',
-          deadline: DateTime.parse(
-            "2025-02-23T12:00:00Z",
-          ), // Nếu dữ liệu từ API
-          createdAt: DateTime.now().subtract(Duration(days: 10 - index)),
-          updatedAt: DateTime.now(),
-        ),
-      );
+      // Use SampleData instead of generating fake data
+      final sampleTasks = SampleData.getTasks();
 
       setState(() {
-        tasks = newTasks;
+        tasks = sampleTasks;
         isLoading = false;
-        _updateFilteredTasks(); // Cập nhật danh sách lọc ngay sau khi tải xong
+        _updateFilteredTasks(); // Update filtered tasks after loading
       });
 
       print("Tasks loaded: ${tasks.length}");
@@ -112,41 +92,14 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (MediaQuery.of(context).size.width >= 1200)
-              _buildSidebar().animate().fadeIn(duration: 500.ms).slideX(),
-            Expanded(
-              child: _buildMainContent().animate().fadeIn(
-                duration: 800.ms,
-                curve: Curves.easeOut,
+              Expanded(
+                child: _buildMainContent().animate().fadeIn(
+                  duration: 800.ms,
+                  curve: Curves.easeOut,
+                ),
               ),
-            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSidebar() {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: 250,
-      height: double.infinity,
-      color: theme.colorScheme.surface,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(Icons.dashboard, color: theme.colorScheme.primary),
-                const SizedBox(width: 12),
-                Text('Dashboard', style: theme.textTheme.titleLarge),
-              ],
-            ),
-          ),
-          const Divider(),
-          // Add your sidebar menu items here
-        ],
       ),
     );
   }
@@ -234,8 +187,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   onStatusSelected: _onStatusSelected,
                 ),
                 const SizedBox(height: 24),
-                _buildTaskStats(),
-                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -253,10 +204,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildTaskStats() {
-    return TaskStatsGrid(tasks: tasks, weeklyData: _weeklyData);
-  }
-
   Widget _buildTaskGrid() {
     if (filteredTasks.isEmpty) {
       return const SliverFillRemaining(
@@ -271,7 +218,7 @@ class _ProfilePageState extends State<ProfilePage> {
       sliver: SliverGrid(
         delegate: SliverChildBuilderDelegate((context, index) {
           final task = filteredTasks[index];
-          return TaskCard(task: task)
+          return EnhancedTaskCard(task: task)
               .animate()
               .fadeIn(
                 delay: Duration(milliseconds: 100 * index),

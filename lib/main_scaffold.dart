@@ -47,7 +47,7 @@ class _MainScaffoldState extends State<MainScaffold> {
             _selectedIndex == 0
                 ? [
                   IconButton(
-                    icon: const Icon(LucideIcons.search),
+                    icon: const Icon(LucideIcons.bell),
                     onPressed: () {},
                   ),
                 ]
