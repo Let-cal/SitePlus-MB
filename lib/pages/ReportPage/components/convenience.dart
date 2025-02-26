@@ -61,32 +61,30 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'VII. Convenience',
+            'VII. Tiện ích',
             style: widget.theme.textTheme.headlineLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
             ),
           ),
           SizedBox(height: 16),
           InfoCard(
             icon: Icons.lightbulb_outline,
-            content: 'Evaluate terrain and ease of entry.',
+            content: 'Đánh giá địa hình và khả năng tiếp cận của mặt bằng.',
             backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
             iconColor: Theme.of(context).colorScheme.secondary,
             borderRadius: 20.0,
             padding: EdgeInsets.all(20.0),
           ),
           SizedBox(height: 12.0),
-          Text('Site terrain:', style: widget.theme.textTheme.titleMedium),
+          Text('Địa hình mặt bằng:', style: widget.theme.textTheme.titleMedium),
           DropdownButtonFormField<String>(
             value: localConvenienceData['terrain'],
-            hint: Text('Select site terrain range'),
+            hint: Text('Chọn phạm vi địa hình'),
             items:
-                [
-                  'Flat',
-                  'Higher than sidewalk',
-                  'Lower than sidewalk',
-                  'Sloped',
-                ].map((String value) {
+                ['Bằng phẳng', 'Cao hơn vỉa hè', 'Thấp hơn vỉa hè', 'Dốc'].map((
+                  String value,
+                ) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -101,7 +99,7 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
               prefixIcon: Icon(
                 Icons.landscape,
                 color: widget.theme.colorScheme.primary,
-              ), // Icon đồng bộ
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.0),
               ),
@@ -110,12 +108,12 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
             ),
           ),
           SizedBox(height: 16),
-          Text('Accessibility:', style: widget.theme.textTheme.titleMedium),
+          Text('Khả năng tiếp cận:', style: widget.theme.textTheme.titleMedium),
           DropdownButtonFormField<String>(
             value: localConvenienceData['accessibility'],
-            hint: Text('Select accessibility range'),
+            hint: Text('Chọn mức độ thuận tiện'),
             items:
-                ['Convenient', 'Slightly difficult', 'Hard to access'].map((
+                ['Thuận tiện', 'Khó khăn nhẹ', 'Khó tiếp cận'].map((
                   String value,
                 ) {
                   return DropdownMenuItem<String>(
@@ -132,7 +130,7 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
               prefixIcon: Icon(
                 Icons.route,
                 color: widget.theme.colorScheme.primary,
-              ), // Icon đồng bộ
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.0),
               ),
@@ -141,11 +139,10 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
             ),
           ),
           SizedBox(height: 16),
-
           AnimatedExpansionCard(
             icon: Icons.star_outline,
-            title: 'Overall Rating',
-            subtitle: localConvenienceData['overallRating'] ?? 'Not rated',
+            title: 'Đánh giá tổng quan',
+            subtitle: localConvenienceData['overallRating'] ?? 'Chưa đánh giá',
             theme: widget.theme,
             children: [
               RatingButtons(

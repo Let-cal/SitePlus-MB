@@ -7,10 +7,17 @@ import '../components/customer_model.dart';
 import '../components/customer_traffic.dart';
 import '../components/environmental_factors.dart';
 import '../components/site_area.dart';
+// Import the new component
+import '../components/site_building_section.dart';
 import '../components/visibility_obstruction.dart';
 
 class ReportPage extends StatefulWidget {
-  const ReportPage({Key? key}) : super(key: key);
+  final String
+  reportType; // Add this to know if it's 'independent' or 'building'
+  final String? siteCategory; // Add this to store the site category
+
+  const ReportPage({Key? key, required this.reportType, this.siteCategory})
+    : super(key: key);
 
   @override
   _ReportPageState createState() => _ReportPageState();
@@ -20,60 +27,80 @@ class _ReportPageState extends State<ReportPage> {
   final _formKey = GlobalKey<FormState>();
   final _pageController = PageController();
 
-  Map<String, dynamic> reportData = {
-    'customerFlow': {
-      'vehicles': {
-        'motorcycle': 0,
-        'car': 0,
-        'bicycle': 0,
-        'pedestrian': 0,
-        'other': null,
+  late Map<String, dynamic> reportData;
+
+  @override
+  void initState() {
+    super.initState();
+
+    reportData = {
+      'reportType': widget.reportType,
+      'siteCategory': widget.siteCategory,
+      'siteInfo': {
+        'siteName': '',
+        'siteCategory': widget.siteCategory,
+        'address': '',
+        'city': null,
+        'district': null,
+        'status': 'Available',
+        'buildingName': '',
+        'floorNumber': '',
       },
-      'peakHours': {'morning': 0, 'noon': 0, 'afternoon': 0, 'evening': 0},
-      'overallRating': null,
-    },
-    'customerConcentration': {
-      'customerTypes': [],
-      'averageCustomers': null,
-      'overallRating': null,
-    },
-    'customerModel': {
-      'gender': null,
-      'ageGroups': {'under18': 0, '18to30': 0, '31to45': 0, 'over45': 0},
-      'income': null,
-      'overallRating': null,
-    },
-    'siteArea': {
-      'totalArea': 0,
-      'shape': null,
-      'condition': null,
-      'overallRating': null,
-    },
-    'environmentalFactors': {
-      'airQuality': null,
-      'naturalLight': null,
-      'greenery': null,
-      'waste': null,
-      'surroundingStores': [],
-      'overallRating': null,
-    },
-    'visibilityAndObstruction': {
-      'hasObstruction': false,
-      'obstructionType': null,
-      'obstructionLevel': null,
-      'overallRating': null,
-    },
-    'convenience': {
-      'terrain': null,
-      'accessibility': null,
-      'overallRating': null,
-    },
-    'additionalNotes': null,
-    'hasImages': false,
-  };
+      'customerFlow': {
+        'vehicles': {
+          'motorcycle': 0,
+          'car': 0,
+          'bicycle': 0,
+          'pedestrian': 0,
+          'other': null,
+        },
+        'peakHours': {'morning': 0, 'noon': 0, 'afternoon': 0, 'evening': 0},
+        'overallRating': null,
+      },
+      'customerConcentration': {
+        'customerTypes': [],
+        'averageCustomers': null,
+        'overallRating': null,
+      },
+      'customerModel': {
+        'gender': null,
+        'ageGroups': {'under18': 0, '18to30': 0, '31to45': 0, 'over45': 0},
+        'income': null,
+        'overallRating': null,
+      },
+      'siteArea': {
+        'totalArea': 0,
+        'shape': null,
+        'condition': null,
+        'overallRating': null,
+      },
+      'environmentalFactors': {
+        'airQuality': null,
+        'naturalLight': null,
+        'greenery': null,
+        'waste': null,
+        'surroundingStores': [],
+        'overallRating': null,
+      },
+      'visibilityAndObstruction': {
+        'hasObstruction': false,
+        'obstructionType': null,
+        'obstructionLevel': null,
+        'overallRating': null,
+      },
+      'convenience': {
+        'terrain': null,
+        'accessibility': null,
+        'overallRating': null,
+      },
+      'additionalNotes': null,
+      'hasImages': false,
+    };
+  }
 
   int _currentPage = 0;
   final List<String> _pageNames = [
+    'Site Information',
     'Customer Flow',
     'Customer Concentration',
     'Customer Model',
@@ -88,18 +115,14 @@ class _ReportPageState extends State<ReportPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Theme(
-      // Sử dụng theme hiện tại và có thể override một số thuộc tính nếu cần
-      data: theme.copyWith(
-        // Ví dụ nếu bạn muốn override một số thuộc tính cho riêng ReportPage
-        // textTheme: theme.textTheme.copyWith(...),
-        // colorScheme: theme.colorScheme.copyWith(...),
-      ),
+      data: theme.copyWith(),
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            'Site Report',
+            'Báo cáo mặt bằng',
             style: theme.textTheme.titleLarge?.copyWith(
               color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
             ),
           ),
           actions: [IconButton(icon: Icon(Icons.save), onPressed: _submitForm)],
@@ -114,6 +137,12 @@ class _ReportPageState extends State<ReportPage> {
               });
             },
             children: [
+              // Add the new SiteBuildingSection as the first page
+              SiteBuildingSection(
+                reportData: reportData,
+                setState: setState,
+                theme: theme,
+              ),
               CustomerFlowSection(
                 reportData: reportData,
                 setState: setState,
@@ -175,7 +204,7 @@ class _ReportPageState extends State<ReportPage> {
                   style: TextButton.styleFrom(
                     foregroundColor: theme.colorScheme.primary,
                   ),
-                  child: Text('Previous'),
+                  child: Text('Trước'),
                 ),
                 Text(
                   '${_currentPage + 1}/${_pageNames.length}',
@@ -192,7 +221,7 @@ class _ReportPageState extends State<ReportPage> {
                   style: TextButton.styleFrom(
                     foregroundColor: theme.colorScheme.primary,
                   ),
-                  child: Text('Next'),
+                  child: Text('Tiếp'),
                 ),
               ],
             ),
@@ -217,6 +246,19 @@ class _ReportPageState extends State<ReportPage> {
         }
       }
 
+      // Check site info fields
+      checkField('Tên mặt bằng', reportData['siteInfo']['siteName']);
+      checkField('Địa chỉ', reportData['siteInfo']['address']);
+      checkField('Thành phố', reportData['siteInfo']['city']);
+      checkField('Quận/Huyện', reportData['siteInfo']['district']);
+
+      // Check building info if applicable
+      if (reportData['reportType'] == 'building') {
+        checkField('Tên tòa nhà', reportData['siteInfo']['buildingName']);
+        checkField('Số tầng', reportData['siteInfo']['floorNumber']);
+      }
+
+      // Previous checks
       checkField(
         'Average customers',
         reportData['customerConcentration']['averageCustomers'],
@@ -231,13 +273,11 @@ class _ReportPageState extends State<ReportPage> {
       checkField('Site terrain', reportData['convenience']['terrain']);
       checkField('Accessibility', reportData['convenience']['accessibility']);
 
-      // Add more checks for other required fields
-
       if (!isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Please fill in all required fields: ${missingFields.substring(0, missingFields.length - 2)}',
+              'Vui lòng điền đầy đủ các trường bắt buộc: ${missingFields.substring(0, missingFields.length - 2)}',
             ),
           ),
         );
@@ -248,7 +288,7 @@ class _ReportPageState extends State<ReportPage> {
       print(reportData);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Report submitted successfully')));
+      ).showSnackBar(SnackBar(content: Text('Báo cáo đã được gửi thành công')));
     }
   }
 }

@@ -55,7 +55,7 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Images added successfully!',
+            'Thêm ảnh thành công!',
             style: TextStyle(color: widget.theme.colorScheme.onPrimary),
           ),
           backgroundColor: widget.theme.colorScheme.primary,
@@ -104,7 +104,7 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Add Photo',
+                  'Thêm ảnh',
                   style: TextStyle(color: widget.theme.colorScheme.primary),
                 ),
               ],
@@ -144,7 +144,7 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'VIII. Additional Notes',
+              'VIII. Ghi chú bổ sung',
               style: widget.theme.textTheme.headlineLarge?.copyWith(
                 color: widget.theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -153,7 +153,7 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
             SizedBox(height: 16),
             InfoCard(
               icon: Icons.lightbulb_outline,
-              content: 'Include any other relevant details.',
+              content: 'Bao gồm các chi tiết liên quan khác.',
               backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
               iconColor: Theme.of(context).colorScheme.secondary,
               borderRadius: 20.0,
@@ -174,8 +174,7 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
               ),
               child: TextFormField(
                 decoration: InputDecoration(
-                  labelText: 'Additional Notes',
-
+                  labelText: 'Ghi chú bổ sung',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.0),
                   ),
@@ -189,7 +188,7 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
             ),
             SizedBox(height: 24),
             Text(
-              'Attach Images (Max 3)',
+              'Đính kèm hình ảnh (Tối đa 3)',
               style: widget.theme.textTheme.titleMedium,
             ),
             SizedBox(height: 8),

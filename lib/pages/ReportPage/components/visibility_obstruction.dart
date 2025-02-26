@@ -64,7 +64,7 @@ class VisibilityObstructionSectionState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'VI. Visibility and Obstruction',
+            'VI. Tầm nhìn và Chướng ngại',
             style: widget.theme.textTheme.headlineLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -73,7 +73,8 @@ class VisibilityObstructionSectionState
           SizedBox(height: 16),
           InfoCard(
             icon: Icons.lightbulb_outline,
-            content: 'Check for view obstructions and openness.',
+            content:
+                'Kiểm tra các chướng ngại cản tầm nhìn và mức độ thoáng đãng của không gian.',
             backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
             iconColor: Theme.of(context).colorScheme.secondary,
             borderRadius: 20.0,
@@ -81,7 +82,7 @@ class VisibilityObstructionSectionState
           ),
           SizedBox(height: 12.0),
           Text(
-            'Is there any obstruction?',
+            'Có chướng ngại vật nào không?',
             style: widget.theme.textTheme.titleMedium,
           ),
           Row(
@@ -96,7 +97,7 @@ class VisibilityObstructionSectionState
                               value,
                     ),
               ),
-              Text('Yes'),
+              Text('Có'),
               Radio(
                 value: false,
                 groupValue: localVisibilityObstructionData['hasObstruction'],
@@ -107,21 +108,21 @@ class VisibilityObstructionSectionState
                               value,
                     ),
               ),
-              Text('No'),
+              Text('Không'),
             ],
           ),
           if (localVisibilityObstructionData['hasObstruction'])
             TextFormField(
-              decoration: InputDecoration(labelText: 'Type of obstruction'),
+              decoration: InputDecoration(labelText: 'Loại chướng ngại vật'),
               onSaved:
                   (value) =>
                       localVisibilityObstructionData['obstructionType'] = value,
             ),
           SizedBox(height: 16),
-          Text('Obstruction level:', style: widget.theme.textTheme.titleMedium),
+          Text('Mức độ cản trở:', style: widget.theme.textTheme.titleMedium),
           DropdownButtonFormField<String>(
             value: localVisibilityObstructionData['obstructionLevel'],
-            hint: Text('Select obstruction level'),
+            hint: Text('Chọn mức độ cản trở'),
             items:
                 ['<20%', '20-50%', '50-80%', '>80%'].map((String value) {
                   return DropdownMenuItem<String>(
@@ -138,7 +139,7 @@ class VisibilityObstructionSectionState
               prefixIcon: Icon(
                 Icons.block,
                 color: widget.theme.colorScheme.primary,
-              ), // Icon đồng bộ
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.0),
               ),
@@ -149,9 +150,10 @@ class VisibilityObstructionSectionState
           SizedBox(height: 16),
           AnimatedExpansionCard(
             icon: Icons.star_outline,
-            title: 'Overall Rating',
+            title: 'Đánh giá tổng quan',
             subtitle:
-                localVisibilityObstructionData['overallRating'] ?? 'Not rated',
+                localVisibilityObstructionData['overallRating'] ??
+                'Chưa đánh giá',
             theme: widget.theme,
             children: [
               RatingButtons(

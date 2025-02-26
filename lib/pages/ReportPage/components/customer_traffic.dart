@@ -4,6 +4,7 @@ import 'package:siteplus_mb/utils/ReportPage/animated_expansion_card.dart';
 import 'package:siteplus_mb/utils/ReportPage/custom_input_field.dart';
 import 'package:siteplus_mb/utils/ReportPage/info_card.dart';
 import 'package:siteplus_mb/utils/ReportPage/rating_buttons.dart';
+import 'package:siteplus_mb/utils/constants.dart';
 
 class CustomerFlowSection extends StatefulWidget {
   final Map<String, dynamic> reportData;
@@ -53,17 +54,17 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
   }
 
   final Map<String, IconData> vehicleIcons = {
-    'Motorcycle': Icons.motorcycle,
-    'Car': Icons.directions_car,
-    'Bicycle': Icons.pedal_bike,
-    'Pedestrian': Icons.directions_walk,
+    TRANSPORTATION_MOTORCYCLE: Icons.motorcycle,
+    TRANSPORTATION_CAR: Icons.directions_car,
+    TRANSPORTATION_BICYCLE: Icons.pedal_bike,
+    TRANSPORTATION_PEDESTRIAN: Icons.directions_walk,
   };
 
   final Map<String, IconData> peakHourIcons = {
-    'Morning (07:00 - 10:00)': Icons.wb_sunny,
-    'Noon (11:00 - 14:00)': Icons.lunch_dining,
-    'Afternoon (15:00 - 18:00)': Icons.cloud,
-    'Evening (19:00 - 22:00)': Icons.nights_stay,
+    PEAK_HOUR_MORNING: Icons.wb_sunny,
+    PEAK_HOUR_NOON: Icons.lunch_dining,
+    PEAK_HOUR_AFTERNOON: Icons.cloud,
+    PEAK_HOUR_EVENING: Icons.nights_stay,
   };
   void _handleFactorSelection(String key, String value) {
     setState(() {
@@ -85,7 +86,7 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'I. Customer Traffic',
+            'I. Lưu Lượng Khách Hàng',
             style: widget.theme.textTheme.headlineLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -94,7 +95,8 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
           const SizedBox(height: 16),
           InfoCard(
             icon: Icons.lightbulb_outline,
-            content: 'Record main transport modes and peak customer hours.',
+            content:
+                'Ghi lại phương tiện di chuyển chính và giờ cao điểm của khách hàng.',
             backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
             iconColor: Theme.of(context).colorScheme.secondary,
             borderRadius: 20.0,
@@ -103,7 +105,7 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
           SizedBox(height: 12.0),
           // SECTION: Chọn phương tiện
           Text(
-            'Select Transportation Methods:',
+            'Chọn Phương Tiện Di Chuyển:',
             style: widget.theme.textTheme.titleMedium,
           ),
           Column(
@@ -145,7 +147,7 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
           const SizedBox(height: 16),
 
           // SECTION: Chọn giờ cao điểm
-          Text('Select Peak Hours:', style: widget.theme.textTheme.titleMedium),
+          Text('Chọn Giờ Cao Điểm:', style: widget.theme.textTheme.titleMedium),
           Column(
             children:
                 peakHourIcons.keys.map((hour) {
@@ -187,8 +189,8 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
           // Đánh giá tổng thể
           AnimatedExpansionCard(
             icon: Icons.star_outline,
-            title: 'Overall Rating',
-            subtitle: localCustomerFlow['overallRating'] ?? 'Not rated',
+            title: 'Đánh Giá Tổng Quát',
+            subtitle: localCustomerFlow['overallRating'] ?? 'Chưa đánh giá',
             theme: widget.theme,
             children: [
               RatingButtons(

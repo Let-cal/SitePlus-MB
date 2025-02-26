@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
+import 'package:siteplus_mb/utils/constants.dart';
 
 class EnhancedTaskCard extends StatelessWidget {
   final Task task;
@@ -156,7 +157,7 @@ class EnhancedTaskCard extends StatelessWidget {
                 ),
 
                 // Site info section (if completed)
-                if (task.status.toLowerCase() == 'done' && task.site != null)
+                if (task.status == STATUS_HOAN_THANH && task.site != null)
                   Padding(
                     padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
                     child: _buildSiteInfo(context),
@@ -289,7 +290,7 @@ class EnhancedTaskCard extends StatelessWidget {
   }
 
   String _getLocationText() {
-    if (task.status.toLowerCase() == 'done' && task.site != null) {
+    if (task.status == STATUS_HOAN_THANH && task.site != null) {
       return '${task.site!.district}, ${task.site!.city}';
     }
     return 'Quận 1, TP. Hồ Chí Minh'; // Default location
@@ -306,7 +307,7 @@ class EnhancedTaskCard extends StatelessWidget {
 
   Widget _buildPriorityBadge(BuildContext context) {
     final theme = Theme.of(context);
-    final isHighPriority = task.priority.toLowerCase() == 'high';
+    final isHighPriority = task.priority == PRIORITY_CAO;
 
     return Container(
       height: 28,
@@ -366,7 +367,7 @@ class EnhancedTaskCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'View Details',
+              'Xem chi tiết',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.w500,
@@ -386,27 +387,27 @@ class EnhancedTaskCard extends StatelessWidget {
 
   Widget _buildStatusBadge(BuildContext context) {
     final theme = Theme.of(context);
-    final status = task.status.toLowerCase();
+    final status = task.status;
 
     late final ColorScheme colors;
     late final IconData icon;
 
     switch (status) {
-      case 'active':
+      case STATUS_CHUA_NHAN:
         colors = ColorScheme.fromSeed(
           seedColor: theme.colorScheme.primary,
           brightness: theme.brightness,
         );
         icon = Icons.radio_button_checked;
         break;
-      case 'in progress':
+      case STATUS_DA_NHAN:
         colors = ColorScheme.fromSeed(
           seedColor: theme.colorScheme.tertiary,
           brightness: theme.brightness,
         );
         icon = Icons.pending;
         break;
-      case 'done':
+      case STATUS_HOAN_THANH:
         colors = ColorScheme.fromSeed(
           seedColor: Colors.green,
           brightness: theme.brightness,

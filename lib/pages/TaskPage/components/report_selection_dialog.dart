@@ -21,7 +21,7 @@ class ReportSelectionDialog extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Chọn loại Report",
+                  "Chọn loại báo cáo",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -36,8 +36,8 @@ class ReportSelectionDialog extends StatelessWidget {
             _buildOption(
               context,
               icon: Icons.business,
-              title: "Report cho Site Độc Lập",
-              value: "independent",
+              title: "mặt bằng độc lập",
+              value: "Commercial",
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -50,8 +50,8 @@ class ReportSelectionDialog extends StatelessWidget {
             _buildOption(
               context,
               icon: Icons.apartment,
-              title: "Report cho Site Trong Building",
-              value: "building",
+              title: "Mặt bằng nội khu",
+              value: "Building",
             ),
             SizedBox(height: 12),
           ],

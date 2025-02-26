@@ -4,11 +4,16 @@ import 'package:siteplus_mb/pages/ReportPage/pages/ReportPage.dart';
 class ReportNavigation {
   static void navigateToReport(BuildContext context, String reportType) {
     Widget page;
-    if (reportType == "independent") {
-      page = const ReportPage();
+    String siteCategory;
+
+    if (reportType == "Commercial") {
+      siteCategory = 'Commercial';
     } else {
-      page = const ReportPage();
+      siteCategory = 'Building';
     }
+
+    // Pass the required parameters to ReportPage
+    page = ReportPage(reportType: reportType, siteCategory: siteCategory);
 
     Navigator.push(
       context,

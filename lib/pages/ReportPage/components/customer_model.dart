@@ -63,7 +63,7 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'III. Customer Model',
+            'III. Mô Hình Khách Hàng',
             style: widget.theme.textTheme.headlineLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -72,7 +72,8 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
           SizedBox(height: 16),
           InfoCard(
             icon: Icons.lightbulb_outline,
-            content: 'Note gender, age, and income distribution.',
+            content:
+                'Ghi chú giới tính, độ tuổi và mức thu nhập của khách hàng.',
             backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
             iconColor: Theme.of(context).colorScheme.secondary,
             borderRadius: 20.0,
@@ -80,13 +81,13 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
           ),
           SizedBox(height: 12.0),
           Text(
-            'Main customer gender:',
+            'Giới tính khách hàng chính:',
             style: widget.theme.textTheme.titleMedium,
           ),
           Row(
             children: [
               Radio(
-                value: 'Male',
+                value: 'Nam',
                 groupValue: localCustomerModelData['gender'],
                 onChanged: (value) {
                   setState(() {
@@ -94,12 +95,12 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
                   });
                 },
               ),
-              Text('Male'),
+              Text('Nam'),
               SizedBox(width: 5),
               Icon(Icons.male, color: widget.theme.colorScheme.primary),
 
               Radio(
-                value: 'Female',
+                value: 'Nữ',
                 groupValue: localCustomerModelData['gender'],
                 onChanged: (value) {
                   setState(() {
@@ -107,12 +108,12 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
                   });
                 },
               ),
-              Text('Female'),
+              Text('Nữ'),
               SizedBox(width: 5),
               Icon(Icons.female, color: widget.theme.colorScheme.primary),
 
               Radio(
-                value: 'Balanced',
+                value: 'Khác',
                 groupValue: localCustomerModelData['gender'],
                 onChanged: (value) {
                   setState(() {
@@ -120,16 +121,16 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
                   });
                 },
               ),
-              Text('Other'),
+              Text('Khác'),
               SizedBox(width: 5),
               Icon(Icons.people_alt, color: widget.theme.colorScheme.primary),
             ],
           ),
 
           SizedBox(height: 16),
-          Text('Age groups:', style: widget.theme.textTheme.titleMedium),
+          Text('Nhóm độ tuổi:', style: widget.theme.textTheme.titleMedium),
           BuildAgeGroupInput(
-            label: 'Under 18',
+            label: 'Dưới 18',
             keyName: 'under18',
             reportData: widget.reportData,
             theme: widget.theme,
@@ -147,25 +148,25 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
             theme: widget.theme,
           ),
           BuildAgeGroupInput(
-            label: 'Over 45',
+            label: 'Trên 45',
             keyName: 'over45',
             reportData: widget.reportData,
             theme: widget.theme,
           ),
           SizedBox(height: 16),
           Text(
-            'Average customer income:',
+            'Thu nhập trung bình của khách hàng:',
             style: widget.theme.textTheme.titleMedium,
           ),
           DropdownButtonFormField<String>(
             value: widget.reportData['customerModel']['income'],
-            hint: Text('Select income range'),
+            hint: Text('Chọn mức thu nhập'),
             items:
                 [
-                  '<5 million/month',
-                  '5-10 million/month',
-                  '10-20 million/month',
-                  '>20 million/month',
+                  '<5 triệu/tháng',
+                  '5-10 triệu/tháng',
+                  '10-20 triệu/tháng',
+                  '>20 triệu/tháng',
                 ].map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
@@ -181,7 +182,7 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
               prefixIcon: Icon(
                 Icons.monetization_on,
                 color: widget.theme.colorScheme.primary,
-              ), // Icon đồng bộ
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.0),
               ),
@@ -192,8 +193,9 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
           SizedBox(height: 16),
           AnimatedExpansionCard(
             icon: Icons.star_outline,
-            title: 'Overall Rating',
-            subtitle: localCustomerModelData['overallRating'] ?? 'Not rated',
+            title: 'Đánh Giá Tổng Quan',
+            subtitle:
+                localCustomerModelData['overallRating'] ?? 'Chưa đánh giá',
             theme: widget.theme,
             children: [
               RatingButtons(

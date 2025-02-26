@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/samble_data.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
+import 'package:siteplus_mb/utils/constants.dart';
 
-import 'package:siteplus_mb/pages/TaskPage/components/samble_data.dart';
-
-class ReportsPage extends StatefulWidget {
-  const ReportsPage({super.key});
+class ReportViewPage extends StatefulWidget {
+  const ReportViewPage({super.key});
 
   @override
-  State<ReportsPage> createState() => _ReportsPageState();
+  State<ReportViewPage> createState() => _ReportViewPageState();
 }
 
-class _ReportsPageState extends State<ReportsPage> {
+class _ReportViewPageState extends State<ReportViewPage> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
-  String selectedStatus = 'Active';
+  String selectedStatus = STATUS_CHUA_NHAN;
+  String selectedPriority = 'Tất Cả';
   List<Task> tasks = [];
   bool isLoading = true;
   late List<Task> _cachedFilteredTasks;
@@ -65,10 +66,22 @@ class _ReportsPageState extends State<ReportsPage> {
   }
 
   void _updateFilteredTasks() {
+    // Apply both status and priority filters
     _cachedFilteredTasks =
-        selectedStatus == 'All'
-            ? tasks
-            : tasks.where((task) => task.status == selectedStatus).toList();
+        tasks.where((task) {
+          // Status filter
+          bool matchesStatus =
+              selectedStatus == 'Tất Cả' ||
+              task.status.toLowerCase() == selectedStatus.toLowerCase();
+
+          // Priority filter
+          bool matchesPriority =
+              selectedPriority == 'Tất Cả' ||
+              task.priority.toLowerCase() == selectedPriority.toLowerCase();
+
+          // Task must match both filters
+          return matchesStatus && matchesPriority;
+        }).toList();
   }
 
   List<Task> get filteredTasks => _cachedFilteredTasks;
@@ -82,22 +95,30 @@ class _ReportsPageState extends State<ReportsPage> {
     _updateFilteredTasks();
   }
 
+  void _onPrioritySelected(String priority) {
+    if (priority == selectedPriority) return;
+
+    setState(() {
+      selectedPriority = priority;
+    });
+    _updateFilteredTasks();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: scaffoldKey,
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (MediaQuery.of(context).size.width >= 1200)
-              Expanded(
-                child: _buildMainContent().animate().fadeIn(
-                  duration: 800.ms,
-                  curve: Curves.easeOut,
-                ),
+            Expanded(
+              child: _buildMainContent().animate().fadeIn(
+                duration: 800.ms,
+                curve: Curves.easeOut,
               ),
+            ),
           ],
         ),
       ),
@@ -127,7 +148,7 @@ class _ReportsPageState extends State<ReportsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Tasks Overview',
+                                  'Tổng quan về nhiệm vụ',
                                   style: theme.textTheme.headlineMedium
                                       ?.copyWith(fontWeight: FontWeight.bold),
                                   overflow: TextOverflow.ellipsis,
@@ -138,7 +159,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Manage and track your tasks efficiently',
+                                  'Quản lý và theo dõi nhiệm vụ của bạn một cách hiệu quả',
                                   style: theme.textTheme.bodyLarge?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withOpacity(0.7),
@@ -157,7 +178,7 @@ class _ReportsPageState extends State<ReportsPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Tasks Overview',
+                            'Tổng quan về nhiệm vụ',
                             style: theme.textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -168,7 +189,7 @@ class _ReportsPageState extends State<ReportsPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Manage and track your tasks efficiently',
+                            'Quản lý và theo dõi nhiệm vụ của bạn một cách hiệu quả',
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: theme.colorScheme.onSurface.withOpacity(
                                 0.7,
@@ -185,6 +206,8 @@ class _ReportsPageState extends State<ReportsPage> {
                 TaskFilterChips(
                   selectedStatus: selectedStatus,
                   onStatusSelected: _onStatusSelected,
+                  selectedPriority: selectedPriority,
+                  onPrioritySelected: _onPrioritySelected,
                 ),
                 const SizedBox(height: 24),
               ],
@@ -207,32 +230,24 @@ class _ReportsPageState extends State<ReportsPage> {
   Widget _buildTaskGrid() {
     if (filteredTasks.isEmpty) {
       return const SliverFillRemaining(
-        child: Center(child: Text("No tasks available")),
+        child: Center(child: Text("Không có nhiệm vụ nào có sẵn")),
       );
     }
 
-    int crossAxisCount = MediaQuery.of(context).size.width > 600 ? 2 : 1;
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      sliver: SliverGrid(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final task = filteredTasks[index];
-          return EnhancedTaskCard(task: task)
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final task = filteredTasks[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: EnhancedTaskCard(task: task)
               .animate()
               .fadeIn(
                 delay: Duration(milliseconds: 100 * index),
                 duration: 400.ms,
               )
-              .slideY(begin: 0.2, curve: Curves.easeOutQuad);
-        }, childCount: filteredTasks.length),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.5,
-        ),
-      ),
+              .slideY(begin: 0.2, curve: Curves.easeOutQuad),
+        );
+      }, childCount: filteredTasks.length),
     );
   }
 }

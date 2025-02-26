@@ -3,7 +3,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/custom_app_bar.dart';
 import 'package:siteplus_mb/pages/HomePage/pages/home_page.dart';
 import 'package:siteplus_mb/pages/NotificationPage/pages/notification_page.dart';
-import 'package:siteplus_mb/pages/ProfilePage/pages/profile_page.dart';
 import 'package:siteplus_mb/pages/ReportViewPage/pages/report_view_page.dart';
 import 'package:siteplus_mb/pages/TaskPage/pages/task_view_page.dart';
 
@@ -29,9 +28,8 @@ class _MainScaffoldState extends State<MainScaffold> {
   final List<Widget> _pages = [
     const HomePageWidget(),
     const TasksPage(),
-    const NotificationsPage(),
-    const ReportsPage(),
-    const ProfilePage(),
+    const NotificationPage(),
+    const ReportViewPage(),
   ];
 
   @override
@@ -82,11 +80,6 @@ class _MainScaffoldState extends State<MainScaffold> {
             icon: Icon(LucideIcons.chartBar),
             selectedIcon: Icon(LucideIcons.chartBar, fill: 1),
             label: 'Reports',
-          ),
-          NavigationDestination(
-            icon: Icon(LucideIcons.user),
-            selectedIcon: Icon(LucideIcons.user, fill: 1),
-            label: 'Profile',
           ),
         ],
       ),

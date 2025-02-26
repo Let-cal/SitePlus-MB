@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:siteplus_mb/utils/constants.dart';
 
 class RatingButtons extends StatelessWidget {
   final String currentRating;
@@ -23,14 +24,14 @@ class RatingButtons extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: isSelected 
-                  ? theme.colorScheme.primary.withOpacity(0.1)
-                  : Colors.transparent,
+              color:
+                  isSelected
+                      ? theme.colorScheme.primary.withOpacity(0.1)
+                      : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected 
-                    ? theme.colorScheme.primary
-                    : theme.dividerColor,
+                color:
+                    isSelected ? theme.colorScheme.primary : theme.dividerColor,
               ),
             ),
             child: Column(
@@ -38,18 +39,20 @@ class RatingButtons extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: isSelected 
-                      ? theme.colorScheme.primary
-                      : theme.iconTheme.color,
+                  color:
+                      isSelected
+                          ? theme.colorScheme.primary
+                          : theme.iconTheme.color,
                   size: 28,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   rating,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isSelected 
-                        ? theme.colorScheme.primary
-                        : theme.textTheme.bodyMedium?.color,
+                    color:
+                        isSelected
+                            ? theme.colorScheme.primary
+                            : theme.textTheme.bodyMedium?.color,
                   ),
                 ),
               ],
@@ -64,9 +67,17 @@ class RatingButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _buildRatingButton('Good', Icons.thumb_up_outlined, currentRating == 'Good'),
+        _buildRatingButton(
+          RATING_GOOD,
+          Icons.thumb_up_outlined,
+          currentRating == RATING_GOOD,
+        ),
         const SizedBox(width: 16),
-        _buildRatingButton('Poor', Icons.thumb_down_outlined, currentRating == 'Poor'),
+        _buildRatingButton(
+          RATING_POOR,
+          Icons.thumb_down_outlined,
+          currentRating == RATING_POOR,
+        ),
       ],
     );
   }

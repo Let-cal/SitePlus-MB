@@ -30,48 +30,48 @@ class EnvironmentalFactorsSectionState
 
   final Map<String, Map<String, dynamic>> factorConfigs = {
     'airQuality': {
-      'title': 'Air Quality',
+      'title': 'Chất lượng không khí',
       'icon': Icons.air,
       'options': [
-        {'label': 'Clean', 'icon': Icons.check_circle_outline},
-        {'label': 'Average', 'icon': Icons.remove_circle_outline},
-        {'label': 'Polluted', 'icon': Icons.cancel_outlined},
+        {'label': 'Sạch', 'icon': Icons.check_circle_outline},
+        {'label': 'Trung bình', 'icon': Icons.remove_circle_outline},
+        {'label': 'Ô nhiễm', 'icon': Icons.cancel_outlined},
       ],
     },
     'naturalLight': {
-      'title': 'Natural Light',
+      'title': 'Ánh sáng tự nhiên',
       'icon': Icons.wb_sunny,
       'options': [
-        {'label': 'Good', 'icon': Icons.brightness_high},
-        {'label': 'Average', 'icon': Icons.brightness_medium},
-        {'label': 'Poor', 'icon': Icons.brightness_low},
+        {'label': 'Tốt', 'icon': Icons.brightness_high},
+        {'label': 'Trung bình', 'icon': Icons.brightness_medium},
+        {'label': 'Kém', 'icon': Icons.brightness_low},
       ],
     },
     'greenery': {
-      'title': 'Greenery',
+      'title': 'Không gian xanh',
       'icon': Icons.park,
       'options': [
-        {'label': 'Abundant', 'icon': Icons.forest},
-        {'label': 'Scarce', 'icon': Icons.grass},
-        {'label': 'None', 'icon': Icons.crop_square},
+        {'label': 'Phong phú', 'icon': Icons.forest},
+        {'label': 'Hiếm', 'icon': Icons.grass},
+        {'label': 'Không có', 'icon': Icons.crop_square},
       ],
     },
     'waste': {
-      'title': 'Waste Management',
+      'title': 'Quản lý rác thải',
       'icon': Icons.delete_outline,
       'options': [
-        {'label': 'None', 'icon': Icons.check_circle_outline},
-        {'label': 'Scarce', 'icon': Icons.remove_circle_outline},
-        {'label': 'Abundant', 'icon': Icons.cancel_outlined},
+        {'label': 'Không có', 'icon': Icons.check_circle_outline},
+        {'label': 'Ít', 'icon': Icons.remove_circle_outline},
+        {'label': 'Nhiều', 'icon': Icons.cancel_outlined},
       ],
     },
   };
 
   final Map<String, IconData> surroundingStoresIcons = {
-    'Supermarket': Icons.store_mall_directory,
-    'Restaurants': Icons.restaurant,
-    'Schools': Icons.school,
-    'Offices': Icons.business,
+    'Siêu thị': Icons.store_mall_directory,
+    'Nhà hàng': Icons.restaurant,
+    'Trường học': Icons.school,
+    'Văn phòng': Icons.business,
   };
 
   @override
@@ -91,7 +91,7 @@ class EnvironmentalFactorsSectionState
       'greenery': '',
       'waste': '',
       'surroundingStores': <String>[],
-      'customStores': <String>[], // Add this new field for custom stores
+      'customStores': <String>[],
       'overallRating': '',
     };
 
@@ -179,7 +179,7 @@ class EnvironmentalFactorsSectionState
         (localEnvironmentalFactors['customStores'] as List<dynamic>? ?? [])
             .length;
     final total = selectedPresetStores + customStores;
-    return '$total selected';
+    return '$total đã chọn';
   }
 
   @override
@@ -189,8 +189,8 @@ class EnvironmentalFactorsSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-         Text(
-            'V. Environmental Factors',
+          Text(
+            'V. Yếu Tố Môi Trường',
             style: widget.theme.textTheme.headlineLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -199,19 +199,20 @@ class EnvironmentalFactorsSectionState
           const SizedBox(height: 24),
           InfoCard(
             icon: Icons.lightbulb_outline,
-            content: 'Assess air quality, lighting, and greenery.',
+            content:
+                'Đánh giá chất lượng không khí, ánh sáng và không gian xanh.',
             backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
             iconColor: Theme.of(context).colorScheme.secondary,
             borderRadius: 20.0,
-            padding: EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(20.0),
           ),
-          SizedBox(height: 12.0),
+          const SizedBox(height: 12),
           ...factorConfigs.keys.map((key) {
             final config = factorConfigs[key]!;
             return AnimatedExpansionCard(
               icon: config['icon'] as IconData,
               title: config['title'] as String,
-              subtitle: localEnvironmentalFactors[key] ?? 'Not selected',
+              subtitle: localEnvironmentalFactors[key] ?? 'Chưa chọn',
               theme: widget.theme,
               children: [
                 Column(
@@ -237,10 +238,9 @@ class EnvironmentalFactorsSectionState
               ],
             );
           }),
-
           AnimatedExpansionCard(
             icon: Icons.store,
-            title: 'Surrounding Stores',
+            title: 'Cửa hàng xung quanh',
             subtitle: _totalSelectedStores,
             theme: widget.theme,
             children: [
@@ -259,11 +259,11 @@ class EnvironmentalFactorsSectionState
               ),
             ],
           ),
-
           AnimatedExpansionCard(
             icon: Icons.star_outline,
-            title: 'Overall Rating',
-            subtitle: localEnvironmentalFactors['overallRating'] ?? 'Not rated',
+            title: 'Đánh giá tổng quan',
+            subtitle:
+                localEnvironmentalFactors['overallRating'] ?? 'Chưa đánh giá',
             theme: widget.theme,
             children: [
               RatingButtons(

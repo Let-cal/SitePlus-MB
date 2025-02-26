@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
+import 'package:siteplus_mb/utils/constants.dart';
 
 import '../utils/report_navigation.dart';
 import './report_selection_dialog.dart';
@@ -68,7 +69,7 @@ class ViewDetailTask extends StatelessWidget {
                       const SizedBox(height: 24),
                       _buildInfoCard(
                         context,
-                        title: 'Task Information',
+                        title: 'Thông Tin Nhiệm Vụ',
                         icon: Icons.assignment,
                         child: _buildTaskInfo(context),
                       ),
@@ -76,7 +77,7 @@ class ViewDetailTask extends StatelessWidget {
                       if (task.request?.brand != null) ...[
                         _buildInfoCard(
                           context,
-                          title: 'Brand Information',
+                          title: 'Thông Tin Thương Hiệu',
                           icon: Icons.business,
                           child: _buildBrandInfo(context),
                         ),
@@ -85,7 +86,7 @@ class ViewDetailTask extends StatelessWidget {
                       if (task.site != null) ...[
                         _buildInfoCard(
                           context,
-                          title: 'Site Information',
+                          title: 'Thông Tin Mặt Bằng',
                           icon: Icons.location_on,
                           child: _buildSiteInfo(context),
                         ),
@@ -93,7 +94,7 @@ class ViewDetailTask extends StatelessWidget {
                       ],
                       _buildInfoCard(
                         context,
-                        title: 'Task Description',
+                        title: 'Miêu Tả Nhiệm Vụ',
                         icon: Icons.description,
                         child: _buildDescription(context),
                       ),
@@ -160,7 +161,7 @@ class ViewDetailTask extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Task Details',
+                    'Chi Tiết Nhiệm Vụ',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -280,28 +281,28 @@ class ViewDetailTask extends StatelessWidget {
       children: [
         _buildInfoRow(
           context,
-          label: 'Priority',
+          label: 'Mức Độ Ưu Tiên',
           value: task.priority,
           valueColor:
-              task.priority.toLowerCase() == 'high'
+              task.priority.toLowerCase() == PRIORITY_CAO
                   ? theme.colorScheme.error
                   : theme.colorScheme.tertiary,
           icon:
-              task.priority.toLowerCase() == 'high'
+              task.priority.toLowerCase() == PRIORITY_CAO
                   ? Icons.priority_high
                   : Icons.low_priority,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Deadline',
+          label: 'Thời Hạn',
           value: _formatDate(task.deadline),
           icon: Icons.calendar_today,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Status',
+          label: 'Trạng Thái',
           value: task.status,
           icon: _getStatusIcon(task.status),
           valueColor: _getStatusColor(context, task.status),
@@ -309,7 +310,7 @@ class ViewDetailTask extends StatelessWidget {
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Location',
+          label: 'Địa Chỉ',
           value: _getLocationText(),
           icon: Icons.location_on,
         ),
@@ -317,7 +318,7 @@ class ViewDetailTask extends StatelessWidget {
           const SizedBox(height: 12),
           _buildInfoRow(
             context,
-            label: 'Request ID',
+            label: 'ID-Yêu Cầu',
             value: task.requestId ?? 'N/A',
             icon: Icons.numbers,
           ),
@@ -337,7 +338,7 @@ class ViewDetailTask extends StatelessWidget {
       children: [
         _buildInfoRow(
           context,
-          label: 'Brand Name',
+          label: 'Tên Thương Hiệu',
           value: brand.name,
           icon: Icons.business,
         ),
@@ -357,28 +358,28 @@ class ViewDetailTask extends StatelessWidget {
       children: [
         _buildInfoRow(
           context,
-          label: 'Site Name',
+          label: 'Tên Mặt Bằng',
           value: site.name,
           icon: Icons.place,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Address',
+          label: 'Địa Chỉ',
           value: site.address,
           icon: Icons.map,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'District',
+          label: 'Huyện',
           value: site.district,
           icon: Icons.location_city,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'City',
+          label: 'Tỉnh',
           value: site.city,
           icon: Icons.location_on,
         ),
@@ -386,7 +387,7 @@ class ViewDetailTask extends StatelessWidget {
           const SizedBox(height: 12),
           _buildInfoRow(
             context,
-            label: 'Building',
+            label: 'Tòa Nhà',
             value: site.building!.name,
             icon: Icons.business,
           ),
@@ -466,7 +467,7 @@ class ViewDetailTask extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.close),
-            label: const Text('Close'),
+            label: const Text('Đóng'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
               side: BorderSide(color: theme.colorScheme.outline),
@@ -481,7 +482,7 @@ class ViewDetailTask extends StatelessWidget {
           child: FilledButton.icon(
             onPressed: () => _showReportSelection(context),
             icon: const Icon(Icons.edit),
-            label: const Text('Create Report'),
+            label: const Text('Tạo Báo Cáo'),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
               backgroundColor: theme.colorScheme.primary,
@@ -497,7 +498,7 @@ class ViewDetailTask extends StatelessWidget {
 
   Widget _buildStatusBadge(BuildContext context) {
     final theme = Theme.of(context);
-    final status = task.status.toLowerCase();
+    final status = task.status;
     final color = _getStatusColor(context, task.status);
     final icon = _getStatusIcon(task.status);
 
@@ -516,7 +517,7 @@ class ViewDetailTask extends StatelessWidget {
             Icon(icon, size: 16, color: color),
             const SizedBox(width: 6),
             Text(
-              task.status,
+              status,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: color,
                 fontWeight: FontWeight.bold,
@@ -546,14 +547,13 @@ class ViewDetailTask extends StatelessWidget {
 
   Color _getStatusColor(BuildContext context, String status) {
     final theme = Theme.of(context);
-    final statusLower = status.toLowerCase();
 
-    switch (statusLower) {
-      case 'active':
+    switch (status) {
+      case STATUS_CHUA_NHAN:
         return theme.colorScheme.primary;
-      case 'in progress':
+      case STATUS_DA_NHAN:
         return theme.colorScheme.tertiary;
-      case 'done':
+      case STATUS_HOAN_THANH:
         return Colors.green;
       default:
         return theme.colorScheme.secondary;
@@ -561,14 +561,12 @@ class ViewDetailTask extends StatelessWidget {
   }
 
   IconData _getStatusIcon(String status) {
-    final statusLower = status.toLowerCase();
-
-    switch (statusLower) {
-      case 'active':
+    switch (status) {
+      case STATUS_CHUA_NHAN:
         return Icons.radio_button_checked;
-      case 'in progress':
+      case STATUS_DA_NHAN:
         return Icons.pending;
-      case 'done':
+      case STATUS_HOAN_THANH:
         return Icons.check_circle;
       default:
         return Icons.circle_outlined;

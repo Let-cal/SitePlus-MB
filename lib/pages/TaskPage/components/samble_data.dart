@@ -1,3 +1,5 @@
+import 'package:siteplus_mb/utils/constants.dart';
+
 import 'task.dart';
 
 class SampleData {
@@ -84,7 +86,7 @@ class SampleData {
       brandId: 'BRD-001',
       description:
           'Highland Coffee yêu cầu khảo sát mặt bằng tại ngã tư trung tâm để mở quán cà phê mới.',
-      status: 'Approved',
+      status: 'Đã Duyệt',
       createdAt: DateTime.now().subtract(const Duration(days: 30)),
       brand: brands[0],
     ),
@@ -94,7 +96,7 @@ class SampleData {
       brandId: 'BRD-002',
       description:
           'Samsung cần khảo sát lại mặt bằng trong trung tâm thương mại để mở cửa hàng flagship.',
-      status: 'Pending',
+      status: 'Đang Chờ',
       createdAt: DateTime.now().subtract(const Duration(days: 15)),
       brand: brands[1],
     ),
@@ -104,7 +106,7 @@ class SampleData {
       brandId: 'BRD-003',
       description:
           'Apple yêu cầu kiểm tra và xác minh mặt bằng khả thi để đặt showroom tại khu đô thị mới.',
-      status: 'Approved',
+      status: 'Đã Duyệt',
       createdAt: DateTime.now().subtract(const Duration(days: 20)),
       brand: brands[2],
     ),
@@ -114,7 +116,7 @@ class SampleData {
       brandId: 'BRD-004',
       description:
           'Coca Cola muốn tìm kiếm mặt bằng cho chiến dịch quảng cáo mùa hè tại khu vui chơi lớn.',
-      status: 'Approved',
+      status: 'Đã Duyệt',
       createdAt: DateTime.now().subtract(const Duration(days: 25)),
       brand: brands[3],
     ),
@@ -124,7 +126,7 @@ class SampleData {
       brandId: 'BRD-005',
       description:
           'Masan cần khảo sát địa điểm để trưng bày sản phẩm mới trong chuỗi siêu thị lớn.',
-      status: 'Pending',
+      status: 'Đang Chờ',
       createdAt: DateTime.now().subtract(const Duration(days: 10)),
       brand: brands[4],
     ),
@@ -138,8 +140,8 @@ class SampleData {
       name: 'Khảo sát lại địa điểm Vinamilk',
       description:
           'Tiến hành khảo sát lại các vị trí quảng cáo đã triển khai theo yêu cầu của Vinamilk để xem xét khả năng mở rộng hoặc điều chỉnh.',
-      status: 'Active',
-      priority: 'High',
+      status: STATUS_CHUA_NHAN,
+      priority: PRIORITY_CAO,
       areaId: 'AREA-001',
       requestId: 'REQ-001',
       siteId: null,
@@ -157,8 +159,8 @@ class SampleData {
       name: 'Kiểm tra hiệu quả quảng cáo Apple',
       description:
           'Đánh giá hiệu quả quảng cáo tại địa điểm đã triển khai cho Apple và đề xuất phương án cải thiện nếu cần.',
-      status: 'Done',
-      priority: 'High',
+      status: STATUS_DA_NHAN,
+      priority: PRIORITY_CAO,
       areaId: 'AREA-002',
       requestId: 'REQ-003',
       siteId: 'SITE-003',
@@ -176,8 +178,8 @@ class SampleData {
       name: 'Khảo sát lại địa điểm quảng cáo Samsung',
       description:
           'Kiểm tra lại các vị trí quảng cáo Samsung Galaxy S24 để đánh giá tính hiệu quả và tìm kiếm mặt bằng thay thế nếu cần.',
-      status: 'In Progress',
-      priority: 'Medium',
+      status: STATUS_DA_NHAN,
+      priority: PRIORITY_TRUNG_BINH,
       areaId: 'AREA-003',
       requestId: 'REQ-002',
       siteId: null,
@@ -195,8 +197,8 @@ class SampleData {
       name: 'Đánh giá địa điểm quảng cáo Coca Cola',
       description:
           'Kiểm tra tính hiệu quả của địa điểm quảng cáo Coca Cola tại phố đi bộ và báo cáo đề xuất cải thiện.',
-      status: 'Done',
-      priority: 'High',
+      status: STATUS_HOAN_THANH,
+      priority: PRIORITY_CAO,
       areaId: 'AREA-004',
       requestId: 'REQ-004',
       siteId: 'SITE-004',
@@ -214,8 +216,8 @@ class SampleData {
       name: 'Khảo sát địa điểm mới tại Vinhomes',
       description:
           'Tiến hành khảo sát các vị trí tiềm năng tại Vinhomes Central Park để tìm mặt bằng phù hợp cho quảng cáo.',
-      status: 'Active',
-      priority: 'Low',
+      status: STATUS_CHUA_NHAN,
+      priority: PRIORITY_THAP,
       areaId: 'AREA-001',
       requestId: null,
       siteId: null,
@@ -233,8 +235,8 @@ class SampleData {
       name: 'Khảo sát quảng cáo Masan',
       description:
           'Tiến hành đánh giá địa điểm quảng cáo sản phẩm mới của Masan để xác nhận tính hiệu quả và báo cáo kết quả.',
-      status: 'Done',
-      priority: 'Medium',
+      status: STATUS_HOAN_THANH,
+      priority: PRIORITY_TRUNG_BINH,
       areaId: 'AREA-002',
       requestId: 'REQ-005',
       siteId: 'SITE-001',
@@ -252,8 +254,8 @@ class SampleData {
       name: 'Đánh giá phản hồi khách hàng về quảng cáo Apple',
       description:
           'Thu thập ý kiến phản hồi từ khách hàng về quảng cáo Apple và phân tích mức độ ảnh hưởng đến thương hiệu.',
-      status: 'In Progress',
-      priority: 'Medium',
+      status: STATUS_DA_NHAN,
+      priority: PRIORITY_TRUNG_BINH,
       areaId: 'AREA-003',
       requestId: 'REQ-003',
       siteId: null,

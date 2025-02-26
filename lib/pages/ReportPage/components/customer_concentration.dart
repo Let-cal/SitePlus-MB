@@ -4,6 +4,7 @@ import 'package:siteplus_mb/utils/ReportPage/custom_chip_group.dart';
 import 'package:siteplus_mb/utils/ReportPage/info_card.dart';
 import 'package:siteplus_mb/utils/ReportPage/rating_buttons.dart';
 import 'package:siteplus_mb/utils/ReportPage/selectable_option_button.dart';
+import 'package:siteplus_mb/utils/constants.dart';
 
 class CustomerConcentrationSection extends StatefulWidget {
   final Map<String, dynamic> reportData;
@@ -27,11 +28,11 @@ class CustomerConcentrationSectionState
   late Map<String, dynamic> localCustomerData;
 
   final Map<String, IconData> customerIcons = {
-    'Domestic': Icons.home,
-    'Tourists': Icons.airplanemode_active,
-    'Students': Icons.school,
-    'Office workers': Icons.business,
-    'Workers/Engineers': Icons.engineering,
+    DOMESTIC: Icons.home,
+    TOURISTS: Icons.airplanemode_active,
+    STUDENTS: Icons.school,
+    OFFICE_WORKERS: Icons.business,
+    WORKERS: Icons.engineering,
   };
 
   @override
@@ -47,7 +48,7 @@ class CustomerConcentrationSectionState
 
     final defaultValues = {
       'customerTypes': <String>[],
-      'customCustomerTypes': <String>[], // Add field for custom customer types
+      'customCustomerTypes': <String>[],
       'averageCustomers': '',
       'overallRating': '',
     };
@@ -120,7 +121,7 @@ class CustomerConcentrationSectionState
         (localCustomerData['customCustomerTypes'] as List<dynamic>? ?? [])
             .length;
     final total = selectedPresetTypes + customTypes;
-    return '$total selected';
+    return '$total đã chọn';
   }
 
   void _handleRatingSelection(String rating) {
@@ -141,8 +142,8 @@ class CustomerConcentrationSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-           Text(
-            'II. Customer Concentration',
+          Text(
+            'II. Mật độ khách hàng',
             style: widget.theme.textTheme.headlineLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -151,7 +152,7 @@ class CustomerConcentrationSectionState
           const SizedBox(height: 24),
           InfoCard(
             icon: Icons.lightbulb_outline,
-            content: 'Identify customer types and average foot traffic.',
+            content: 'Xác định loại khách hàng và lưu lượng khách trung bình.',
             backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
             iconColor: Theme.of(context).colorScheme.secondary,
             borderRadius: 20.0,
@@ -160,7 +161,7 @@ class CustomerConcentrationSectionState
           SizedBox(height: 12.0),
           AnimatedExpansionCard(
             icon: Icons.group,
-            title: 'Customer Types',
+            title: 'Loại khách hàng',
             subtitle: _totalSelectedCustomerTypes,
             theme: widget.theme,
             children: [
@@ -179,11 +180,10 @@ class CustomerConcentrationSectionState
               ),
             ],
           ),
-
           AnimatedExpansionCard(
             icon: Icons.bar_chart,
-            title: 'Average Customers per Hour',
-            subtitle: localCustomerData['averageCustomers'] ?? 'Not selected',
+            title: 'Số lượng khách trung bình \nmỗi giờ',
+            subtitle: localCustomerData['averageCustomers'] ?? 'Chưa chọn',
             theme: widget.theme,
             children: [
               Column(
@@ -209,11 +209,10 @@ class CustomerConcentrationSectionState
               ),
             ],
           ),
-
           AnimatedExpansionCard(
             icon: Icons.star_outline,
-            title: 'Overall Rating',
-            subtitle: localCustomerData['overallRating'] ?? 'Not rated',
+            title: 'Đánh Giá Tổng Quát',
+            subtitle: localCustomerData['overallRating'] ?? 'Chưa đánh giá',
             theme: widget.theme,
             children: [
               RatingButtons(
