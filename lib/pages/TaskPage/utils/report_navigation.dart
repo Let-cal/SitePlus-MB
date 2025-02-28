@@ -2,19 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/ReportPage.dart';
 
 class ReportNavigation {
-  static void navigateToReport(BuildContext context, String reportType) {
+  static void navigateToReport(
+    BuildContext context,
+    String reportType,
+    int categoryId,
+    String categoryName,
+  ) {
     Widget page;
-    String siteCategory;
-
-    if (reportType == "Commercial") {
-      siteCategory = 'Commercial';
+    String reportTypeValue;
+    if (categoryId == 2) {
+      // Mặt bằng độc lập (ID = 2 dựa vào API response)
+      reportTypeValue = "Commercial";
     } else {
-      siteCategory = 'Building';
+      // Mặt bằng nội khu (ID = 1)
+      reportTypeValue = "Building";
     }
 
     // Pass the required parameters to ReportPage
-    page = ReportPage(reportType: reportType, siteCategory: siteCategory);
-
+     page = ReportPage(
+      reportType: reportTypeValue, 
+      siteCategory: categoryName,
+      siteCategoryId: categoryId
+    );
     Navigator.push(
       context,
       PageRouteBuilder(

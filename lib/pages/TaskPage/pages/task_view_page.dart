@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
+import 'package:siteplus_mb/utils/TaskPage/task.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
 import 'package:siteplus_mb/utils/constants.dart';

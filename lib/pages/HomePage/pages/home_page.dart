@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../components/task_stats_grid.dart';
 
 class HomePageWidget extends StatefulWidget {
@@ -19,9 +20,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   };
 
   final Map<String, List<double>> _reportData = {
-    'total': [45, 52, 48, 55, 50, 58, 62], // Tổng số report
-    'accepted': [38, 43, 40, 48, 42, 50, 53], // Report được chấp nhận
-    'declined': [7, 9, 8, 7, 8, 8, 9], // Report bị từ chối
+    'total': [45, 52, 48, 55, 50, 58, 62], // Tổng số báo cáo
+    'accepted': [38, 43, 40, 48, 42, 50, 53], // Báo cáo được chấp nhận
+    'declined': [7, 9, 8, 7, 8, 8, 9], // Báo cáo bị từ chối
   };
 
   @override
@@ -41,20 +42,20 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   children: [
                     const SizedBox(height: 24),
                     _buildSectionHeader(
-                      'Task Statistics',
-                      'Last 7 days performance',
+                      'Thống kê nhiệm vụ',
+                      'Hiệu suất 7 ngày qua',
                       LucideIcons.clipboardList,
                     ),
                     const SizedBox(height: 16),
                     TaskStatsGrid(
-                      tasks: [], // Your tasks list
+                      tasks: [], // Danh sách nhiệm vụ của bạn
                       weeklyData: _weeklyData,
                     ),
                     const SizedBox(height: 24),
                     _buildSectionHeader(
-                      'Financial Overview',
-                      'Revenue and expenses analysis',
-                      LucideIcons.chartBar,
+                      'Thống kê báo cáo',
+                      'Phân tích hoàn thành báo cáo',
+                      LucideIcons.fileChartLine,
                     ),
                     const SizedBox(height: 16),
                     _buildReportStats(),
@@ -69,11 +70,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   }
 
   Widget _buildSectionHeader(String title, String subtitle, IconData icon) {
-    if (title == 'Financial Overview') {
-      title = 'Report Statistics';
-      subtitle = 'Report completion analysis';
-      icon = LucideIcons.fileChartLine;
-    }
     return Row(
       children: [
         Icon(icon, size: 24),
@@ -117,30 +113,30 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       child: Column(
         children: [
           _buildReportCard(
-            'Total Reports',
+            'Tổng số báo cáo',
             '62',
             '+7.3%',
             Colors.blue,
             _reportData['total']!,
-            'Reports submitted this week',
+            'Báo cáo đã gửi trong tuần',
           ),
           const Divider(height: 32),
           _buildReportCard(
-            'Accepted Reports',
+            'Báo cáo được chấp nhận',
             '53',
             '+85.4%',
             Colors.green,
             _reportData['accepted']!,
-            'Acceptance rate: 85.4%',
+            'Tỉ lệ chấp nhận: 85.4%',
           ),
           const Divider(height: 32),
           _buildReportCard(
-            'Declined Reports',
+            'Báo cáo bị từ chối',
             '9',
             '-2.1%',
             Colors.red,
             _reportData['declined']!,
-            'Decline rate: 14.6%',
+            'Tỉ lệ từ chối: 14.6%',
           ),
         ],
       ),

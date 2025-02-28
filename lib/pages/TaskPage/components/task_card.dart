@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
+import 'package:siteplus_mb/utils/TaskPage/task.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 class EnhancedTaskCard extends StatelessWidget {

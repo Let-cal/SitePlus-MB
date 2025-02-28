@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:siteplus_mb/pages/TaskPage/components/task.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:siteplus_mb/utils/TaskPage/task.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 import '../utils/report_navigation.dart';
@@ -21,13 +22,35 @@ class ViewDetailTask extends StatelessWidget {
     );
   }
 
-  void _showReportSelection(BuildContext context) {
+  void _showReportSelection(BuildContext context) async {
+    // Lấy token đã lưu trong SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token') ?? '';
+
+    if (token.isEmpty) {
+      // Xử lý khi không có token
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Vui lòng đăng nhập lại')));
+      return;
+    }
+
     showDialog(
       context: context,
       builder:
           (context) => ReportSelectionDialog(
-            onReportSelected: (String reportType) {
-              ReportNavigation.navigateToReport(context, reportType);
+            token: token,
+            onReportSelected: (
+              String reportType,
+              int categoryId,
+              String categoryName,
+            ) {
+              ReportNavigation.navigateToReport(
+                context,
+                reportType,
+                categoryId,
+                categoryName,
+              );
             },
           ),
     );
@@ -458,6 +481,16 @@ class ViewDetailTask extends StatelessWidget {
     );
   }
 
+  void _showEditReport(BuildContext context) async {
+    // TODO: Thực hiện logic chỉnh sửa báo cáo.
+    // Ví dụ: Hiển thị dialog hoặc chuyển sang màn hình chỉnh sửa báo cáo.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Chức năng chỉnh sửa báo cáo đang được phát triển'),
+      ),
+    );
+  }
+
   Widget _buildActionButtons(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -480,9 +513,19 @@ class ViewDetailTask extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(
           child: FilledButton.icon(
-            onPressed: () => _showReportSelection(context),
+            onPressed: () {
+              if (task.status == STATUS_HOAN_THANH) {
+                _showEditReport(context);
+              } else {
+                _showReportSelection(context);
+              }
+            },
             icon: const Icon(Icons.edit),
-            label: const Text('Tạo Báo Cáo'),
+            label: Text(
+              task.status == STATUS_HOAN_THANH
+                  ? 'Sửa Báo Cáo'
+                  : 'Tạo Báo Cáo',
+            ),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
               backgroundColor: theme.colorScheme.primary,

@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../TaskPage/components/task.dart';
+import '../../../utils/TaskPage/task.dart';
 
 class TaskStatsGrid extends StatelessWidget {
   final List<Task> tasks;
@@ -15,9 +15,11 @@ class TaskStatsGrid extends StatelessWidget {
   });
 
   double _getGrowthRate(String type) {
-    final data = weeklyData[type]!;
+    final data = weeklyData[type];
+    if (data == null || data.length < 2) return 0;
     final current = data.last;
     final previous = data[data.length - 2];
+    if (previous == 0) return 0;
     return ((current - previous) / previous * 100);
   }
 
@@ -29,11 +31,11 @@ class TaskStatsGrid extends StatelessWidget {
             .toList()
           ..sort((a, b) => a.deadline.compareTo(b.deadline));
 
-    if (upcomingTasks.isEmpty) return 'No deadlines';
+    if (upcomingTasks.isEmpty) return 'Không có hạn chót';
 
     final nextDeadline = upcomingTasks.first.deadline;
     final diff = nextDeadline.difference(now).inDays;
-    return '${diff}d left';
+    return '${diff} ngày còn lại';
   }
 
   @override
@@ -61,10 +63,11 @@ class TaskStatsGrid extends StatelessWidget {
                 child: _buildStatCard(
                   context,
                   icon: Icons.task_alt,
-                  label: 'Total Tasks',
+                  label: 'Tổng số nhiệm vụ',
                   value: tasks.length.toString(),
                   color: Colors.blue,
-                  subtitle: 'Last 7 days',
+                  subtitle: '7 ngày qua',
+                  dataKey: 'total',
                 ),
               ),
               const SizedBox(width: 16),
@@ -72,14 +75,15 @@ class TaskStatsGrid extends StatelessWidget {
                 child: _buildStatCard(
                   context,
                   icon: Icons.radio_button_checked,
-                  label: 'Active Tasks',
+                  label: 'Nhiệm vụ đang hoạt động',
                   value:
                       tasks
                           .where((t) => t.status == 'Active')
                           .length
                           .toString(),
                   color: Colors.purple,
-                  subtitle: 'Current',
+                  subtitle: 'Hiện tại',
+                  dataKey: 'active',
                 ),
               ),
             ],
@@ -91,7 +95,7 @@ class TaskStatsGrid extends StatelessWidget {
                 child: _buildStatCard(
                   context,
                   icon: Icons.pending_actions,
-                  label: 'In Progress',
+                  label: 'Đang tiến hành',
                   value:
                       tasks
                           .where((t) => t.status == 'In Progress')
@@ -99,6 +103,7 @@ class TaskStatsGrid extends StatelessWidget {
                           .toString(),
                   color: Colors.orange,
                   subtitle: _getNextDeadline(tasks),
+                  dataKey: 'inProgress',
                 ),
               ),
               const SizedBox(width: 16),
@@ -106,11 +111,12 @@ class TaskStatsGrid extends StatelessWidget {
                 child: _buildStatCard(
                   context,
                   icon: Icons.check_circle_outline,
-                  label: 'Completed',
+                  label: 'Đã hoàn thành',
                   value:
                       tasks.where((t) => t.status == 'Done').length.toString(),
                   color: Colors.green,
-                  subtitle: 'This week',
+                  subtitle: 'Tuần này',
+                  dataKey: 'done',
                 ),
               ),
             ],
@@ -127,8 +133,12 @@ class TaskStatsGrid extends StatelessWidget {
     required String value,
     required Color color,
     required String subtitle,
+    required String dataKey,
   }) {
     final theme = Theme.of(context);
+    // Ensure we have data to display, or use fallback
+    final chartData =
+        weeklyData[dataKey] ?? weeklyData['total'] ?? _getDefaultData();
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -140,25 +150,23 @@ class TaskStatsGrid extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header row with icon, label, and trend
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return Row(
-                children: [
-                  Icon(icon, color: color, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+          // Header row with icon and label
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
                   ),
-                ],
-              );
-            },
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -186,12 +194,7 @@ class TaskStatsGrid extends StatelessWidget {
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                   LineChartBarData(
-                    spots:
-                        weeklyData['total']!
-                            .asMap()
-                            .entries
-                            .map((e) => FlSpot(e.key.toDouble(), e.value))
-                            .toList(),
+                    spots: _getSpots(chartData),
                     isCurved: true,
                     color: color,
                     barWidth: 2,
@@ -209,5 +212,28 @@ class TaskStatsGrid extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // Helper method to generate spots safely
+  List<FlSpot> _getSpots(List<double> data) {
+    // Ensure we have some data
+    if (data.isEmpty) {
+      return _getDefaultData()
+          .asMap()
+          .entries
+          .map((e) => FlSpot(e.key.toDouble(), e.value))
+          .toList();
+    }
+
+    return data
+        .asMap()
+        .entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value))
+        .toList();
+  }
+
+  // Provide default data if nothing is available
+  List<double> _getDefaultData() {
+    return [0, 0, 0, 0, 0, 0, 0];
   }
 }

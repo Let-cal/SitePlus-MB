@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/main_scaffold.dart';
 import 'package:siteplus_mb/service/api_service.dart';
+import 'package:siteplus_mb/utils/Site/site_category_provider.dart';
 
 import 'custom_text_field.dart';
 import 'login_button.dart';
@@ -26,8 +27,21 @@ class _LoginFormState extends State<LoginForm> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _apiService = ApiService();
+  final _categoriesProvider = SiteCategoriesProvider();
   bool _obscurePassword = true;
   bool _isLoading = false;
+
+  Future<void> _fetchSiteCategories(String token) async {
+    try {
+      final categories = await _apiService.getSiteCategories(token);
+      _categoriesProvider.setCategories(categories);
+      print('Site categories loaded: ${categories.length} categories');
+    } catch (e) {
+      print('Error loading site categories: $e');
+      // Don't block login process if this fails
+    }
+  }
+
   Future<void> _handleLogin() async {
     if (!widget.formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
@@ -44,7 +58,9 @@ class _LoginFormState extends State<LoginForm> {
         if (response.containsKey('token') && response['token'] != null) {
           final token = response['token'];
           await prefs.setString('auth_token', token);
-          print('Token đã được lưu: ${token.substring(0, 15)}...');
+          print('Token đã được lưu: ${token}');
+          // Fetch site categories after getting token
+          await _fetchSiteCategories(token);
         } else {
           print('Lỗi: response không chứa token hoặc không hợp lệ');
         }

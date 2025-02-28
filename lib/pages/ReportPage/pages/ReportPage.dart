@@ -12,12 +12,16 @@ import '../components/site_building_section.dart';
 import '../components/visibility_obstruction.dart';
 
 class ReportPage extends StatefulWidget {
-  final String
-  reportType; // Add this to know if it's 'independent' or 'building'
-  final String? siteCategory; // Add this to store the site category
+  final String reportType; // 'Commercial' hoặc 'Building'
+  final String? siteCategory; // Tên danh mục
+  final int? siteCategoryId; // ID danh mục từ API
 
-  const ReportPage({Key? key, required this.reportType, this.siteCategory})
-    : super(key: key);
+  const ReportPage({
+    Key? key,
+    required this.reportType,
+    this.siteCategory,
+    this.siteCategoryId,
+  }) : super(key: key);
 
   @override
   _ReportPageState createState() => _ReportPageState();
@@ -36,9 +40,11 @@ class _ReportPageState extends State<ReportPage> {
     reportData = {
       'reportType': widget.reportType,
       'siteCategory': widget.siteCategory,
+      'siteCategoryId': widget.siteCategoryId,
       'siteInfo': {
         'siteName': '',
         'siteCategory': widget.siteCategory,
+        'siteCategoryId': widget.siteCategoryId,
         'address': '',
         'city': null,
         'district': null,

@@ -1,20 +1,24 @@
+import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/pages/LoginPage/pages/login_page.dart';
+import 'package:siteplus_mb/pages/NotificationPage/pages/notification_page.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
   final String? description;
   final List<Widget>? additionalActions;
+  final int notificationCount;
 
   const CustomAppBar({
-    Key? key,
+    super.key,
     this.title = 'Staff',
     this.description,
     this.additionalActions,
-  }) : super(key: key);
+    this.notificationCount = 0,
+  });
 
   @override
   State<CustomAppBar> createState() => _CustomAppBarState();
@@ -146,6 +150,34 @@ class _CustomAppBarState extends State<CustomAppBar> {
         ],
       ),
       actions: [
+        // Notification Bell icon with badge
+        // Hiển thị bell icon chỉ khi không có back button
+        badges.Badge(
+          position: badges.BadgePosition.topEnd(top: 8, end: 8),
+          showBadge: widget.notificationCount > 0,
+          badgeContent: Text(
+            widget.notificationCount.toString(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          badgeStyle: const badges.BadgeStyle(
+            badgeColor: Color(0xFF6F61EF),
+            padding: EdgeInsets.all(4),
+          ),
+          child: IconButton(
+            icon: const Icon(LucideIcons.bell),
+            onPressed: () {
+              // Hiển thị dialog thông báo compact
+              showDialog(
+                context: context,
+                builder: (context) => const CompactNotificationDialog(),
+              );
+            },
+          ),
+        ),
         if (widget.additionalActions != null) ...widget.additionalActions!,
         IconButton(
           icon: const Icon(LucideIcons.logOut),

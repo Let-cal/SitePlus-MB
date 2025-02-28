@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/main_scaffold.dart';
+import 'package:siteplus_mb/utils/Site/site_category_provider.dart';
 
 // import 'pages/ReportPage/pages/ReportPage.dart';
 import 'pages/LoginPage/pages/login_page.dart';
@@ -9,7 +11,15 @@ import 'theme.dart';
 import 'util.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SiteCategoriesProvider()),
+        // Add any other providers you might need
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
