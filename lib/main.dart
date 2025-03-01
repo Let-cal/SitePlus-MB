@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/main_scaffold.dart';
+import 'package:siteplus_mb/utils/NotificationModel/notification_provider.dart';
 import 'package:siteplus_mb/utils/Site/site_category_provider.dart';
 
 // import 'pages/ReportPage/pages/ReportPage.dart';
@@ -15,15 +16,39 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SiteCategoriesProvider()),
-        // Add any other providers you might need
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const MyApp(),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Lấy NotificationProvider và chạy fetchNotifications() & startPollingNotifications()
+    // Sử dụng microtask để đảm bảo nó chạy sau khi build hoàn thành
+    Future.microtask(() {
+      final notificationProvider = Provider.of<NotificationProvider>(
+        context,
+        listen: false,
+      );
+      // Chỉ fetch và bắt đầu polling nếu chưa initialized
+      if (!notificationProvider.isInitialized) {
+        notificationProvider.fetchNotifications();
+        notificationProvider.startPollingNotifications();
+      }
+    });
+  }
 
   Future<bool> checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
@@ -31,18 +56,17 @@ class MyApp extends StatelessWidget {
     return token.isNotEmpty;
   }
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     final brightness = View.of(context).platformDispatcher.platformBrightness;
     TextTheme textTheme = createTextTheme(context, "Roboto", "Open Sans");
-
     MaterialTheme theme = MaterialTheme(textTheme);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: brightness == Brightness.light ? theme.light() : theme.dark(),
-      home: FutureBuilder<bool>(
+      home: FutureBuilder(
         future: checkLoginStatus(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

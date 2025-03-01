@@ -90,6 +90,7 @@ class _LoginFormState extends State<LoginForm> {
           context,
           MaterialPageRoute(builder: (context) => const MainScaffold()),
         );
+
         widget.onLoginSuccess();
       } else {
         // Hiển thị thông báo lỗi
