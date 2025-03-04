@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:siteplus_mb/utils/TaskPage/task.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:siteplus_mb/components/SectionHeader.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/pagination_component.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
+import 'package:siteplus_mb/service/api_service.dart';
+import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/constants.dart';
-
-import '../components/samble_data.dart';
 
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
@@ -17,17 +19,28 @@ class TasksPage extends StatefulWidget {
 class _TasksPageState extends State<TasksPage>
     with SingleTickerProviderStateMixin {
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  final ApiService _apiService = ApiService();
+
+  // Filter state
   String selectedStatus = STATUS_CHUA_NHAN;
   String selectedPriority = 'Tất Cả';
+
+  // Pagination state
+  int currentPage = 1;
+  int totalPages = 1;
+  int pageSize = 5;
+  int totalRecords = 0;
+
+  // Task data
   List<Task> tasks = [];
   bool isLoading = true;
-  late List<Task> _cachedFilteredTasks;
+  bool isLoadingMore = false;
   late AnimationController _animationController;
+  final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
-    _cachedFilteredTasks = [];
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -45,6 +58,7 @@ class _TasksPageState extends State<TasksPage>
   @override
   void dispose() {
     _animationController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -56,74 +70,85 @@ class _TasksPageState extends State<TasksPage>
     });
 
     try {
-      print("Loading tasks...");
-      // Simulate network delay
-      await Future.delayed(const Duration(seconds: 1));
+      int? statusValue =
+          selectedStatus != 'Tất Cả' ? STATUS_API_MAP[selectedStatus] : null;
 
-      if (!mounted) return;
+      int? priorityValue =
+          selectedPriority != 'Tất Cả'
+              ? PRIORITY_API_MAP[selectedPriority]
+              : null;
 
-      // Use SampleData instead of generating fake data
-      final sampleTasks = SampleData.getTasks();
+      final result = await _apiService.getTasks(
+        status: statusValue,
+        priority: priorityValue,
+        page: currentPage,
+        pageSize: pageSize,
+      );
 
-      setState(() {
-        tasks = sampleTasks;
-        isLoading = false;
-        _updateFilteredTasks(); // Update filtered tasks after loading
-      });
+      if (result['success'] == true) {
+        final TaskResponse response = TaskResponse.fromJson(result);
 
-      print("Tasks loaded: ${tasks.length}");
-      for (var task in tasks) {
-        print(
-          "Task: ${task.name}, Status: ${task.status}, Priority: ${task.priority}",
+        setState(() {
+          tasks = response.listData;
+          totalPages = response.totalPage;
+          totalRecords = response.totalRecords;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          tasks = [];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Không thể tải nhiệm vụ'),
+          ),
         );
       }
     } catch (e) {
       print("Error loading tasks: $e");
-
       if (!mounted) return;
       setState(() {
         isLoading = false;
       });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Đã xảy ra lỗi: ${e.toString()}')));
     }
   }
 
-  void _updateFilteredTasks() {
-    // Apply both status and priority filters
-    _cachedFilteredTasks =
-        tasks.where((task) {
-          // Status filter
-          bool matchesStatus =
-              selectedStatus == 'Tất Cả' ||
-              task.status.toLowerCase() == selectedStatus.toLowerCase();
-
-          // Priority filter
-          bool matchesPriority =
-              selectedPriority == 'Tất Cả' ||
-              task.priority.toLowerCase() == selectedPriority.toLowerCase();
-
-          // Task must match both filters
-          return matchesStatus && matchesPriority;
-        }).toList();
-  }
-
-  List<Task> get filteredTasks => _cachedFilteredTasks;
-
   void _onStatusSelected(String status) {
     if (status == selectedStatus) return;
-
     setState(() {
       selectedStatus = status;
+      currentPage = 1;
     });
-    _updateFilteredTasks();
+    _loadTasks();
   }
 
   void _onPrioritySelected(String priority) {
     if (priority == selectedPriority) return;
-
     setState(() {
       selectedPriority = priority;
+      currentPage = 1;
     });
-    _updateFilteredTasks();
+    _loadTasks();
+  }
+
+  void _changePage(int page) {
+    if (page < 1 || page > totalPages || page == currentPage) return;
+    setState(() {
+      currentPage = page;
+    });
+    _pageController
+        .animateToPage(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        )
+        .then((_) {
+          _loadTasks();
+        });
   }
 
   @override
@@ -149,143 +174,195 @@ class _TasksPageState extends State<TasksPage>
 
   Widget _buildMainContent() {
     final theme = Theme.of(context);
-
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Wrap header trong LayoutBuilder để xử lý responsive
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth > 600) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Tổng quan về nhiệm vụ',
-                                  style: theme.textTheme.headlineMedium
-                                      ?.copyWith(fontWeight: FontWeight.bold),
-                                  overflow: TextOverflow.ellipsis,
-                                ).animate().slide(
-                                  duration: 300.ms,
-                                  begin: const Offset(-1, 0),
-                                  end: Offset.zero,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Quản lý và theo dõi nhiệm vụ của bạn một cách hiệu quả',
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.7),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                        ],
-                      );
-                    } else {
-                      // Stack layout for smaller screens
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'Tổng quan về nhiệm vụ',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ).animate().slide(
-                            duration: 300.ms,
-                            begin: const Offset(-1, 0),
-                            end: Offset.zero,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Quản lý và theo dõi nhiệm vụ của bạn một cách hiệu quả',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.7,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      );
-                    }
-                  },
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() {
+          currentPage = 1;
+        });
+        await _loadTasks();
+      },
+      child: CustomScrollView(
+        slivers: [
+          // Header và bộ lọc
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SectionHeader(
+                    title: 'Danh sách nhiệm vụ',
+                    subtitle: 'Quản lý và theo dõi các nhiệm vụ',
+                    icon: LucideIcons.fileCheck,
+                  ),
+                  const SizedBox(height: 24),
+                  // Task filters
+                  TaskFilterChips(
+                        selectedStatus: selectedStatus,
+                        selectedPriority: selectedPriority,
+                        onStatusSelected: _onStatusSelected,
+                        onPrioritySelected: _onPrioritySelected,
+                      )
+                      .animate()
+                      .slideY(
+                        begin: 0.3,
+                        end: 0,
+                        curve: Curves.easeOutQuart,
+                        duration: 600.ms,
+                        delay: 300.ms,
+                      )
+                      .fadeIn(delay: 300.ms, duration: 500.ms),
+                ],
+              ),
+            ),
+          ),
+          if (isLoading)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator()
+                        .animate(onPlay: (controller) => controller.repeat())
+                        .scaleXY(
+                          begin: 0.8,
+                          end: 1.2,
+                          duration: 1000.ms,
+                          curve: Curves.easeInOut,
+                        )
+                        .then()
+                        .scaleXY(
+                          begin: 1.2,
+                          end: 0.8,
+                          duration: 1000.ms,
+                          curve: Curves.easeInOut,
+                        ),
+                    const SizedBox(height: 16),
+                    Text(
+                          'Đang tải nhiệm vụ...',
+                          style: theme.textTheme.bodyLarge,
+                        )
+                        .animate(onPlay: (controller) => controller.repeat())
+                        .fadeIn(duration: 1000.ms)
+                        .then()
+                        .fadeOut(duration: 1000.ms),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                // Wrap TaskFilterChips with animate for entrance animation
-                TaskFilterChips(
-                      selectedStatus: selectedStatus,
-                      onStatusSelected: _onStatusSelected,
-                      selectedPriority: selectedPriority,
-                      onPrioritySelected: _onPrioritySelected,
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              sliver: _buildTaskList(),
+            ),
+
+          // Phần phân trang
+          if (!isLoading && tasks.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: PaginationComponent(
+                      currentPage: currentPage,
+                      totalPages: totalPages,
+                      onPageChanged: _changePage,
                     )
-                    .animate(controller: _animationController)
-                    .scale(
-                      begin: const Offset(0.95, 0.95),
-                      end: const Offset(1, 1),
-                      duration: 500.ms,
-                      curve: Curves.easeOutBack,
-                    )
+                    .animate()
                     .slideY(
                       begin: 0.3,
                       end: 0,
+                      curve: Curves.easeOutQuart,
                       duration: 600.ms,
-                      curve: Curves.easeOutCubic,
+                      delay: 200.ms,
                     )
-                    .fadeIn(duration: 400.ms, curve: Curves.easeIn),
-                const SizedBox(height: 24),
-              ],
+                    .fadeIn(delay: 200.ms, duration: 500.ms),
+              ),
             ),
-          ),
-        ),
-        if (isLoading)
-          const SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            sliver: _buildTaskGrid(),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildTaskGrid() {
-    if (filteredTasks.isEmpty) {
-      return const SliverFillRemaining(
-        child: Center(child: Text("Không có nhiệm vụ nào có sẵn")),
+  Widget _buildTaskList() {
+    if (tasks.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 64,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+              ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
+              const SizedBox(height: 16),
+              Text(
+                "Không có nhiệm vụ nào phù hợp với bộ lọc",
+                style: Theme.of(context).textTheme.titleMedium,
+              ).animate().fadeIn(duration: 600.ms, delay: 300.ms),
+            ],
+          ),
+        ),
       );
     }
 
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        final task = filteredTasks[index];
+        final task = tasks[index];
+        // Calculate staggered delay based on index
+        final delayMs = 100 + (index * 100);
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: EnhancedTaskCard(task: task)
-              .animate(
-                delay: Duration(
-                  milliseconds: 100 * index + 400,
-                ), // Delay after filter animation
-              )
-              .fadeIn(duration: 400.ms)
-              .slideY(begin: 0.2, curve: Curves.easeOutQuad),
+          child: Hero(
+            // Use ID as hero tag to enable smooth transitions if you implement task details page
+            tag: 'task-card-${task.id}',
+            child: Material(
+              color: Colors.transparent,
+              child: AnimatedTaskCard(task: task, index: index, delay: delayMs),
+            ),
+          ),
         );
-      }, childCount: filteredTasks.length),
+      }, childCount: tasks.length),
     );
+  }
+}
+
+class AnimatedTaskCard extends StatelessWidget {
+  final Task task;
+  final int index;
+  final int delay;
+
+  const AnimatedTaskCard({
+    Key? key,
+    required this.task,
+    required this.index,
+    required this.delay,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return EnhancedTaskCard(key: ValueKey('task-${task.id}'), task: task)
+        .animate()
+        .fadeIn(
+          duration: 600.ms,
+          delay: Duration(milliseconds: delay),
+          curve: Curves.easeOutQuad,
+        )
+        .slideY(
+          begin: 0.2,
+          end: 0,
+          duration: 600.ms,
+          delay: Duration(milliseconds: delay),
+          curve: Curves.easeOutQuad,
+        )
+        .scale(
+          begin: const Offset(0.95, 0.95),
+          end: const Offset(1, 1),
+          duration: 600.ms,
+          delay: Duration(milliseconds: delay),
+          curve: Curves.easeOutQuad,
+        );
   }
 }

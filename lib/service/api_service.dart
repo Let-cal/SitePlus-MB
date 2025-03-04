@@ -57,48 +57,106 @@ class ApiService {
   }
 
   // Phương thức GET cho notification API
-  Future<NotificationResponse> getNotifications() async {
-    final token = await _getToken();
+  Future<List<NotificationDto>> fetchNotifications() async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Không tìm thấy token xác thực');
+      }
 
-    if (token == null) {
-      throw Exception('Không tìm thấy token xác thực');
-    }
-
-    final response = await http.get(
-      Uri.parse(ApiLink.baseUrl + ApiEndpoints.notification),
-      headers: {'accept': '*/*', 'Authorization': 'Bearer $token'},
-    );
-
-    if (response.statusCode == 200) {
-      return NotificationResponse.fromJson(json.decode(response.body));
-    } else {
-      throw Exception(
-        'Không thể lấy danh sách thông báo: ${response.statusCode}',
+      final response = await http.get(
+        Uri.parse(ApiLink.baseUrl + ApiEndpoints.notification),
+        headers: {'accept': '*/*', 'Authorization': 'Bearer $token'},
       );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        if (responseData is! Map<String, dynamic>) {
+          throw Exception('Dữ liệu trả về không hợp lệ');
+        }
+
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final List<dynamic> notificationsJson = responseData['data'];
+
+          // Chuyển đổi danh sách JSON thành List<NotificationDto>
+          final List<NotificationDto> notifications =
+              notificationsJson
+                  .map(
+                    (json) =>
+                        NotificationDto.fromJson(json as Map<String, dynamic>),
+                  )
+                  .toList();
+
+          return notifications;
+        } else {
+          throw Exception(responseData['message'] ?? 'Không thể tải thông báo');
+        }
+      } else {
+        throw Exception(
+          'Không thể kết nối đến máy chủ: Mã lỗi ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Lỗi khi tải thông báo: ${e.toString()}');
     }
   }
-}
 
-// Model để parse response từ API
-class NotificationResponse {
-  final List<NotificationDto> data;
-  final bool success;
-  final String message;
+  Future<Map<String, dynamic>> getTasks({
+    String? search,
+    int? status,
+    int? priority,
+    int page = 1,
+    int pageSize = 5,
+  }) async {
+    try {
+      final token = await _getToken();
 
-  NotificationResponse({
-    required this.data,
-    required this.success,
-    required this.message,
-  });
+      if (token == null || token.isEmpty) {
+        return {'success': false, 'message': 'Không tìm thấy token xác thực'};
+      }
 
-  factory NotificationResponse.fromJson(Map<String, dynamic> json) {
-    return NotificationResponse(
-      data:
-          (json['data'] as List)
-              .map((item) => NotificationDto.fromJson(item))
-              .toList(),
-      success: json['success'],
-      message: json['message'],
-    );
+      // Build query parameters
+      final queryParams = <String, String>{
+        'page': page.toString(),
+        'pageSize': pageSize.toString(),
+      };
+
+      if (search != null && search.isNotEmpty) {
+        queryParams['search'] = search;
+      }
+
+      if (status != null) {
+        queryParams['status'] = status.toString();
+      }
+
+      if (priority != null) {
+        queryParams['priority'] = priority.toString();
+      }
+
+      final uri = Uri.parse(
+        ApiLink.baseUrl + ApiEndpoints.task,
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(
+        uri,
+        headers: {'accept': '*/*', 'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        return {
+          'success': false,
+          'message': 'Lỗi khi lấy danh sách task: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Đã xảy ra lỗi kết nối',
+        'error': e.toString(),
+      };
+    }
   }
 }

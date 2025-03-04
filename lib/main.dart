@@ -34,20 +34,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-
-    // Lấy NotificationProvider và chạy fetchNotifications() & startPollingNotifications()
-    // Sử dụng microtask để đảm bảo nó chạy sau khi build hoàn thành
-    Future.microtask(() {
-      final notificationProvider = Provider.of<NotificationProvider>(
-        context,
-        listen: false,
-      );
-      // Chỉ fetch và bắt đầu polling nếu chưa initialized
-      if (!notificationProvider.isInitialized) {
-        notificationProvider.fetchNotifications();
-        notificationProvider.startPollingNotifications();
-      }
-    });
   }
 
   Future<bool> checkLoginStatus() async {

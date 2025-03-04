@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
-import 'package:siteplus_mb/utils/TaskPage/task.dart';
+import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart'; // Update import to use our unified model
 import 'package:siteplus_mb/utils/constants.dart';
 
 class EnhancedTaskCard extends StatelessWidget {
@@ -251,7 +251,7 @@ class EnhancedTaskCard extends StatelessWidget {
               Icon(Icons.place, size: 16, color: theme.colorScheme.tertiary),
               const SizedBox(width: 8),
               Text(
-                site.name,
+                site.areaName,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.tertiary,
                   fontWeight: FontWeight.bold,
@@ -290,10 +290,7 @@ class EnhancedTaskCard extends StatelessWidget {
   }
 
   String _getLocationText() {
-    if (task.status == STATUS_HOAN_THANH && task.site != null) {
-      return '${task.site!.district}, ${task.site!.city}';
-    }
-    return 'Quận 1, TP. Hồ Chí Minh'; // Default location
+    return task.areaName.isNotEmpty ? task.areaName : 'Quận 1, TP. Hồ Chí Minh';
   }
 
   String _getDescription() {
@@ -367,7 +364,7 @@ class EnhancedTaskCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Xem chi tiết',
+              'Xem chi tiết',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.w500,
@@ -434,7 +431,7 @@ class EnhancedTaskCard extends StatelessWidget {
             Icon(icon, size: 16, color: colors.primary),
             const SizedBox(width: 6),
             Text(
-              task.status,
+              status,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colors.primary,
                 fontWeight: FontWeight.bold,

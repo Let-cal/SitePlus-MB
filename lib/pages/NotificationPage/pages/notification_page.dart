@@ -6,7 +6,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/main_scaffold.dart';
-import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_model.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_provider.dart';
 
@@ -23,52 +22,63 @@ class NotificationPage extends StatefulWidget {
 }
 
 class _NotificationPageState extends State<NotificationPage> {
-  final ApiService _apiService = ApiService();
-  List<NotificationDto> _notificationDtos = [];
-  bool _isLoading = true;
-  String? _errorMessage;
   Set<int> _readNotificationIds = {};
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    _loadReadNotificationIds(); // Tải danh sách ID đã đọc từ SharedPreferences
+    _loadReadNotificationIds();
+  }
 
-    final notificationProvider = Provider.of<NotificationProvider>(
-      context,
-      listen: false,
-    );
+  // Tải danh sách ID thông báo đã đọc từ SharedPreferences
+  Future<void> _loadReadNotificationIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final readIdsString = prefs.getString('read_notification_ids') ?? '[]';
+      final readIds = List<int>.from(jsonDecode(readIdsString));
 
-    if (notificationProvider.notifications.isNotEmpty &&
-        !notificationProvider.isLoading) {
-    } else {
-      notificationProvider.fetchNotifications();
+      if (mounted) {
+        setState(() {
+          _readNotificationIds = Set<int>.from(readIds);
+          _initialized = true;
+        });
+      }
+
+      // Cập nhật trạng thái đã đọc cho provider
+      final provider = Provider.of<NotificationProvider>(
+        context,
+        listen: false,
+      );
+      if (provider.notifications.isNotEmpty) {
+        _updateReadStatus(provider.notifications);
+      } else {
+        // Tải thông báo nếu chưa có
+        provider.fetchNotifications().then((_) {
+          _updateReadStatus(provider.notifications);
+        });
+      }
+    } catch (e) {
+      print('Lỗi khi tải danh sách đã đọc: $e');
+      setState(() {
+        _initialized = true;
+      });
     }
+  }
+
+  // Cập nhật trạng thái đã đọc cho danh sách thông báo
+  void _updateReadStatus(List<NotificationDto> notifications) {
+    for (var dto in notifications) {
+      dto.isRead = _readNotificationIds.contains(dto.id);
+    }
+    // Cập nhật unread count vào shared preferences
+    _saveUnreadNotificationCount(notifications.where((n) => !n.isRead).length);
   }
 
   // Lưu số lượng thông báo chưa đọc vào SharedPreferences
   Future<void> _saveUnreadNotificationCount(int count) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('unread_notification_count', count);
-  }
-
-  // Cập nhật số lượng thông báo chưa đọc
-  void _updateUnreadNotificationCount() async {
-    final unreadCount = _notifications.where((n) => !n.isRead).length;
-    await _saveUnreadNotificationCount(unreadCount);
-  }
-
-  // Tải danh sách ID thông báo đã đọc từ SharedPreferences
-  Future<void> _loadReadNotificationIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final readIdsString = prefs.getString('read_notification_ids') ?? '[]';
-    final readIds = List<int>.from(jsonDecode(readIdsString));
-
-    setState(() {
-      _readNotificationIds = Set<int>.from(readIds);
-    });
-
-    _fetchNotifications(); // Sau khi tải xong danh sách đã đọc, mới tải thông báo
   }
 
   // Lưu danh sách ID thông báo đã đọc vào SharedPreferences
@@ -80,241 +90,233 @@ class _NotificationPageState extends State<NotificationPage> {
     );
   }
 
-  Future<void> _fetchNotifications() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-
-      // Sử dụng dữ liệu từ Provider
-      final notificationProvider = Provider.of<NotificationProvider>(
-        context,
-        listen: false,
-      );
-
-      // Lấy dữ liệu từ provider (có thể là cached hoặc mới)
-      final providerData = await notificationProvider.fetchNotifications();
-
-      setState(() {
-        // Cập nhật trạng thái đã đọc dựa trên SharedPreferences
-        _notificationDtos =
-            providerData.map((item) {
-              final dto = item as NotificationDto; 
-              dto.isRead = _readNotificationIds.contains(dto.id);
-              return dto;
-            }).toList();
-
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  List<NotificationModel> get _notifications {
-    return _notificationDtos.map((dto) => dto.toModel()).toList();
-  }
-
-  List<NotificationModel> get _displayedNotifications {
-    return widget.isCompactView
-        ? _notifications.where((notification) => !notification.isRead).toList()
-        : _notifications;
-  }
-
-  void _markAsRead(int index) async {
-    final tappedNotification = _displayedNotifications[index];
+  void _markAsRead(int notificationId) async {
+    final notificationProvider = Provider.of<NotificationProvider>(
+      context,
+      listen: false,
+    );
 
     setState(() {
-      final originalIndex = _notificationDtos.indexWhere(
-        (dto) => dto.id == tappedNotification.notificationId,
-      );
-      if (originalIndex != -1) {
-        _notificationDtos[originalIndex].isRead = true;
-        _readNotificationIds.add(tappedNotification.notificationId);
-      }
+      _readNotificationIds.add(notificationId);
     });
+
+    // Cập nhật trạng thái đọc trong provider
+    notificationProvider.markAsRead(notificationId);
 
     // Lưu trạng thái đã đọc vào SharedPreferences
     await _saveReadNotificationIds();
-    _updateUnreadNotificationCount();
+    _saveUnreadNotificationCount(notificationProvider.unreadCount);
   }
 
   void _markAllAsRead() async {
+    final notificationProvider = Provider.of<NotificationProvider>(
+      context,
+      listen: false,
+    );
+
     setState(() {
-      for (var dto in _notificationDtos) {
-        dto.isRead = true;
+      for (var dto in notificationProvider.notifications) {
         _readNotificationIds.add(dto.id);
       }
     });
 
+    // Cập nhật trạng thái đọc trong provider
+    notificationProvider.markAllAsRead();
+
     // Lưu trạng thái đã đọc vào SharedPreferences
     await _saveReadNotificationIds();
-    _updateUnreadNotificationCount();
+    await _saveUnreadNotificationCount(0);
+  }
+
+  Future<void> _refreshNotifications() async {
+    final notificationProvider = Provider.of<NotificationProvider>(
+      context,
+      listen: false,
+    );
+
+    try {
+      await notificationProvider.fetchNotifications();
+      final notifications = notificationProvider.notifications;
+      _updateReadStatus(notifications);
+    } catch (e) {
+      // Lỗi đã được xử lý trong provider
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final notificationProvider = Provider.of<NotificationProvider>(context);
 
-    return Scaffold(
-      body: FutureBuilder(
-        // Khởi tạo future khi build được gọi (nếu chưa có dữ liệu)
-        future: _notificationDtos.isEmpty ? _fetchNotifications() : null,
-        builder: (context, snapshot) {
-          // Xử lý trạng thái loading
-          if (_isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return Consumer<NotificationProvider>(
+      builder: (context, notificationProvider, child) {
+        // Hiển thị loading khi đang khởi tạo hoặc đang tải dữ liệu
+        if (!_initialized || notificationProvider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          // Xử lý lỗi
-          if (_errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    LucideIcons.alarmClock,
-                    size: 64,
+        // Xử lý lỗi
+        if (notificationProvider.error != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  LucideIcons.circleAlert,
+                  size: 64,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Không thể tải thông báo',
+                  style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.error,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Không thể tải thông báo',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Text(
-                      _errorMessage!,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error.withOpacity(0.8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _fetchNotifications,
-                    icon: const Icon(LucideIcons.refreshCw),
-                    label: const Text('Thử lại'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // Hiển thị dữ liệu
-          final unreadCount = _notifications.where((n) => !n.isRead).length;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              if (!widget.isCompactView)
+                ),
+                const SizedBox(height: 8),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                            'Có $unreadCount thông báo chưa đọc',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                          .animate()
-                          .slideX(
-                            begin: -1,
-                            end: 0,
-                            duration: 300.ms,
-                            curve: Curves.easeOut,
-                          )
-                          .fadeIn(duration: 300.ms),
-
-                      TextButton.icon(
-                            onPressed: _markAllAsRead,
-                            icon: const Icon(LucideIcons.check),
-                            label: const Text('Đánh dấu tất cả là đã đọc'),
-                          )
-                          .animate()
-                          .slideX(
-                            begin: -1,
-                            end: 0,
-                            duration: 300.ms,
-                            curve: Curves.easeOut,
-                          )
-                          .fadeIn(duration: 300.ms),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    notificationProvider.error!,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error.withOpacity(0.8),
+                    ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _refreshNotifications,
+                  icon: const Icon(LucideIcons.refreshCw),
+                  label: const Text('Thử lại'),
+                ),
+              ],
+            ),
+          );
+        }
 
-              // Notifications list
-              Expanded(
-                child:
-                    _displayedNotifications.isEmpty
-                        ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                LucideIcons.bellOff,
-                                size: 64,
-                                color: theme.colorScheme.secondary.withOpacity(
-                                  0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Không có thông báo mới',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: theme.colorScheme.secondary,
-                                ),
-                              ),
-                            ],
+        // Lấy danh sách thông báo phù hợp với view mode
+        final notifications = notificationProvider.notifications;
+        final displayedNotifications =
+            widget.isCompactView
+                ? notifications.where((n) => !n.isRead).toList()
+                : notifications;
+
+        // Chuyển đổi sang model để hiển thị
+        final displayedModels =
+            displayedNotifications
+                .map(
+                  (dto) =>
+                      widget.isCompactView
+                          ? dto.toCompactModel()
+                          : dto.toModel(),
+                )
+                .toList();
+
+        // Hiển thị dữ liệu
+        final unreadCount = notificationProvider.unreadCount;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            if (!widget.isCompactView)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                          'Có $unreadCount thông báo chưa đọc',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         )
-                        : RefreshIndicator(
-                          onRefresh: _fetchNotifications,
-                          child: ListView.builder(
-                            key: ValueKey(
-                              'notifications-${_displayedNotifications.length}',
-                            ),
-                            itemCount: _displayedNotifications.length,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemBuilder: (context, index) {
-                              final notification =
-                                  _displayedNotifications[index];
-                              return NotificationCard(
-                                    notification: notification,
-                                    isCompact: widget.isCompactView,
-                                    onTap: () => _markAsRead(index),
-                                  )
-                                  .animate(
-                                    delay: Duration(milliseconds: 100 * index),
-                                  )
-                                  .fadeIn(duration: 400.ms)
-                                  .slideY(
-                                    begin: 0.2,
-                                    curve: Curves.easeOutQuad,
-                                  );
-                            },
-                          ),
-                        ),
+                        .animate()
+                        .slideX(
+                          begin: -1,
+                          end: 0,
+                          duration: 300.ms,
+                          curve: Curves.easeOut,
+                        )
+                        .fadeIn(duration: 300.ms),
+
+                    TextButton.icon(
+                          onPressed: unreadCount > 0 ? _markAllAsRead : null,
+                          icon: const Icon(LucideIcons.check),
+                          label: const Text('Đánh dấu tất cả là đã đọc'),
+                        )
+                        .animate()
+                        .slideX(
+                          begin: -1,
+                          end: 0,
+                          duration: 300.ms,
+                          curve: Curves.easeOut,
+                        )
+                        .fadeIn(duration: 300.ms),
+                  ],
+                ),
               ),
-            ],
-          );
-        },
-      ),
+
+            // Notifications list
+            Expanded(
+              child:
+                  displayedModels.isEmpty
+                      ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              widget.isCompactView
+                                  ? LucideIcons.circleAlert
+                                  : LucideIcons.bellOff,
+                              size: 64,
+                              color: theme.colorScheme.secondary.withOpacity(
+                                0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              widget.isCompactView
+                                  ? 'Không có thông báo mới'
+                                  : 'Không có thông báo nào',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      : RefreshIndicator(
+                        onRefresh: _refreshNotifications,
+                        child: ListView.builder(
+                          key: ValueKey(
+                            'notifications-${displayedModels.length}',
+                          ),
+                          itemCount: displayedModels.length,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemBuilder: (context, index) {
+                            final notification = displayedModels[index];
+                            final originalId = displayedNotifications[index].id;
+
+                            return NotificationCard(
+                                  notification: notification,
+                                  isCompact: widget.isCompactView,
+                                  onTap: () => _markAsRead(originalId),
+                                )
+                                .animate(
+                                  delay: Duration(milliseconds: 50 * index),
+                                )
+                                .fadeIn(duration: 300.ms)
+                                .slideY(begin: 0.1, curve: Curves.easeOutQuad);
+                          },
+                        ),
+                      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -325,6 +327,10 @@ class CompactNotificationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final notificationProvider = Provider.of<NotificationProvider>(context);
+    final unreadCount = notificationProvider.unreadCount;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -343,9 +349,36 @@ class CompactNotificationDialog extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Thông báo mới',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      const Text(
+                        'Thông báo mới',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (unreadCount > 0)
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   IconButton(
                     icon: const Icon(LucideIcons.x),
@@ -369,8 +402,7 @@ class CompactNotificationDialog extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    // Here we would navigate to the full notification page
-                    // through the bottom navigation bar
+                    // Navigate to the full notification page
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder:

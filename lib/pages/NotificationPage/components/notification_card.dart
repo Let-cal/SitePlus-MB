@@ -22,7 +22,7 @@ class NotificationCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 12),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 8),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -93,7 +93,7 @@ class NotificationCard extends StatelessWidget {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: ' #${notification.taskId}',
+                                    text: ' ${notification.taskId}',
                                     style: theme.textTheme.bodyLarge?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 17,
@@ -160,7 +160,8 @@ class NotificationCard extends StatelessWidget {
                               ),
 
                               // City/District - only in full view
-                              if (!isCompact)
+                              if (!isCompact &&
+                                  notification.cityDistrict.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsetsDirectional.fromSTEB(
                                     0,
@@ -186,6 +187,35 @@ class NotificationCard extends StatelessWidget {
                                     ],
                                   ),
                                 ),
+
+                              // Deadline - only in full view
+                              if (!isCompact &&
+                                  notification.taskDeadline != null)
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.fromSTEB(
+                                    0,
+                                    8,
+                                    0,
+                                    0,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        LucideIcons.clock,
+                                        size: 14,
+                                        color: Color(0xFF606A85),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Hạn: ${DateFormat('dd/MM/yyyy').format(notification.taskDeadline!)}',
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              color: const Color(0xFF606A85),
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -196,7 +226,7 @@ class NotificationCard extends StatelessWidget {
                       padding: const EdgeInsetsDirectional.fromSTEB(0, 8, 0, 0),
                       child: Text(
                         DateFormat(
-                          'MMM d, yyyy \'at\' h:mm a',
+                          'dd/MM/yyyy \'lúc\' HH:mm',
                         ).format(notification.createdAt),
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: const Color(0xFF606A85),

@@ -46,3 +46,29 @@ const String TOURISTS = 'Khách du lịch';
 const String STUDENTS = 'Sinh viên';
 const String OFFICE_WORKERS = 'Nhân viên văn phòng';
 const String WORKERS = 'Công nhân/Kỹ sư';
+
+const Map<String, int> STATUS_API_MAP = {
+  STATUS_CHUA_NHAN: 1,
+  STATUS_DA_NHAN: 2,
+  STATUS_HOAN_THANH: 3,
+};
+
+// Priority mapping for API
+const Map<String, int> PRIORITY_API_MAP = {
+  PRIORITY_THAP: 1,
+  PRIORITY_TRUNG_BINH: 2,
+  PRIORITY_CAO: 3,
+};
+
+// Reverse mappings
+const Map<int, String> API_STATUS_MAP = {
+  1: STATUS_CHUA_NHAN,
+  2: STATUS_DA_NHAN,
+  3: STATUS_HOAN_THANH,
+};
+
+const Map<int, String> API_PRIORITY_MAP = {
+  1: PRIORITY_THAP,
+  2: PRIORITY_TRUNG_BINH,
+  3: PRIORITY_CAO,
+};

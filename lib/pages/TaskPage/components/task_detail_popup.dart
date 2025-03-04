@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:siteplus_mb/utils/TaskPage/task.dart';
+import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
-import '../utils/report_navigation.dart';
+import '../../../utils/TaskPage/report_navigation.dart';
 import './report_selection_dialog.dart';
 
 class ViewDetailTask extends StatelessWidget {
@@ -373,44 +373,71 @@ class ViewDetailTask extends StatelessWidget {
   Widget _buildSiteInfo(BuildContext context) {
     final theme = Theme.of(context);
     final site = task.site;
+    Map<String, String> _parseAddress(String fullAddress) {
+      // Giả định địa chỉ có định dạng "[Địa chỉ chi tiết], [Quận], [Thành phố]"
+      final parts = fullAddress.split(', ');
+
+      String specificAddress = '';
+      String district = '';
+      String city = '';
+
+      if (parts.length >= 3) {
+        // Trường hợp đầy đủ: "2 Hải Triều, Quận 1, TP.HCM"
+        specificAddress = parts[0];
+        district = parts[1];
+        city = parts[2];
+      } else if (parts.length == 2) {
+        // Trường hợp thiếu thành phố: "2 Hải Triều, Quận 1"
+        specificAddress = parts[0];
+        district = parts[1];
+        city = "Không xác định";
+      } else if (parts.length == 1) {
+        // Trường hợp chỉ có địa chỉ không đầy đủ
+        specificAddress = parts[0];
+        district = "Không xác định";
+        city = "Không xác định";
+      }
+
+      return {
+        'specificAddress': specificAddress,
+        'district': district,
+        'city': city,
+      };
+    }
 
     if (site == null) return const SizedBox.shrink();
+
+    // Phân tích địa chỉ để tách thành địa chỉ cụ thể, quận, thành phố
+    final addressParts = _parseAddress(site.address);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildInfoRow(
           context,
-          label: 'Tên Mặt Bằng',
-          value: site.name,
-          icon: Icons.place,
-        ),
-        const SizedBox(height: 12),
-        _buildInfoRow(
-          context,
-          label: 'Địa Chỉ',
-          value: site.address,
+          label: 'Địa Chỉ Chi Tiết',
+          value: addressParts['specificAddress']!,
           icon: Icons.map,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Huyện',
-          value: site.district,
+          label: 'Huyện',
+          value: addressParts['district']!,
           icon: Icons.location_city,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Tỉnh',
-          value: site.city,
+          label: 'Tỉnh',
+          value: addressParts['city']!,
           icon: Icons.location_on,
         ),
         if (site.building != null) ...[
           const SizedBox(height: 12),
           _buildInfoRow(
             context,
-            label: 'Tòa Nhà',
+            label: 'Tòa Nhà',
             value: site.building!.name,
             icon: Icons.business,
           ),
@@ -573,10 +600,7 @@ class ViewDetailTask extends StatelessWidget {
   }
 
   String _getLocationText() {
-    if (task.site != null) {
-      return '${task.site!.district}, ${task.site!.city}';
-    }
-    return 'Quận 1, TP. Hồ Chí Minh'; // Default location
+    return task.areaName.isNotEmpty ? task.areaName : 'Quận 1, TP. Hồ Chí Minh';
   }
 
   String _getDescription() {

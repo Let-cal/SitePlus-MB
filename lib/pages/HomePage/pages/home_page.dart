@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:siteplus_mb/components/SectionHeader.dart';
 
 import '../components/task_stats_grid.dart';
 
@@ -41,10 +42,10 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
-                    _buildSectionHeader(
-                      'Thống kê nhiệm vụ',
-                      'Hiệu suất 7 ngày qua',
-                      LucideIcons.clipboardList,
+                    SectionHeader(
+                      title: 'Thống kê nhiệm vụ',
+                      subtitle: 'Hiệu suất 7 ngày qua',
+                      icon: LucideIcons.clipboardList,
                     ),
                     const SizedBox(height: 16),
                     TaskStatsGrid(
@@ -52,10 +53,10 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       weeklyData: _weeklyData,
                     ),
                     const SizedBox(height: 24),
-                    _buildSectionHeader(
-                      'Thống kê báo cáo',
-                      'Phân tích hoàn thành báo cáo',
-                      LucideIcons.fileChartLine,
+                    SectionHeader(
+                      title: 'Thống kê báo cáo',
+                      subtitle: 'Phân tích hoàn thành báo cáo',
+                      icon: LucideIcons.fileChartLine,
                     ),
                     const SizedBox(height: 16),
                     _buildReportStats(),
@@ -67,33 +68,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         ),
       ),
     );
-  }
-
-  Widget _buildSectionHeader(String title, String subtitle, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 24),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ).animate().fadeIn().slideX();
   }
 
   Widget _buildReportStats() {

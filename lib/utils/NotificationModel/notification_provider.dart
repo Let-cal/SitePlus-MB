@@ -1,68 +1,59 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/service/api_service.dart';
+import 'package:siteplus_mb/utils/NotificationModel/notification_model.dart';
 
 class NotificationProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
-  List _notifications = [];
+  List<NotificationDto> _notifications = [];
   bool _isLoading = false;
-  bool _isInitialized = false;
-  Timer? _pollingTimer;
-  DateTime _lastFetchTime = DateTime(1970);
+  String? _error;
 
-  List get notifications => _notifications;
+  List<NotificationDto> get notifications => _notifications;
   bool get isLoading => _isLoading;
-  bool get isInitialized => _isInitialized;
+  String? get error => _error;
 
-  // Hàm này sẽ kiểm tra nếu dữ liệu đã được tải gần đây, trả về cache
-  Future<List> fetchNotifications({bool forceRefresh = false}) async {
-    try {
-      // Nếu đã tải trong vòng 3 giây trước đó và không bắt buộc refresh
-      final now = DateTime.now();
-      if (!forceRefresh &&
-          _notifications.isNotEmpty &&
-          now.difference(_lastFetchTime).inSeconds < 3) {
-        return _notifications; // Sử dụng dữ liệu cached
-      }
+  // Lấy số lượng thông báo chưa đọc
+  int get unreadCount => _notifications.where((notification) => !notification.isRead).length;
 
-      // Chỉ set loading nếu notifications đang trống
-      if (_notifications.isEmpty) {
-        _isLoading = true;
-        notifyListeners();
-      }
+  Future<void> fetchNotifications() async {
+  if (_notifications.isNotEmpty && !_isLoading) {
+    return; // Tránh gọi lại API nếu danh sách không rỗng
+  }
 
-      final response = await _apiService.getNotifications();
-      _notifications = response.data;
-      _lastFetchTime = now;
-      _isInitialized = true;
+  try {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
 
-      _isLoading = false;
+    final List<NotificationDto> fetchedNotifications = await _apiService.fetchNotifications();
+
+    // Đảm bảo danh sách là List<NotificationDto>
+    _notifications = List<NotificationDto>.from(fetchedNotifications);
+    
+    _isLoading = false;
+    notifyListeners();
+  } catch (e) {
+    _isLoading = false;
+    _error = e.toString();
+    notifyListeners();
+  }
+}
+
+
+  // Đánh dấu thông báo là đã đọc
+  void markAsRead(int notificationId) {
+    final index = _notifications.indexWhere((notification) => notification.id == notificationId);
+    if (index != -1) {
+      _notifications[index].isRead = true;
       notifyListeners();
-      return _notifications;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      print("Error fetching notifications: $e");
-      return _notifications;
     }
   }
 
-  void startPollingNotifications() {
-    // Hủy timer cũ nếu có
-    _pollingTimer?.cancel();
-
-    // Tạo timer mới - chỉ poll nếu không đang loading
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      if (!_isLoading) {
-        await fetchNotifications(forceRefresh: true);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _pollingTimer?.cancel();
-    super.dispose();
+  // Đánh dấu tất cả thông báo là đã đọc
+  void markAllAsRead() {
+    for (var notification in _notifications) {
+      notification.isRead = true;
+    }
+    notifyListeners();
   }
 }
