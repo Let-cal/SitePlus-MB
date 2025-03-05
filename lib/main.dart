@@ -31,15 +31,20 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  bool? isLoggedIn;
+
   @override
   void initState() {
     super.initState();
+    _loadLoginStatus();
   }
 
-  Future<bool> checkLoginStatus() async {
+  Future<void> _loadLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token') ?? '';
-    return token.isNotEmpty;
+    setState(() {
+      isLoggedIn = token.isNotEmpty;
+    });
   }
 
   @override
@@ -52,20 +57,12 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: brightness == Brightness.light ? theme.light() : theme.dark(),
-      home: FutureBuilder(
-        future: checkLoginStatus(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          } else {
-            return snapshot.data == true
-                ? const MainScaffold() // Nếu đã đăng nhập, vào màn hình chính
-                : const LoginPage(); // Chưa đăng nhập, hiển thị màn hình Login
-          }
-        },
-      ),
+      home:
+          isLoggedIn == null
+              ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+              : isLoggedIn == true
+              ? const MainScaffold()
+              : const LoginPage(),
     );
   }
 }

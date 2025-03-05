@@ -10,7 +10,7 @@ import './report_selection_dialog.dart';
 class ViewDetailTask extends StatelessWidget {
   final Task task;
 
-  const ViewDetailTask({Key? key, required this.task}) : super(key: key);
+  const ViewDetailTask({super.key, required this.task});
 
   // Method to show the bottom sheet
   static Future<void> show(BuildContext context, Task task) async {
@@ -198,7 +198,7 @@ class ViewDetailTask extends StatelessWidget {
                   color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
                 style: IconButton.styleFrom(
-                  backgroundColor: theme.colorScheme.surfaceVariant,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
                 ),
               ),
             ],
@@ -373,7 +373,7 @@ class ViewDetailTask extends StatelessWidget {
   Widget _buildSiteInfo(BuildContext context) {
     final theme = Theme.of(context);
     final site = task.site;
-    Map<String, String> _parseAddress(String fullAddress) {
+    Map<String, String> parseAddress(String fullAddress) {
       // Giả định địa chỉ có định dạng "[Địa chỉ chi tiết], [Quận], [Thành phố]"
       final parts = fullAddress.split(', ');
 
@@ -408,7 +408,7 @@ class ViewDetailTask extends StatelessWidget {
     if (site == null) return const SizedBox.shrink();
 
     // Phân tích địa chỉ để tách thành địa chỉ cụ thể, quận, thành phố
-    final addressParts = _parseAddress(site.address);
+    final addressParts = parseAddress(site.address);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,46 +521,58 @@ class ViewDetailTask extends StatelessWidget {
   Widget _buildActionButtons(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close),
-            label: const Text('Đóng'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              side: BorderSide(color: theme.colorScheme.outline),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+                label: const Text('Đóng'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(color: theme.colorScheme.outline),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () {
+                  if (task.status == STATUS_HOAN_THANH) {
+                    _showEditReport(context);
+                  } else {
+                    _showReportSelection(context);
+                  }
+                },
+                icon: const Icon(Icons.edit),
+                label: Text(
+                  task.status == STATUS_HOAN_THANH
+                      ? 'Sửa Báo Cáo'
+                      : 'Tạo Báo Cáo',
+                ),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: theme.colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: () {
-              if (task.status == STATUS_HOAN_THANH) {
-                _showEditReport(context);
-              } else {
-                _showReportSelection(context);
-              }
-            },
-            icon: const Icon(Icons.edit),
-            label: Text(
-              task.status == STATUS_HOAN_THANH
-                  ? 'Sửa Báo Cáo'
-                  : 'Tạo Báo Cáo',
-            ),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              backgroundColor: theme.colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
+        const SizedBox(height: 8),
+        Text(
+          task.status == STATUS_HOAN_THANH
+              ? ''
+              : 'Hành động này là điền thông tin mặt bằng. Sau khi điền xong, bạn có thể tạo báo cáo và gửi lên quản lý.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
         ),
       ],
     );

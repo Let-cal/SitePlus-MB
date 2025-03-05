@@ -9,13 +9,13 @@ class CustomInputField extends StatelessWidget {
   final String initialValue;  // Add this
 
   const CustomInputField({
-    Key? key,
+    super.key,
     required this.label,
     required this.icon,
     required this.onSaved,
     required this.theme,
     this.initialValue = '',  // Add this
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

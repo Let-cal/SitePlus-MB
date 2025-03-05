@@ -17,11 +17,11 @@ class ReportPage extends StatefulWidget {
   final int? siteCategoryId; // ID danh mục từ API
 
   const ReportPage({
-    Key? key,
+    super.key,
     required this.reportType,
     this.siteCategory,
     this.siteCategoryId,
-  }) : super(key: key);
+  });
 
   @override
   _ReportPageState createState() => _ReportPageState();

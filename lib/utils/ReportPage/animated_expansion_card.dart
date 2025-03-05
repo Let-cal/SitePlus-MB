@@ -9,14 +9,14 @@ class AnimatedExpansionCard extends StatelessWidget {
   final bool initiallyExpanded; // Thêm thuộc tính này
 
   const AnimatedExpansionCard({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     this.subtitle,
     required this.children,
     required this.theme,
     this.initiallyExpanded = false, // Mặc định là đóng
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -12,11 +12,11 @@ class CustomerConcentrationSection extends StatefulWidget {
   final ThemeData theme;
 
   const CustomerConcentrationSection({
-    Key? key,
+    super.key,
     required this.reportData,
     required this.setState,
     required this.theme,
-  }) : super(key: key);
+  });
 
   @override
   CustomerConcentrationSectionState createState() =>

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class BackgroundDecorations extends StatelessWidget {
-  const BackgroundDecorations({Key? key}) : super(key: key);
+  const BackgroundDecorations({super.key});
 
   @override
   Widget build(BuildContext context) {

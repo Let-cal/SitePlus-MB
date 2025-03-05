@@ -9,13 +9,13 @@ class SelectableOptionButton extends StatelessWidget {
   final ThemeData theme;
 
   const SelectableOptionButton({
-    Key? key,
+    super.key,
     required this.value,
     required this.icon,
     required this.isSelected,
     required this.onTap,
     required this.theme,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -335,11 +335,11 @@ class AnimatedTaskCard extends StatelessWidget {
   final int delay;
 
   const AnimatedTaskCard({
-    Key? key,
+    super.key,
     required this.task,
     required this.index,
     required this.delay,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

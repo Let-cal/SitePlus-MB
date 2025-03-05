@@ -16,8 +16,9 @@ class HomePageWidget extends StatefulWidget {
 class _HomePageWidgetState extends State<HomePageWidget> {
   final Map<String, List<double>> _weeklyData = {
     'total': [10, 12, 8, 15, 11, 13, 14],
+    'active': [2, 2, 1, 9, 0, 2, 2],
     'inProgress': [5, 6, 4, 7, 5, 6, 8],
-    'completed': [3, 4, 2, 6, 4, 5, 4],
+    'completed': [3, 1, 2, 6, 4, 5, 4],
   };
 
   final Map<String, List<double>> _reportData = {

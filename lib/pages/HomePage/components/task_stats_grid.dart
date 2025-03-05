@@ -35,7 +35,7 @@ class TaskStatsGrid extends StatelessWidget {
 
     final nextDeadline = upcomingTasks.first.deadline;
     final diff = nextDeadline.difference(now).inDays;
-    return '${diff} ngày còn lại';
+    return '$diff ngày còn lại';
   }
 
   @override

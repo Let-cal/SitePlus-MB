@@ -12,11 +12,11 @@ class SiteAreaSection extends StatefulWidget {
   final ThemeData theme;
 
   const SiteAreaSection({
-    Key? key,
+    super.key,
     required this.reportData,
     required this.setState,
     required this.theme,
-  }) : super(key: key);
+  });
 
   @override
   SiteAreaSectionState createState() => SiteAreaSectionState();

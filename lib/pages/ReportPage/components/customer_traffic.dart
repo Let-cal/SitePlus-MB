@@ -12,11 +12,11 @@ class CustomerFlowSection extends StatefulWidget {
   final ThemeData theme;
 
   const CustomerFlowSection({
-    Key? key,
+    super.key,
     required this.reportData,
     required this.setState,
     required this.theme,
-  }) : super(key: key);
+  });
 
   @override
   _CustomerFlowSectionState createState() => _CustomerFlowSectionState();

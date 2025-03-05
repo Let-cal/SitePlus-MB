@@ -9,11 +9,11 @@ class CustomerModelSection extends StatefulWidget {
   final Function(void Function()) setState;
   final ThemeData theme;
   const CustomerModelSection({
-    Key? key,
+    super.key,
     required this.reportData,
     required this.setState,
     required this.theme,
-  }) : super(key: key);
+  });
   @override
   CustomerModelSectionState createState() => CustomerModelSectionState();
 }
@@ -187,7 +187,7 @@ class CustomerModelSectionState extends State<CustomerModelSection> {
                 borderRadius: BorderRadius.circular(12.0),
               ),
               filled: true,
-              fillColor: widget.theme.colorScheme.surfaceVariant,
+              fillColor: widget.theme.colorScheme.surface,
             ),
           ),
           SizedBox(height: 16),

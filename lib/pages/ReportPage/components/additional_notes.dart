@@ -179,7 +179,7 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
                     borderRadius: BorderRadius.circular(12.0),
                   ),
                   filled: true,
-                  fillColor: widget.theme.colorScheme.surfaceVariant,
+                  fillColor: widget.theme.colorScheme.surface,
                 ),
                 maxLines: 5,
                 onSaved:
@@ -192,7 +192,7 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
               style: widget.theme.textTheme.titleMedium,
             ),
             SizedBox(height: 8),
-            Container(
+            SizedBox(
               height: 100,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,

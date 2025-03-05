@@ -9,11 +9,11 @@ class PaginationComponent extends StatelessWidget {
   final void Function(int) onPageChanged;
 
   const PaginationComponent({
-    Key? key,
+    super.key,
     required this.currentPage,
     required this.totalPages,
     required this.onPageChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +77,7 @@ class PaginationComponent extends StatelessWidget {
       color:
           onPressed != null
               ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+              : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onPressed,

@@ -14,8 +14,7 @@ import '../components/notification_card.dart';
 class NotificationPage extends StatefulWidget {
   final bool isCompactView;
 
-  const NotificationPage({Key? key, this.isCompactView = false})
-    : super(key: key);
+  const NotificationPage({super.key, this.isCompactView = false});
 
   @override
   State<NotificationPage> createState() => _NotificationPageState();
@@ -323,7 +322,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
 // Compact Notification Dialog triggered from Bell icon
 class CompactNotificationDialog extends StatelessWidget {
-  const CompactNotificationDialog({Key? key}) : super(key: key);
+  const CompactNotificationDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -406,7 +405,7 @@ class CompactNotificationDialog extends StatelessWidget {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder:
-                            (context) => const MainScaffold(initialIndex: 2),
+                            (context) => const MainScaffold(initialIndex: 3),
                       ),
                     );
                   },

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class WelcomeText extends StatelessWidget {
-  const WelcomeText({Key? key}) : super(key: key);
+  const WelcomeText({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +15,7 @@ class WelcomeText extends StatelessWidget {
           'Welcome Back',
           style: textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: colorScheme.onBackground,
+            color: colorScheme.onSurface,
           ),
           textAlign: TextAlign.center,
         )
@@ -28,7 +28,7 @@ class WelcomeText extends StatelessWidget {
         Text(
           'Sign in to continue your journey',
           style: textTheme.bodyLarge?.copyWith(
-            color: colorScheme.onBackground.withOpacity(0.7),
+            color: colorScheme.onSurface.withOpacity(0.7),
           ),
           textAlign: TextAlign.center,
         )

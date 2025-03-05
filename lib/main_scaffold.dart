@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/custom_app_bar.dart';
 import 'package:siteplus_mb/pages/HomePage/pages/home_page.dart';
 import 'package:siteplus_mb/pages/NotificationPage/pages/notification_page.dart';
+import 'package:siteplus_mb/pages/SiteViewPage/pages/site_view_page.dart';
 import 'package:siteplus_mb/pages/TaskPage/pages/task_view_page.dart';
 
 class MainScaffold extends StatefulWidget {
@@ -32,19 +33,24 @@ class _MainScaffoldState extends State<MainScaffold> {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _loadUnreadNotificationCount();
-    print("thông báo chưa đọc : ${_unreadNotifications}");
+    print("thông báo chưa đọc : $_unreadNotifications");
   }
 
   // Titles và descriptions cho từng tab
   final List<Map<String, String>> _pageInfo = [
     {'title': 'Dashboard', 'description': 'Tổng quan hoạt động của dự án'},
     {'title': 'Tasks', 'description': 'Quản lý công việc của bạn'},
+    {
+      'title': 'Sites',
+      'description': 'Quản lý mặt bằng và tạo bản báo cáo chi tiết',
+    },
     {'title': 'Notifications', 'description': 'Thông báo và cập nhật mới nhất'},
   ];
 
   final List<Widget> _pages = [
     const HomePageWidget(),
     const TasksPage(),
+    const SiteViewPage(), // NotificationPage ở chế độ đầy đủ
     const NotificationPage(), // NotificationPage ở chế độ đầy đủ
   ];
 
@@ -80,7 +86,7 @@ class _MainScaffoldState extends State<MainScaffold> {
             _selectedIndex = index;
           });
 
-          if (index == 2) {
+          if (index == 3) {
             setState(() {
               _unreadNotifications = 0;
             });
@@ -98,6 +104,11 @@ class _MainScaffoldState extends State<MainScaffold> {
             icon: Icon(LucideIcons.clipboardList),
             selectedIcon: Icon(LucideIcons.clipboardList, fill: 1),
             label: 'Tasks',
+          ),
+          const NavigationDestination(
+            icon: Icon(LucideIcons.building),
+            selectedIcon: Icon(LucideIcons.building, fill: 1),
+            label: 'Sites',
           ),
           // Badge cho tab Notifications
           NavigationDestination(

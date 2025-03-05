@@ -12,7 +12,7 @@ class CustomChipGroup extends StatefulWidget {
   final String? otherOptionKey;
 
   const CustomChipGroup({
-    Key? key,
+    super.key,
     required this.options,
     required this.selectedOptions,
     this.customOptions = const [],
@@ -22,7 +22,7 @@ class CustomChipGroup extends StatefulWidget {
     this.onCustomOptionRemoved,
     this.showOtherInputOnlyWhenSelected = false,
     this.otherOptionKey,
-  }) : super(key: key);
+  });
 
   @override
   _CustomChipGroupState createState() => _CustomChipGroupState();
@@ -52,12 +52,12 @@ class _CustomChipGroupState extends State<CustomChipGroup> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity, // Đảm bảo container chiếm hết chiều rộng
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          SizedBox(
             width: double.infinity, // Đảm bảo container chiếm hết chiều rộng
             child: Wrap(
               spacing: 8,

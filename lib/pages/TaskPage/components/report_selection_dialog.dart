@@ -8,10 +8,10 @@ class ReportSelectionDialog extends StatefulWidget {
   final String token;
 
   const ReportSelectionDialog({
-    Key? key,
+    super.key,
     required this.onReportSelected,
     required this.token,
-  }) : super(key: key);
+  });
 
   @override
   _ReportSelectionDialogState createState() => _ReportSelectionDialogState();

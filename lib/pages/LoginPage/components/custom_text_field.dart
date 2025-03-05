@@ -12,7 +12,7 @@ class CustomTextField extends StatelessWidget {
   final Duration animationDelay;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.labelText,
     required this.hintText,
@@ -21,7 +21,7 @@ class CustomTextField extends StatelessWidget {
     this.obscureText = false,
     this.validator,
     this.animationDelay = Duration.zero,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

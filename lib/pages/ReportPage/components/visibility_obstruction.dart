@@ -144,7 +144,7 @@ class VisibilityObstructionSectionState
                 borderRadius: BorderRadius.circular(12.0),
               ),
               filled: true,
-              fillColor: widget.theme.colorScheme.surfaceVariant,
+              fillColor: widget.theme.colorScheme.surface,
             ),
           ),
           SizedBox(height: 16),

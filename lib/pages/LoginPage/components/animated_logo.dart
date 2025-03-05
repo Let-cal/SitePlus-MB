@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class AnimatedLogo extends StatelessWidget {
-  const AnimatedLogo({Key? key}) : super(key: key);
+  const AnimatedLogo({super.key});
 
   @override
   Widget build(BuildContext context) {

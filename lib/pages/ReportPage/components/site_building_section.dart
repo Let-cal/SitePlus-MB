@@ -7,11 +7,11 @@ class SiteBuildingSection extends StatefulWidget {
   final ThemeData theme;
 
   const SiteBuildingSection({
-    Key? key,
+    super.key,
     required this.reportData,
     required this.setState,
     required this.theme,
-  }) : super(key: key);
+  });
 
   @override
   State<SiteBuildingSection> createState() => _SiteBuildingState();

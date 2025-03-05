@@ -8,11 +8,11 @@ class ConvenienceSection extends StatefulWidget {
   final Function(void Function()) setState;
   final ThemeData theme;
   const ConvenienceSection({
-    Key? key,
+    super.key,
     required this.reportData,
     required this.setState,
     required this.theme,
-  }) : super(key: key);
+  });
 
   @override
   ConvenienceSectionState createState() => ConvenienceSectionState();
@@ -104,7 +104,7 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
                 borderRadius: BorderRadius.circular(12.0),
               ),
               filled: true,
-              fillColor: widget.theme.colorScheme.surfaceVariant,
+              fillColor: widget.theme.colorScheme.surface,
             ),
           ),
           SizedBox(height: 16),
@@ -135,7 +135,7 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
                 borderRadius: BorderRadius.circular(12.0),
               ),
               filled: true,
-              fillColor: widget.theme.colorScheme.surfaceVariant,
+              fillColor: widget.theme.colorScheme.surface,
             ),
           ),
           SizedBox(height: 16),

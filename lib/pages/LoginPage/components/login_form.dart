@@ -58,7 +58,7 @@ class _LoginFormState extends State<LoginForm> {
         if (response.containsKey('token') && response['token'] != null) {
           final token = response['token'];
           await prefs.setString('auth_token', token);
-          print('Token đã được lưu: ${token}');
+          print('Token đã được lưu: $token');
           // Fetch site categories after getting token
           await _fetchSiteCategories(token);
         } else {

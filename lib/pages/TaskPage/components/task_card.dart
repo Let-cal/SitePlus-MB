@@ -6,7 +6,7 @@ import 'package:siteplus_mb/utils/constants.dart';
 class EnhancedTaskCard extends StatelessWidget {
   final Task task;
 
-  const EnhancedTaskCard({Key? key, required this.task}) : super(key: key);
+  const EnhancedTaskCard({super.key, required this.task});
 
   @override
   Widget build(BuildContext context) {
