@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/main_scaffold.dart';
+import 'package:siteplus_mb/utils/HomePage/site_report_provider.dart';
+import 'package:siteplus_mb/utils/HomePage/task_statistics_provider.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_provider.dart';
 import 'package:siteplus_mb/utils/Site/site_category_provider.dart';
 
-// import 'pages/ReportPage/pages/ReportPage.dart';
 import 'pages/LoginPage/pages/login_page.dart';
-//  import 'pages/HomePage/pages/home_page.dart';
 import 'theme.dart';
 import 'util.dart';
 
@@ -17,6 +17,8 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => SiteCategoriesProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => TaskStatisticsProvider()),
+        ChangeNotifierProvider(create: (_) => SiteReportProvider()),
       ],
       child: const MyApp(),
     ),
@@ -45,6 +47,20 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       isLoggedIn = token.isNotEmpty;
     });
+
+    if (token.isNotEmpty) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (mounted) {
+        Provider.of<TaskStatisticsProvider>(
+          context,
+          listen: false,
+        ).fetchTaskStatistics();
+        Provider.of<SiteReportProvider>(
+          context,
+          listen: false,
+        ).fetchSiteReportStatistics();
+      }
+    }
   }
 
   @override

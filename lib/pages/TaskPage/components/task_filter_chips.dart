@@ -7,6 +7,7 @@ class TaskFilterChips extends StatelessWidget {
   final Function(String) onStatusSelected;
   final String selectedPriority;
   final Function(String) onPrioritySelected;
+  final Map<int, String> availableStatuses; // Thêm tham số này
 
   const TaskFilterChips({
     Key? key,
@@ -14,40 +15,62 @@ class TaskFilterChips extends StatelessWidget {
     required this.onStatusSelected,
     required this.selectedPriority,
     required this.onPrioritySelected,
+    required this.availableStatuses, // Yêu cầu danh sách trạng thái
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Tạo các tùy chọn bộ lọc động dựa trên trạng thái có sẵn
+    List<FilterOption> statusOptions = [
+      FilterOption(
+        label: 'Tất Cả',
+        icon: Icons.all_inclusive,
+        color: Colors.grey,
+        isSelected: selectedStatus == 'Tất Cả',
+        onTap: () => onStatusSelected('Tất Cả'),
+      ),
+    ];
+
+    // Thêm các tùy chọn từ availableStatuses
+    availableStatuses.forEach((id, label) {
+      IconData icon;
+      Color color;
+
+      // Xác định icon và màu dựa trên label
+      if (label == STATUS_CHUA_NHAN) {
+        icon = Icons.pending_actions;
+        color = Colors.blue;
+      } else if (label == STATUS_DA_NHAN) {
+        icon = Icons.assignment_ind;
+        color = Colors.orange;
+      } else if (label == STATUS_HOAN_THANH) {
+        icon = Icons.task_alt;
+        color = Colors.green;
+      } else {
+        icon = Icons.circle;
+        color = Colors.grey;
+      }
+
+      statusOptions.add(
+        FilterOption(
+          label: label,
+          icon: icon,
+          color: color,
+          isSelected: selectedStatus == label,
+          onTap: () => onStatusSelected(label),
+        ),
+      );
+    });
+
     return FilterChipPanel(
       headerTitle: 'Bộ Lọc',
       sections: [
         FilterSection(
           title: 'Trạng thái',
           isChipStyle: true,
-          options: [
-            FilterOption(
-              label: STATUS_CHUA_NHAN,
-              icon: Icons.pending_actions,
-              color: Colors.blue,
-              isSelected: selectedStatus == STATUS_CHUA_NHAN,
-              onTap: () => onStatusSelected(STATUS_CHUA_NHAN),
-            ),
-            FilterOption(
-              label: STATUS_DA_NHAN,
-              icon: Icons.assignment_ind,
-              color: Colors.orange,
-              isSelected: selectedStatus == STATUS_DA_NHAN,
-              onTap: () => onStatusSelected(STATUS_DA_NHAN),
-            ),
-            FilterOption(
-              label: STATUS_HOAN_THANH,
-              icon: Icons.task_alt,
-              color: Colors.green,
-              isSelected: selectedStatus == STATUS_HOAN_THANH,
-              onTap: () => onStatusSelected(STATUS_HOAN_THANH),
-            ),
-          ],
+          options: statusOptions,
         ),
+        // Phần mức độ ưu tiên giữ nguyên
         FilterSection(
           title: 'Mức độ ưu tiên',
           isChipStyle: false,
@@ -84,19 +107,18 @@ class TaskFilterChips extends StatelessWidget {
         ),
       ],
       activeFilters: [
-        if (selectedStatus != 'Tất Cả')
-          ActiveFilter(
-            label: selectedStatus,
-            color:
-                selectedStatus == STATUS_CHUA_NHAN
-                    ? Colors.blue
-                    : selectedStatus == STATUS_DA_NHAN
-                    ? Colors.orange
-                    : selectedStatus == STATUS_HOAN_THANH
-                    ? Colors.green
-                    : Colors.grey,
-            onRemove: () => onStatusSelected('Tất Cả'),
-          ),
+        ActiveFilter(
+          label: selectedStatus,
+          color:
+              selectedStatus == STATUS_CHUA_NHAN
+                  ? Colors.blue
+                  : selectedStatus == STATUS_DA_NHAN
+                  ? Colors.orange
+                  : selectedStatus == STATUS_HOAN_THANH
+                  ? Colors.green
+                  : Colors.grey,
+          onRemove: () => onStatusSelected('Tất Cả'),
+        ),
         if (selectedPriority != 'Tất Cả')
           ActiveFilter(
             label: selectedPriority,

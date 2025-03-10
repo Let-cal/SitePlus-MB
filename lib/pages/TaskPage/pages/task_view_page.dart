@@ -20,9 +20,11 @@ class _TasksPageState extends State<TasksPage>
     with SingleTickerProviderStateMixin {
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final ApiService _apiService = ApiService();
-
+  // Thêm biến động cho status maps
+  Map<String, int> statusApiMap = Map.from(STATUS_API_MAP);
+  Map<int, String> apiStatusMap = Map.from(API_STATUS_MAP);
   // Filter state
-  String selectedStatus = STATUS_CHUA_NHAN;
+  String selectedStatus = 'Tất Cả';
   String selectedPriority = 'Tất Cả';
 
   // Pagination state
@@ -30,6 +32,46 @@ class _TasksPageState extends State<TasksPage>
   int totalPages = 1;
   int pageSize = 5;
   int totalRecords = 0;
+  //load status of task from api
+  Future<void> _loadTaskStatuses() async {
+    try {
+      final result = await _apiService.getTaskStatuses();
+      if (result['success'] == true) {
+        final statusData = result['data']['statuses'] as List<dynamic>;
+
+        // Cập nhật STATUS_API_MAP và STATUS_ID_TO_NAME_MAP
+        Map<String, int> newStatusMap = {};
+        Map<int, String> newStatusIdToNameMap = {};
+
+        for (var status in statusData) {
+          final int id = status['id'];
+          final String name = status['name'];
+
+          // Chuẩn hóa tên status để phù hợp với UI
+          String uiName;
+          if (name == 'Chưa nhận')
+            uiName = STATUS_CHUA_NHAN;
+          else if (name == 'Đã nhận')
+            uiName = STATUS_DA_NHAN;
+          else if (name == 'Hoàn thành')
+            uiName = STATUS_HOAN_THANH;
+          else
+            uiName = name; // Trường hợp có status mới từ API
+
+          newStatusMap[uiName] = id;
+          newStatusIdToNameMap[id] = uiName;
+        }
+
+        // Cập nhật map toàn cục
+        setState(() {
+          STATUS_API_MAP = newStatusMap;
+          API_STATUS_MAP = newStatusIdToNameMap;
+        });
+      }
+    } catch (e) {
+      print("Error loading task statuses: $e");
+    }
+  }
 
   // Task data
   List<Task> tasks = [];
@@ -45,7 +87,7 @@ class _TasksPageState extends State<TasksPage>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-    _loadTasks();
+    _loadTaskStatuses().then((_) => _loadTasks());
 
     // Start the animation after a brief delay
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -202,6 +244,7 @@ class _TasksPageState extends State<TasksPage>
                         selectedPriority: selectedPriority,
                         onStatusSelected: _onStatusSelected,
                         onPrioritySelected: _onPrioritySelected,
+                        availableStatuses: apiStatusMap,
                       )
                       .animate()
                       .slideY(

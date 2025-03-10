@@ -47,7 +47,7 @@ const String STUDENTS = 'Sinh viên';
 const String OFFICE_WORKERS = 'Nhân viên văn phòng';
 const String WORKERS = 'Công nhân/Kỹ sư';
 
-const Map<String, int> STATUS_API_MAP = {
+ Map<String, int> STATUS_API_MAP = {
   STATUS_CHUA_NHAN: 1,
   STATUS_DA_NHAN: 2,
   STATUS_HOAN_THANH: 3,
@@ -61,7 +61,7 @@ const Map<String, int> PRIORITY_API_MAP = {
 };
 
 // Reverse mappings
-const Map<int, String> API_STATUS_MAP = {
+ Map<int, String> API_STATUS_MAP = {
   1: STATUS_CHUA_NHAN,
   2: STATUS_DA_NHAN,
   3: STATUS_HOAN_THANH,

@@ -1,17 +1,20 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:siteplus_mb/utils/HomePage/task_statistics.dart';
+import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 
-import '../../../utils/TaskPage/task_api_model.dart';
 
 class TaskStatsGrid extends StatelessWidget {
   final List<Task> tasks;
+  final TaskStatistics? statistics;
   final Map<String, List<double>> weeklyData;
 
   const TaskStatsGrid({
     super.key,
     required this.tasks,
     required this.weeklyData,
+    this.statistics,
   });
 
   double _getGrowthRate(String type) {
@@ -42,6 +45,12 @@ class TaskStatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Lấy giá trị từ statistics nếu có
+    final totalTasks = statistics?.totalAllDays ?? 0;
+    final assignedTasks = statistics?.totalByStatus.assigned ?? 0;
+    final inProgressTasks = statistics?.totalByStatus.inProgress ?? 0;
+    final completedTasks = statistics?.totalByStatus.completed ?? 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -64,7 +73,7 @@ class TaskStatsGrid extends StatelessWidget {
                   context,
                   icon: Icons.task_alt,
                   label: 'Tổng số nhiệm vụ',
-                  value: tasks.length.toString(),
+                  value: totalTasks.toString(),
                   color: Colors.blue,
                   subtitle: '7 ngày qua',
                   dataKey: 'total',
@@ -75,15 +84,11 @@ class TaskStatsGrid extends StatelessWidget {
                 child: _buildStatCard(
                   context,
                   icon: Icons.radio_button_checked,
-                  label: 'Nhiệm vụ đang hoạt động',
-                  value:
-                      tasks
-                          .where((t) => t.status == 'Active')
-                          .length
-                          .toString(),
+                  label: 'Nhiệm vụ đã giao',
+                  value: assignedTasks.toString(),
                   color: Colors.purple,
                   subtitle: 'Hiện tại',
-                  dataKey: 'active',
+                  dataKey: 'assigned',
                 ),
               ),
             ],
@@ -96,11 +101,7 @@ class TaskStatsGrid extends StatelessWidget {
                   context,
                   icon: Icons.pending_actions,
                   label: 'Đang tiến hành',
-                  value:
-                      tasks
-                          .where((t) => t.status == 'In Progress')
-                          .length
-                          .toString(),
+                  value: inProgressTasks.toString(),
                   color: Colors.orange,
                   subtitle: _getNextDeadline(tasks),
                   dataKey: 'inProgress',
@@ -112,11 +113,10 @@ class TaskStatsGrid extends StatelessWidget {
                   context,
                   icon: Icons.check_circle_outline,
                   label: 'Đã hoàn thành',
-                  value:
-                      tasks.where((t) => t.status == 'Done').length.toString(),
+                  value: completedTasks.toString(),
                   color: Colors.green,
                   subtitle: 'Tuần này',
-                  dataKey: 'done',
+                  dataKey: 'completed',
                 ),
               ),
             ],
