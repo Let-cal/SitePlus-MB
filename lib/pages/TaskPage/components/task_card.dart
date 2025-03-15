@@ -1,195 +1,176 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:siteplus_mb/components/unified_card_footer.dart';
+import 'package:siteplus_mb/components/unified_card_header.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
-import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart'; // Update import to use our unified model
+import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 class EnhancedTaskCard extends StatelessWidget {
   final Task task;
+  final VoidCallback? onTap;
 
-  const EnhancedTaskCard({super.key, required this.task});
+  const EnhancedTaskCard({Key? key, required this.task, this.onTap})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withOpacity(0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap:
+                  onTap ??
+                  () {
+                    ViewDetailTask.show(context, task);
+                  },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Task Header with Featured Information
+                  UnifiedCardHeader(
+                    title: 'Nhiệm vụ #${task.id}',
+                    subtitle: task.name,
+                    icon: LucideIcons.clipboardList,
+                    iconColor: theme.colorScheme.primary,
+                    badgeText: task.priority ?? '',
+                    badgeIcon:
+                        task.priority == PRIORITY_CAO
+                            ? Icons.priority_high
+                            : task.priority == PRIORITY_TRUNG_BINH
+                            ? Icons.density_medium
+                            : Icons.low_priority,
+                    badgeColor:
+                        task.priority == PRIORITY_CAO
+                            ? theme.colorScheme.error
+                            : task.priority == PRIORITY_TRUNG_BINH
+                            ? theme.colorScheme.secondary
+                            : theme.colorScheme.tertiary,
+                    showSecondaryBadge: false, // Không hiển thị secondary badge
+                  ),
+
+                  // Primary Content - Task Information
+                  _buildPrimaryTaskContent(context),
+
+                  // Secondary Content - Brand & Site Info (if available)
+                  if (task.request?.brand != null ||
+                      (task.status == STATUS_HOAN_THANH && task.site != null))
+                    _buildSecondaryContent(context),
+
+                  // Actions Footer
+                  UnifiedCardFooter(
+                    onDetailTap: () {
+                      ViewDetailTask.show(context, task);
+                    },
+                    statusBadgeText: _getVietnameseStatus(task.status),
+                    statusBadgeIcon: _getStatusIcon(task.status),
+                    statusBadgeColor: _getStatusColor(context, task.status),
+                    showDetailButtonBorder: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        )
+        .animate()
+        .fadeIn(duration: const Duration(milliseconds: 600))
+        .slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _buildPrimaryTaskContent(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: _buildFeaturedItem(
+                  context,
+                  icon: LucideIcons.calendar,
+                  label: 'Hạn chót',
+                  value: _formatDate(task.deadline),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: _buildFeaturedItem(
+                  context,
+                  icon: LucideIcons.mapPin,
+                  label: 'Khu vực',
+                  value:
+                      task.areaName.isNotEmpty
+                          ? task.areaName
+                          : 'Quận 1, TP. Hồ Chí Minh',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _getDescription(),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface.withOpacity(0.8),
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSecondaryContent(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceVariant.withOpacity(0.3),
+        border: Border(
+          top: BorderSide(color: colorScheme.onSurface.withOpacity(0.1)),
+          bottom: BorderSide(color: colorScheme.onSurface.withOpacity(0.1)),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+          // Brand Information Section
+          if (task.request?.brand != null) _buildBrandInfo(context),
+
+          // Site Information (if task is completed)
+          if (task.status == STATUS_HOAN_THANH && task.site != null)
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header section
-                Padding(
-                  padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 12, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Row chứa ID
-                          Row(
-                            children: [
-                              Text(
-                                'ID#: ',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                              ),
-                              Text(
-                                task.id,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          // Vị trí với icon
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                size: 16,
-                                color: theme.colorScheme.secondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _getLocationText(),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.secondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      _buildPriorityBadge(context),
-                    ],
-                  ),
-                ),
-
-                // Brand info section (if available)
-                if (task.request?.brand != null)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
-                    child: _buildBrandInfo(context),
-                  ),
-
-                // Title and deadline section
-                Padding(
-                  padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          task.name,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 16,
-                              color: theme.colorScheme.onSecondaryContainer,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              _formatDate(task.deadline),
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSecondaryContainer,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Description section
-                Padding(
-                  padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 12, 8),
-                  child: Text(
-                    _getDescription(),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-
-                // Site info section (if completed)
-                if (task.status == STATUS_HOAN_THANH && task.site != null)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
-                    child: _buildSiteInfo(context),
-                  ),
-
-                Column(
-                  children: [
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: theme.colorScheme.outlineVariant,
-                    ),
-                    Padding(
-                      padding: const EdgeInsetsDirectional.fromSTEB(
-                        12,
-                        12,
-                        12,
-                        8,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildViewDetailsButton(context),
-                          _buildStatusBadge(context),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                if (task.request?.brand != null) const SizedBox(height: 12),
+                _buildSiteInfo(context),
               ],
             ),
-          ),
         ],
       ),
     );
@@ -197,100 +178,227 @@ class EnhancedTaskCard extends StatelessWidget {
 
   Widget _buildBrandInfo(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final brand = task.request?.brand;
 
     if (brand == null) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.business, size: 16, color: theme.colorScheme.primary),
-          const SizedBox(width: 8),
-          Text(
-            brand.name,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.amber.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(width: 8),
-          Text(
-            '| Request #${task.request!.id.split('-').last}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.primary.withOpacity(0.7),
-            ),
+          child: const Icon(
+            LucideIcons.briefcase,
+            size: 16,
+            color: Colors.amber,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSiteInfo(BuildContext context) {
-    final theme = Theme.of(context);
-    final site = task.site;
-
-    if (site == null) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.tertiaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.place, size: 16, color: theme.colorScheme.tertiary),
-              const SizedBox(width: 8),
               Text(
-                site.areaName,
+                'Thương hiệu',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+              Text(
+                brand.name,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.tertiary,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
-          if (site.building != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, left: 24),
-              child: Text(
-                'Tòa nhà: ${site.building!.name}',
+        ),
+        if (task.request != null) ...[
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Yêu cầu',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+                Text(
+                  '#${task.request!.id.split('-').last}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSiteInfo(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final site = task.site;
+
+    if (site == null) return const SizedBox.shrink();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(LucideIcons.landmark, size: 16, color: Colors.blue),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Mặt bằng',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.tertiary.withOpacity(0.8),
+                  color: colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+              Text(
+                site.address,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-            ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 24),
-            child: Text(
-              site.address,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.tertiary.withOpacity(0.8),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            ],
+          ),
+        ),
+        if (site.building != null) ...[
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tòa nhà',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+                Text(
+                  site.building!.name,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 
-  String _getLocationText() {
-    return task.areaName.isNotEmpty ? task.areaName : 'Quận 1, TP. Hồ Chí Minh';
+  Widget _buildFeaturedItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: colorScheme.secondary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 14, color: colorScheme.secondary),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+              Text(
+                value,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getVietnameseStatus(String status) {
+    switch (status) {
+      case STATUS_CHUA_NHAN:
+        return 'Chưa nhận';
+      case STATUS_DA_NHAN:
+        return 'Đang xử lý';
+      case STATUS_HOAN_THANH:
+        return 'Hoàn thành';
+      default:
+        return 'Không xác định';
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case STATUS_CHUA_NHAN:
+        return Icons.radio_button_checked;
+      case STATUS_DA_NHAN:
+        return LucideIcons.clock;
+      case STATUS_HOAN_THANH:
+        return Icons.check_circle;
+      default:
+        return LucideIcons.circle;
+    }
+  }
+
+  Color _getStatusColor(BuildContext context, String status) {
+    final theme = Theme.of(context);
+    switch (status) {
+      case STATUS_CHUA_NHAN:
+        return theme.colorScheme.primary;
+      case STATUS_DA_NHAN:
+        return Colors.orange;
+      case STATUS_HOAN_THANH:
+        return Colors.green;
+      default:
+        return theme.colorScheme.secondary;
+    }
   }
 
   String _getDescription() {
@@ -300,147 +408,6 @@ class EnhancedTaskCard extends StatelessWidget {
     }
     // Nếu không, hiển thị mô tả của task
     return task.description;
-  }
-
-  Widget _buildPriorityBadge(BuildContext context) {
-    final theme = Theme.of(context);
-    final isHighPriority = task.priority == PRIORITY_CAO;
-
-    return Container(
-      height: 28,
-      decoration: BoxDecoration(
-        color:
-            isHighPriority
-                ? theme.colorScheme.errorContainer
-                : theme.colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isHighPriority ? Icons.priority_high : Icons.low_priority,
-              size: 16,
-              color:
-                  isHighPriority
-                      ? theme.colorScheme.error
-                      : theme.colorScheme.tertiary,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              task.priority,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color:
-                    isHighPriority
-                        ? theme.colorScheme.error
-                        : theme.colorScheme.tertiary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildViewDetailsButton(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: () {
-        // Show the ViewDetailTask bottom sheet
-        ViewDetailTask.show(context, task);
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: theme.colorScheme.outline, width: 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Xem chi tiết',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_forward,
-              size: 18,
-              color: theme.colorScheme.primary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(BuildContext context) {
-    final theme = Theme.of(context);
-    final status = task.status;
-
-    late final ColorScheme colors;
-    late final IconData icon;
-
-    switch (status) {
-      case STATUS_CHUA_NHAN:
-        colors = ColorScheme.fromSeed(
-          seedColor: theme.colorScheme.primary,
-          brightness: theme.brightness,
-        );
-        icon = Icons.radio_button_checked;
-        break;
-      case STATUS_DA_NHAN:
-        colors = ColorScheme.fromSeed(
-          seedColor: theme.colorScheme.tertiary,
-          brightness: theme.brightness,
-        );
-        icon = Icons.pending;
-        break;
-      case STATUS_HOAN_THANH:
-        colors = ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: theme.brightness,
-        );
-        icon = Icons.check_circle;
-        break;
-      default:
-        colors = theme.colorScheme;
-        icon = Icons.circle_outlined;
-    }
-
-    return Container(
-      height: 36,
-      decoration: BoxDecoration(
-        color: colors.primaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.primary, width: 1.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: colors.primary),
-            const SizedBox(width: 6),
-            Text(
-              status,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   String _formatDate(DateTime date) {

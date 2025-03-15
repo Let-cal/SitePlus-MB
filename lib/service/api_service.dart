@@ -1,11 +1,15 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/HomePage/site_report_statistics.dart';
 import 'package:siteplus_mb/utils/HomePage/task_statistics.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_model.dart';
+import 'package:siteplus_mb/utils/Site/site_api_create_model.dart';
 import 'package:siteplus_mb/utils/Site/site_category.dart';
+import 'package:siteplus_mb/utils/Site/site_model.dart';
 
 import 'api_endpoints.dart';
 import 'api_link.dart';
@@ -15,6 +19,196 @@ class ApiService {
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token') ?? '';
+  }
+
+  Future<List<Site>> getSites({
+    required int pageNumber,
+    required int pageSize,
+    String? search,
+    int? status,
+  }) async {
+    final token = await getToken();
+
+    Uri uri = Uri.parse('${ApiLink.baseUrl}${ApiEndpoints.getAllSites}');
+    Map<String, String> params = {
+      'pageNumber': pageNumber.toString(),
+      'pageSize': pageSize.toString(),
+    };
+
+    if (search != null && search.isNotEmpty) {
+      params['search'] = search;
+    }
+
+    if (status != null) {
+      params['status'] = status.toString();
+    }
+
+    try {
+      final response = await http.get(
+        uri.replace(queryParameters: params),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        print('API Response: ${jsonEncode(jsonData)}');
+
+        if (jsonData['listData'] != null && jsonData['listData'].isNotEmpty) {
+          return List<Site>.from(
+            jsonData['listData'].map((item) => Site.fromJson(item)),
+          );
+        } else {
+          return [];
+        }
+      } else {
+        throw Exception('Lỗi khi tải dữ liệu: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error details: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<District>> getDistricts({
+    required int page,
+    required int pageSize,
+  }) async {
+    final token = await getToken();
+    final response = await http.get(
+      Uri.parse(
+        '${ApiLink.baseUrl}${ApiEndpoints.getAllDistricts}?page=$page&pageSize=$pageSize',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      print('Districts Response Structure: ${jsonResponse.keys}');
+
+      // Check if the data structure matches your expectations
+      if (jsonResponse.containsKey('data') &&
+          jsonResponse['data'] is Map &&
+          (jsonResponse['data'] as Map).containsKey('listData') &&
+          jsonResponse['data']['listData'] is List) {
+        final List<dynamic> listData = jsonResponse['data']['listData'];
+        return listData.map((json) => District.fromJson(json)).toList();
+      } else if (jsonResponse.containsKey('data') &&
+          jsonResponse['data'] is List) {
+        // Alternative structure
+        final List<dynamic> listData = jsonResponse['data'];
+        return listData.map((json) => District.fromJson(json)).toList();
+      } else {
+        // Print the actual structure to debug
+        print('Unexpected response structure: $jsonResponse');
+        throw Exception('Unexpected API response format');
+      }
+    } else {
+      throw Exception('Failed to load districts: ${response.statusCode}');
+    }
+  }
+
+  // Get areas by district ID
+  Future<List<Area>> getAreas({
+    required int districtId,
+    required int page,
+    required int pageSize,
+  }) async {
+    final token = await getToken();
+    final response = await http.get(
+      Uri.parse(
+        '${ApiLink.baseUrl}${ApiEndpoints.getAllAreaByDistrict}/$districtId?page=$page&pageSize=$pageSize',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      print('Areas Response Structure: ${jsonResponse.keys}');
+
+      if (jsonResponse.containsKey('data') &&
+          jsonResponse['data'] is Map &&
+          (jsonResponse['data'] as Map).containsKey('listData') &&
+          jsonResponse['data']['listData'] is List) {
+        final List<dynamic> listData = jsonResponse['data']['listData'];
+        return listData.map((json) => Area.fromJson(json)).toList();
+      } else if (jsonResponse.containsKey('data') &&
+          jsonResponse['data'] is List) {
+        // Alternative structure
+        final List<dynamic> listData = jsonResponse['data'];
+        return listData.map((json) => Area.fromJson(json)).toList();
+      } else {
+        print('Unexpected response structure: $jsonResponse');
+        throw Exception('Unexpected API response format');
+      }
+    } else {
+      throw Exception('Failed to load areas: ${response.statusCode}');
+    }
+  }
+
+  Future<List<Area>> getAllAreas({int page = 1, int pageSize = 100}) async {
+    final token = await getToken();
+    final uri = Uri.parse(
+      '${ApiLink.baseUrl}${ApiEndpoints.getAllAreas}?page=$page&pageSize=$pageSize',
+    );
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      debugPrint('API Response: ${jsonEncode(jsonData)}');
+
+      // Kiểm tra cấu trúc dữ liệu
+      if (jsonData['data'] == null || jsonData['data']['listData'] == null) {
+        debugPrint('WARNING: Dữ liệu không đúng cấu trúc');
+        return [];
+      }
+
+      final list = jsonData['data']['listData'] as List;
+      final areas = list.map((item) => Area.fromJson(item)).toList();
+
+      // Kiểm tra dữ liệu sau khi convert
+      if (areas.any((area) => area == null)) {
+        debugPrint('WARNING: Có area null sau khi convert');
+      }
+
+      return areas;
+    } else {
+      throw Exception('Lỗi khi tải dữ liệu Area: ${response.statusCode}');
+    }
+  }
+
+  Future<Map<String, dynamic>> createSite(SiteCreateRequest request) async {
+    final token = await getToken();
+    final response = await http.post(
+      Uri.parse(ApiLink.baseUrl + ApiEndpoints.createSite),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(request.toJson()),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception(
+        'Failed to create site: ${response.statusCode} - ${response.body}',
+      );
+    }
   }
 
   // Thêm hàm chuyển đổi dữ liệu cho báo cáo site
@@ -156,6 +350,7 @@ class ApiService {
       final responseData = jsonDecode(response.body);
 
       if (responseData['success'] == true && responseData['data'] != null) {
+        print('API get all site category: ${jsonEncode(responseData)}');
         return (responseData['data'] as List)
             .map((item) => SiteCategory.fromJson(item))
             .toList();

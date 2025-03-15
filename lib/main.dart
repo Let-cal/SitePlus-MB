@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/main_scaffold.dart';
+import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/HomePage/site_report_provider.dart';
 import 'package:siteplus_mb/utils/HomePage/task_statistics_provider.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_provider.dart';
@@ -19,6 +20,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => TaskStatisticsProvider()),
         ChangeNotifierProvider(create: (_) => SiteReportProvider()),
+        ChangeNotifierProvider(create: (_) => LocationsProvider()),
       ],
       child: const MyApp(),
     ),

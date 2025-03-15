@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/image_upload_dialog.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
-import '../../../utils/TaskPage/report_navigation.dart';
+import '../../../utils/TaskPage/site_navigation.dart';
 import './report_selection_dialog.dart';
 
 class ViewDetailTask extends StatelessWidget {
@@ -45,7 +47,7 @@ class ViewDetailTask extends StatelessWidget {
               int categoryId,
               String categoryName,
             ) {
-              ReportNavigation.navigateToReport(
+              SiteNavigation.navigateToReport(
                 context,
                 reportType,
                 categoryId,
@@ -520,6 +522,31 @@ class ViewDetailTask extends StatelessWidget {
 
   Widget _buildActionButtons(BuildContext context) {
     final theme = Theme.of(context);
+    List<XFile> uploadedImages = [];
+
+    void handleImageUpload() async {
+      final result = await ImageUploadDialog.show(
+        context,
+        initialImages: uploadedImages,
+      );
+
+      if (result != null) {
+        uploadedImages = result;
+
+        if (uploadedImages.isNotEmpty) {
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Đã cập nhật ${uploadedImages.length} hình ảnh',
+                style: TextStyle(color: theme.colorScheme.onPrimary),
+              ),
+              backgroundColor: theme.colorScheme.primary,
+            ),
+          );
+        }
+      }
+    }
 
     return Column(
       children: [
@@ -527,12 +554,12 @@ class ViewDetailTask extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
-                label: const Text('Đóng'),
+                onPressed: handleImageUpload,
+                icon: const Icon(Icons.image),
+                label: const Text('Tải ảnh'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: theme.colorScheme.outline),
+                  side: BorderSide(color: theme.colorScheme.primary),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -553,7 +580,7 @@ class ViewDetailTask extends StatelessWidget {
                 label: Text(
                   task.status == STATUS_HOAN_THANH
                       ? 'Sửa Báo Cáo'
-                      : 'Tạo Báo Cáo',
+                      : 'Tạo Báo Cáo',
                 ),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -566,11 +593,25 @@ class ViewDetailTask extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close),
+          label: const Text('Đóng'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            side: BorderSide(color: theme.colorScheme.outline),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            minimumSize: Size(double.infinity, 48),
+          ),
+        ),
         const SizedBox(height: 8),
         Text(
           task.status == STATUS_HOAN_THANH
               ? ''
-              : 'Hành động này là điền thông tin mặt bằng. Sau khi điền xong, bạn có thể tạo báo cáo và gửi lên quản lý.',
+              : 'Hành động này là điền thông tin mặt bằng. Sau khi điền xong, bạn có thể tạo báo cáo và gửi lên quản lý.',
           textAlign: TextAlign.center,
           style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
         ),

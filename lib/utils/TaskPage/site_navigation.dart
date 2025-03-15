@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:siteplus_mb/pages/ReportPage/pages/ReportPage.dart';
+import 'package:provider/provider.dart';
+import 'package:siteplus_mb/pages/ReportPage/pages/site_building_page.dart';
+import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 
-class ReportNavigation {
+class SiteNavigation {
   static void navigateToReport(
     BuildContext context,
     String reportType,
     int categoryId,
     String categoryName,
-  ) {
+  ) async {
     Widget page;
     String reportTypeValue;
     if (categoryId == 2) {
@@ -17,13 +19,24 @@ class ReportNavigation {
       // Mặt bằng nội khu (ID = 1)
       reportTypeValue = "Building";
     }
-
-    // Pass the required parameters to ReportPage
-     page = ReportPage(
-      reportType: reportTypeValue, 
-      siteCategory: categoryName,
-      siteCategoryId: categoryId
+    final locationsProvider = Provider.of<LocationsProvider>(
+      context,
+      listen: false,
     );
+
+    // Pre-initialize the provider if possible
+    await locationsProvider.initialize();
+
+    // Wrap the SiteBuildingPage with ChangeNotifierProvider
+    page = ChangeNotifierProvider<LocationsProvider>.value(
+      value: locationsProvider,
+      child: SiteBuildingPage(
+        reportType: reportTypeValue,
+        siteCategory: categoryName,
+        siteCategoryId: categoryId,
+      ),
+    );
+
     Navigator.push(
       context,
       PageRouteBuilder(

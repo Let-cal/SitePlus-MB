@@ -81,7 +81,7 @@ class _SiteBuildingState extends State<SiteBuildingSection> {
           'siteName': '',
           'siteCategory': widget.reportData['siteCategory'] ?? 'Commercial',
           'address': '',
-          'city': null,
+          'area': null,
           'district': null,
           'status': 'Available',
           'buildingName': '',

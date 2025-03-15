@@ -1,31 +1,27 @@
+// lib/pages/ReportPage/components/additional_notes.dart
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:siteplus_mb/utils/ReportPage/info_card.dart';
 
-class AdditionalNotesSection extends StatefulWidget {
+class AdditionalNotesComponent extends StatefulWidget {
   final Map<String, dynamic> reportData;
-  final Function(void Function()) setState;
-  final ThemeData theme;
+  final ThemeData? theme;
 
-  const AdditionalNotesSection({
+  const AdditionalNotesComponent({
     super.key,
     required this.reportData,
-    required this.setState,
-    required this.theme,
+    this.theme,
   });
 
   @override
-  State<AdditionalNotesSection> createState() => _AdditionalNotesSectionState();
+  State<AdditionalNotesComponent> createState() => AdditionalNotesComponentState();
 }
 
-class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
+class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  final ImagePicker _picker = ImagePicker();
-  List<XFile> _images = [];
+  late TextEditingController _notesController;
 
   @override
   void initState() {
@@ -36,99 +32,42 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _controller.forward();
+    
+    // Initialize with existing data if available
+    _notesController = TextEditingController(text: widget.reportData['additionalNotes'] ?? '');
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final List<XFile> selectedImages = await _picker.pickMultiImage();
-    if (selectedImages.isNotEmpty) {
-      setState(() {
-        _images.addAll(selectedImages);
-        if (_images.length > 3) _images = _images.sublist(0, 3);
-        widget.reportData['hasImages'] = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Thêm ảnh thành công!',
-            style: TextStyle(color: widget.theme.colorScheme.onPrimary),
-          ),
-          backgroundColor: widget.theme.colorScheme.primary,
-        ),
-      );
-    }
-  }
 
-  void _removeImage(int index) {
-    setState(() {
-      _images.removeAt(index);
-      if (_images.isEmpty) {
-        widget.reportData['hasImages'] = false;
-      }
-    });
-  }
 
-  Widget _buildImageCard(XFile? image, int index) {
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String content,
+    required Color backgroundColor,
+    required Color iconColor,
+    required double borderRadius,
+    required EdgeInsets padding,
+  }) {
     return Container(
-      width: 100,
-      height: 100,
-      margin: EdgeInsets.only(right: 8),
+      width: double.infinity,
+      padding: padding,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: widget.theme.colorScheme.primary,
-          width: 1,
-          style: BorderStyle.solid,
-        ),
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(borderRadius),
       ),
-      child: Stack(
-        fit: StackFit.expand,
+      child: Row(
         children: [
-          if (image != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(7),
-              child: Image.file(File(image.path), fit: BoxFit.cover),
-            )
-          else
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.add_photo_alternate,
-                  color: widget.theme.colorScheme.primary,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Thêm ảnh',
-                  style: TextStyle(color: widget.theme.colorScheme.primary),
-                ),
-              ],
-            ),
-          if (image != null)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: GestureDetector(
-                onTap: () => _removeImage(index),
-                child: Container(
-                  padding: EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: widget.theme.colorScheme.error,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.close,
-                    size: 16,
-                    color: widget.theme.colorScheme.onError,
-                  ),
-                ),
-              ),
-            ),
+          Icon(icon, color: iconColor),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(content),
+          ),
         ],
       ),
     );
@@ -136,81 +75,52 @@ class _AdditionalNotesSectionState extends State<AdditionalNotesSection>
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16.0),
-      child: FadeTransition(
-        opacity: _animation,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'VIII. Ghi chú bổ sung',
-              style: widget.theme.textTheme.headlineLarge?.copyWith(
-                color: widget.theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+    final theme = widget.theme ?? Theme.of(context);
+    return FadeTransition(
+      opacity: _animation,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Ghi chú thêm',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
             ),
-            SizedBox(height: 16),
-            InfoCard(
-              icon: Icons.lightbulb_outline,
-              content: 'Bao gồm các chi tiết liên quan khác.',
-              backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
-              iconColor: Theme.of(context).colorScheme.secondary,
-              borderRadius: 20.0,
-              padding: EdgeInsets.all(20.0),
-            ),
-            SizedBox(height: 16),
-            AnimatedContainer(
-              duration: Duration(milliseconds: 300),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.theme.colorScheme.shadow.withAlpha(26),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Ghi chú bổ sung',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  filled: true,
-                  fillColor: widget.theme.colorScheme.surface,
+          ),
+          SizedBox(height: 16),
+          _buildInfoCard(
+            icon: Icons.lightbulb_outline,
+            content: 'Thêm các chi tiết mô tả về mặt bằng này.',
+            backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.3),
+            iconColor: theme.colorScheme.primary,
+            borderRadius: 12.0,
+            padding: EdgeInsets.all(16.0),
+          ),
+          SizedBox(height: 16),
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            child: TextFormField(
+              controller: _notesController,
+              decoration: InputDecoration(
+                labelText: 'Ghi chú bổ sung',
+                hintText: 'Thêm mô tả về đặc điểm mặt bằng, vị trí...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.0),
                 ),
-                maxLines: 5,
-                onSaved:
-                    (value) => widget.reportData['additionalNotes'] = value,
+                filled: true,
+                fillColor: theme.colorScheme.surface,
               ),
+              maxLines: 3,
+              onChanged: (value) {
+                widget.reportData['additionalNotes'] = value;
+              },
             ),
-            SizedBox(height: 24),
-            Text(
-              'Đính kèm hình ảnh (Tối đa 3)',
-              style: widget.theme.textTheme.titleMedium,
-            ),
-            SizedBox(height: 8),
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _images.length < 3 ? _images.length + 1 : 3,
-                itemBuilder: (context, index) {
-                  if (index < _images.length) {
-                    return _buildImageCard(_images[index], index);
-                  } else {
-                    return GestureDetector(
-                      onTap: _pickImage,
-                      child: _buildImageCard(null, index),
-                    );
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
+          ),
+          SizedBox(height: 24),
+         
+         
+        ],
       ),
     );
   }

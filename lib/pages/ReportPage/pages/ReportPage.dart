@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 
-import '../components/additional_notes.dart';
 import '../components/convenience.dart';
 import '../components/customer_concentration.dart';
 import '../components/customer_model.dart';
 import '../components/customer_traffic.dart';
 import '../components/environmental_factors.dart';
 import '../components/site_area.dart';
-// Import the new component
-import '../components/site_building_section.dart';
 import '../components/visibility_obstruction.dart';
 
 class ReportPage extends StatefulWidget {
   final String reportType; // 'Commercial' hoặc 'Building'
   final String? siteCategory; // Tên danh mục
   final int? siteCategoryId; // ID danh mục từ API
+  final Map<String, dynamic>? initialReportData;
 
   const ReportPage({
     super.key,
     required this.reportType,
     this.siteCategory,
     this.siteCategoryId,
+    this.initialReportData,
   });
 
   @override
@@ -37,71 +36,77 @@ class _ReportPageState extends State<ReportPage> {
   void initState() {
     super.initState();
 
-    reportData = {
-      'reportType': widget.reportType,
-      'siteCategory': widget.siteCategory,
-      'siteCategoryId': widget.siteCategoryId,
-      'siteInfo': {
-        'siteName': '',
-        'siteCategory': widget.siteCategory,
-        'siteCategoryId': widget.siteCategoryId,
-        'address': '',
-        'city': null,
-        'district': null,
-        'status': 'Available',
-        'buildingName': '',
-        'floorNumber': '',
-      },
-      'customerFlow': {
-        'vehicles': {
-          'motorcycle': 0,
-          'car': 0,
-          'bicycle': 0,
-          'pedestrian': 0,
-          'other': null,
-        },
-        'peakHours': {'morning': 0, 'noon': 0, 'afternoon': 0, 'evening': 0},
-        'overallRating': null,
-      },
-      'customerConcentration': {
-        'customerTypes': [],
-        'averageCustomers': null,
-        'overallRating': null,
-      },
-      'customerModel': {
-        'gender': null,
-        'ageGroups': {'under18': 0, '18to30': 0, '31to45': 0, 'over45': 0},
-        'income': null,
-        'overallRating': null,
-      },
-      'siteArea': {
-        'totalArea': 0,
-        'shape': null,
-        'condition': null,
-        'overallRating': null,
-      },
-      'environmentalFactors': {
-        'airQuality': null,
-        'naturalLight': null,
-        'greenery': null,
-        'waste': null,
-        'surroundingStores': [],
-        'overallRating': null,
-      },
-      'visibilityAndObstruction': {
-        'hasObstruction': false,
-        'obstructionType': null,
-        'obstructionLevel': null,
-        'overallRating': null,
-      },
-      'convenience': {
-        'terrain': null,
-        'accessibility': null,
-        'overallRating': null,
-      },
-      'additionalNotes': null,
-      'hasImages': false,
-    };
+    reportData =
+        widget.initialReportData ??
+        {
+          'reportType': widget.reportType,
+          'siteCategory': widget.siteCategory,
+          'siteCategoryId': widget.siteCategoryId,
+          'siteInfo': {
+            'siteName': '',
+            'siteCategory': widget.siteCategory,
+            'siteCategoryId': widget.siteCategoryId,
+            'address': '',
+            'areaId': null,
+            'status': 'Available',
+            'buildingName': '',
+            'floorNumber': '',
+          },
+          'customerFlow': {
+            'vehicles': {
+              'motorcycle': 0,
+              'car': 0,
+              'bicycle': 0,
+              'pedestrian': 0,
+              'other': null,
+            },
+            'peakHours': {
+              'morning': 0,
+              'noon': 0,
+              'afternoon': 0,
+              'evening': 0,
+            },
+            'overallRating': null,
+          },
+          'customerConcentration': {
+            'customerTypes': [],
+            'averageCustomers': null,
+            'overallRating': null,
+          },
+          'customerModel': {
+            'gender': null,
+            'ageGroups': {'under18': 0, '18to30': 0, '31to45': 0, 'over45': 0},
+            'income': null,
+            'overallRating': null,
+          },
+          'siteArea': {
+            'totalArea': 0,
+            'shape': null,
+            'condition': null,
+            'overallRating': null,
+          },
+          'environmentalFactors': {
+            'airQuality': null,
+            'naturalLight': null,
+            'greenery': null,
+            'waste': null,
+            'surroundingStores': [],
+            'overallRating': null,
+          },
+          'visibilityAndObstruction': {
+            'hasObstruction': false,
+            'obstructionType': null,
+            'obstructionLevel': null,
+            'overallRating': null,
+          },
+          'convenience': {
+            'terrain': null,
+            'accessibility': null,
+            'overallRating': null,
+          },
+          'additionalNotes': null,
+          'hasImages': false,
+        };
   }
 
   int _currentPage = 0;
@@ -143,12 +148,6 @@ class _ReportPageState extends State<ReportPage> {
               });
             },
             children: [
-              // Add the new SiteBuildingSection as the first page
-              SiteBuildingSection(
-                reportData: reportData,
-                setState: setState,
-                theme: theme,
-              ),
               CustomerFlowSection(
                 reportData: reportData,
                 setState: setState,
@@ -180,11 +179,6 @@ class _ReportPageState extends State<ReportPage> {
                 theme: theme,
               ),
               ConvenienceSection(
-                reportData: reportData,
-                setState: setState,
-                theme: theme,
-              ),
-              AdditionalNotesSection(
                 reportData: reportData,
                 setState: setState,
                 theme: theme,

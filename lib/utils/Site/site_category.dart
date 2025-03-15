@@ -19,4 +19,6 @@ class SiteCategory {
       updatedAt: DateTime.parse(json['updatedAt']),
     );
   }
+
+  toJson() {}
 }

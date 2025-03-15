@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/components/filter_chip.dart';
-import 'package:siteplus_mb/utils/Site/site_model.dart';
+import 'package:siteplus_mb/utils/Site/site_category.dart';
 
 /// Mở rộng FilterChipPanel để hỗ trợ filter động
 class SiteFilterChipPanel extends StatefulWidget {
@@ -27,6 +26,13 @@ class SiteFilterChipPanel extends StatefulWidget {
 class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
   late List<FilterSection> _filterSections;
   List<ActiveFilter> _activeFilters = [];
+  @override
+  void didUpdateWidget(SiteFilterChipPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.categories != oldWidget.categories) {
+      _initializeFilterSections();
+    }
+  }
 
   @override
   void initState() {
@@ -35,53 +41,75 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
   }
 
   void _initializeFilterSections() {
-    // Prepare category filter options
-    final categoryOptions = widget.categories.map((category) {
-      return FilterOption(
-        label: category.name,
-        color: _getCategoryColor(category.id),
-        isSelected: category.id == widget.initialSelectedCategoryId,
-        onTap: () => _handleCategorySelection(category.id),
-      );
-    }).toList();
+    
+    // Debug before initializing
+    debugPrint(
+      'Initializing filters with ${widget.categories.length} categories',
+    );
+    for (var cat in widget.categories) {
+      debugPrint('Filter category: ${cat.id} - ${cat.name}');
+    }
 
-    // Prepare status filter options
+    // Prepare category filter options
+    final categoryOptions =
+        widget.categories.map((category) {
+          bool isSelected = category.id == widget.initialSelectedCategoryId;
+          debugPrint(
+            'Creating option for ${category.name}, selected: $isSelected',
+          );
+
+          return FilterOption(
+            label: category.name,
+            color: _getCategoryColor(category.id),
+            isSelected: isSelected,
+            onTap: () {
+              debugPrint('Selecting category: ${category.id}');
+              _handleCategorySelection(category.id);
+            },
+          );
+        }).toList();
+
+    // Prepare status filter options với 5 trạng thái
     final statusOptions = [
       FilterOption(
-        label: 'Đã chấp nhận',
+        label: 'Có sẵn',
         color: Colors.green,
         isSelected: 1 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(1),
       ),
       FilterOption(
-        label: 'Bị từ chối',
-        color: Colors.red,
+        label: 'Đang tiến hành',
+        color: Colors.orange,
         isSelected: 2 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(2),
       ),
       FilterOption(
-        label: 'Đã bán',
+        label: 'Chờ phê duyệt',
         color: Colors.blue,
         isSelected: 3 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(3),
       ),
       FilterOption(
-        label: 'Đang tiến hành',
-        color: Colors.orange,
+        label: 'Bị từ chối',
+        color: Colors.red,
         isSelected: 4 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(4),
+      ),
+      FilterOption(
+        label: 'Đã đóng',
+        color: Colors.grey,
+        isSelected: 5 == widget.initialSelectedStatus,
+        onTap: () => _handleStatusSelection(5),
       ),
     ];
 
     _filterSections = [
       FilterSection(
         title: 'Loại mặt bằng',
+        isChipStyle: true,
         options: categoryOptions,
       ),
-      FilterSection(
-        title: 'Trạng thái',
-        options: statusOptions,
-      ),
+      FilterSection(title: 'Trạng thái', options: statusOptions),
     ];
 
     // Initialize active filters if any
@@ -90,28 +118,42 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
 
   Color _getCategoryColor(int categoryId) {
     switch (categoryId) {
-      case 1: return Colors.green.shade300;
-      case 2: return Colors.blue.shade300;
-      case 3: return Colors.purple.shade300;
-      default: return Colors.grey;
+      case 1:
+        return Colors.green.shade300;
+      case 2:
+        return Colors.blue.shade300;
+      case 3:
+        return Colors.purple.shade300;
+      default:
+        return Colors.grey;
     }
   }
 
   void _handleCategorySelection(int categoryId) {
+    debugPrint('Handling category selection: $categoryId');
+
     setState(() {
       for (var section in _filterSections) {
         if (section.title == 'Loại mặt bằng') {
           for (var option in section.options) {
-            option.isSelected = option.label == widget.categories.firstWhere((cat) => cat?.id == categoryId).name;
+            // Find category by ID
+            final selectedCategoryName =
+                widget.categories
+                    .firstWhere(
+                      (cat) => cat.id == categoryId,
+                      orElse: () => widget.categories.first,
+                    )
+                    .name;
+
+            option.isSelected = option.label == selectedCategoryName;
+            debugPrint('Option ${option.label} selected: ${option.isSelected}');
           }
         }
       }
       _updateActiveFilters();
     });
-    widget.onFilterChanged(
-      categoryId,
-      _getCurrentStatus(),
-    );
+
+    widget.onFilterChanged(categoryId, _getCurrentStatus());
   }
 
   void _handleStatusSelection(int status) {
@@ -125,19 +167,23 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
       }
       _updateActiveFilters();
     });
-    widget.onFilterChanged(
-      _getCurrentCategory(),
-      status,
-    );
+    widget.onFilterChanged(_getCurrentCategory(), status);
   }
 
   String _getStatusLabel(int status) {
     switch (status) {
-      case 1: return 'Đã chấp nhận';
-      case 2: return 'Bị từ chối';
-      case 3: return 'Đã bán';
-      case 4: return 'Đang tiến hành';
-      default: return 'Không xác định';
+      case 1:
+        return 'Có sẵn';
+      case 2:
+        return 'Đang tiến hành';
+      case 3:
+        return 'Chờ phê duyệt';
+      case 4:
+        return 'Bị từ chối';
+      case 5:
+        return 'Đã đóng';
+      default:
+        return 'Không xác định';
     }
   }
 
@@ -148,9 +194,14 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
           (option) => option.isSelected,
           orElse: () => section.options.first,
         );
-        return widget.categories.firstWhere(
+
+        // Find matching category, with fallback
+        final matchingCategory = widget.categories.firstWhere(
           (cat) => cat.name == selectedOption.label,
-        ).id;
+          orElse: () => widget.categories.first,
+        );
+
+        return matchingCategory.id;
       }
     }
     return null;
@@ -164,10 +215,16 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
           orElse: () => section.options.first,
         );
         switch (selectedOption.label) {
-          case 'Đã chấp nhận': return 1;
-          case 'Bị từ chối': return 2;
-          case 'Đã bán': return 3;
-          case 'Đang tiến hành': return 4;
+          case 'Có sẵn':
+            return 1;
+          case 'Đang tiến hành':
+            return 2;
+          case 'Chờ phê duyệt':
+            return 3;
+          case 'Bị từ chối':
+            return 4;
+          case 'Đã đóng':
+            return 5;
         }
       }
     }

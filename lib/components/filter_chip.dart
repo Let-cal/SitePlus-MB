@@ -8,7 +8,7 @@ class FilterOption {
   bool isSelected;
   final VoidCallback onTap;
 
-   FilterOption({
+  FilterOption({
     required this.label,
     this.icon,
     required this.color,

@@ -64,7 +64,15 @@ class _LoginFormState extends State<LoginForm> {
         } else {
           print('Lỗi: response không chứa token hoặc không hợp lệ');
         }
-
+        if (response.containsKey('area') && response['area'] != null) {
+          final area = response['area'];
+          await prefs.setString('areaName', area);
+          print('area đã được lưu: $area');
+          // Fetch site categories after getting token
+          await _fetchSiteCategories(area);
+        } else {
+          print('Lỗi: response không chứa area hoặc không hợp lệ');
+        }
         // Xử lý hint
         if (response.containsKey('hint') && response['hint'] != null) {
           final hint = response['hint'].toString();
