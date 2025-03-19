@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/components/filter_chip.dart';
-import 'package:siteplus_mb/utils/Site/site_category.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
 
 /// Mở rộng FilterChipPanel để hỗ trợ filter động
 class SiteFilterChipPanel extends StatefulWidget {

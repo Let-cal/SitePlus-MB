@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:siteplus_mb/service/api_service.dart';
-import 'package:siteplus_mb/utils/Site/site_category.dart';
-import 'package:siteplus_mb/utils/Site/site_category_provider.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_category_provider.dart';
 
 class ReportSelectionDialog extends StatefulWidget {
   final Function(String, int, String) onReportSelected;
@@ -19,37 +20,37 @@ class ReportSelectionDialog extends StatefulWidget {
 
 class _ReportSelectionDialogState extends State<ReportSelectionDialog> {
   final ApiService _apiService = ApiService();
-  final SiteCategoriesProvider _categoriesProvider = SiteCategoriesProvider();
+  late SiteCategoriesProvider _categoriesProvider;
   List<SiteCategory> _categories = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _categoriesProvider = Provider.of<SiteCategoriesProvider>(
+      context,
+      listen: false,
+    );
     _initializeCategories();
   }
 
   Future<void> _initializeCategories() async {
-    // Đặt trạng thái loading ban đầu
     setState(() {
       _isLoading = true;
     });
 
-    // Kiểm tra xem categories đã được load chưa
     if (_categoriesProvider.isLoaded) {
       print(
         'Using cached categories: ${_categoriesProvider.categories.length} categories',
       );
       setState(() {
         _categories = _categoriesProvider.categories;
-        _isLoading =
-            false; // Quan trọng: Phải đặt isLoading = false khi dùng cached data
+        _isLoading = false;
       });
     } else {
-      // Fallback để fetch categories
       try {
         print('Fetching categories from API');
-        final categories = await _apiService.getSiteCategories(widget.token);
+        final categories = await ApiService().getSiteCategories(widget.token);
         _categoriesProvider.setCategories(categories);
 
         if (mounted) {
@@ -159,7 +160,6 @@ class _ReportSelectionDialogState extends State<ReportSelectionDialog> {
       title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onTap: () {
-        Navigator.of(context).pop();
         widget.onReportSelected(value, categoryId, title);
       },
     );

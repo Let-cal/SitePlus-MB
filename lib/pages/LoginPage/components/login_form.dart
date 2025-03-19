@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/main_scaffold.dart';
 import 'package:siteplus_mb/service/api_service.dart';
-import 'package:siteplus_mb/utils/Site/site_category_provider.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_category_provider.dart';
 
 import 'custom_text_field.dart';
 import 'login_button.dart';
@@ -64,12 +64,10 @@ class _LoginFormState extends State<LoginForm> {
         } else {
           print('Lỗi: response không chứa token hoặc không hợp lệ');
         }
-        if (response.containsKey('area') && response['area'] != null) {
-          final area = response['area'];
-          await prefs.setString('areaName', area);
+        if (response.containsKey('areaId') && response['areaId'] != null) {
+          final area = int.parse(response['areaId'].toString());
+          await prefs.setInt('areaId', area);
           print('area đã được lưu: $area');
-          // Fetch site categories after getting token
-          await _fetchSiteCategories(area);
         } else {
           print('Lỗi: response không chứa area hoặc không hợp lệ');
         }

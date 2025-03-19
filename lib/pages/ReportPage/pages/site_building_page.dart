@@ -1,23 +1,28 @@
+// site_building_page.dart - Main component file
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/location_section.dart';
+import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/section_header.dart';
+import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/site_info_section.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/additional_notes.dart';
+import 'package:siteplus_mb/pages/ReportPage/components/building_section.dart';
+import 'package:siteplus_mb/pages/ReportPage/pages/report_page.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
-import 'package:siteplus_mb/utils/ReportPage/custom_input_field.dart';
-import 'package:siteplus_mb/utils/Site/site_api_create_model.dart';
-
-import './ReportPage.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_api_create_model.dart';
 
 class SiteBuildingPage extends StatefulWidget {
   final String reportType;
   final int? siteCategoryId;
   final String? siteCategory;
-
+  final String taskId;
   const SiteBuildingPage({
     super.key,
     required this.reportType,
     required this.siteCategoryId,
     required this.siteCategory,
+    required this.taskId,
   });
 
   @override
@@ -27,24 +32,32 @@ class SiteBuildingPage extends StatefulWidget {
 class _SiteBuildingPageState extends State<SiteBuildingPage> {
   late TextEditingController _siteNameController;
   late TextEditingController _addressController;
-  late TextEditingController _buildingNameController;
   late TextEditingController _floorNumberController;
+  late TextEditingController _sizeController;
   final _formKey = GlobalKey<FormState>();
   final _additionalNotesKey = GlobalKey<AdditionalNotesComponentState>();
   bool _isLoading = false;
   final ApiService _apiService = ApiService();
   // Data storage
   late Map<String, dynamic> reportData;
-  // ignore: unused_field
   bool _isInitialized = false;
   late LocationsProvider _locationsProvider;
+
+  // Location related state
   List<District> _districts = [];
   List<Area> _areas = [];
   String? _selectedDistrictName;
   int? _selectedDistrictId;
   String? _selectedAreaName;
+  int? _selectedAreaId;
   bool _isLoadingAreas = false;
+
+  int? _userAreaId;
+  // Building related state
   bool _isInBuilding = false;
+  List<BuildingCreateRequest> _buildings = [];
+  BuildingCreateRequest? _selectedBuilding;
+  bool _isLoadingBuildings = false;
 
   // Scroll controller for form
   final ScrollController _scrollController = ScrollController();
@@ -52,9 +65,36 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
   @override
   void initState() {
     super.initState();
+    _initializeData();
+  }
 
+  void _initializeData() async {
     // Initialize the report data
-    reportData = {
+    reportData = _createInitialReportData();
+
+    // Initialize controllers
+    _siteNameController = TextEditingController(text: '');
+    _addressController = TextEditingController(text: '');
+    _sizeController = TextEditingController(text: '');
+    _floorNumberController = TextEditingController(text: '');
+
+    // Determine if it's a site within a building
+    _isInBuilding = widget.reportType == 'Building';
+    await _getUserAreaInfo();
+
+    // Load buildings independently from area selection
+    if (_isInBuilding) {
+      _loadAllBuildings();
+    }
+
+    // Initialize locations provider in the next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeProviders();
+    });
+  }
+
+  Map<String, dynamic> _createInitialReportData() {
+    return {
       'reportType': widget.reportType,
       'siteCategory': widget.siteCategory,
       'siteCategoryId': widget.siteCategoryId,
@@ -63,10 +103,13 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
         'siteCategory': widget.siteCategory,
         'siteCategoryId': widget.siteCategoryId,
         'address': '',
+        'size': '',
         'areaId': null,
         'status': 'Available',
+        'buildingId': null,
         'buildingName': '',
         'floorNumber': '',
+        'taskId': widget.taskId,
       },
       'customerFlow': {
         'vehicles': {
@@ -118,26 +161,67 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
       'additionalNotes': null,
       'hasImages': false,
     };
+  }
 
-    // Initialize controllers with existing data or empty strings
-    _siteNameController = TextEditingController(text: '');
-    _addressController = TextEditingController(text: '');
-    _buildingNameController = TextEditingController(text: '');
-    _floorNumberController = TextEditingController(text: '');
+  Future<void> _getUserAreaInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final int? areaId = prefs.getInt('areaId');
 
-    // Determine if it's a site within a building
-    _isInBuilding = widget.reportType == 'Building';
-    // Initialize locations provider in the next frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeProviders();
+      if (areaId != null) {
+        setState(() {
+          _userAreaId = areaId;
+        });
+
+        // Update report data
+        _updateReportData('areaId', areaId);
+      }
+    } catch (e) {
+      debugPrint('Error getting user area info: $e');
+    }
+  }
+
+  // New method to load all buildings regardless of area
+  Future<void> _loadAllBuildings() async {
+    setState(() {
+      _isLoadingBuildings = true;
+      _buildings = [];
+      _selectedBuilding = null;
     });
+
+    try {
+      if (_userAreaId != null) {
+        // Get the actual buildings list from the API
+        final buildings = await _apiService.getBuildingsByAreaId(_userAreaId!);
+
+        setState(() {
+          _buildings =
+              buildings; // Now buildings should be a List<BuildingCreateRequest>
+          _isLoadingBuildings = false;
+        });
+      } else {
+        // Handle case when area ID is null
+        setState(() {
+          _isLoadingBuildings = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingBuildings = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể tải danh sách tòa nhà: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _initializeProviders() async {
-    // Get the provider after the widget is built
     _locationsProvider = Provider.of<LocationsProvider>(context, listen: false);
-
-    // Load districts
     await _loadDistricts();
     setState(() {
       _isInitialized = true;
@@ -147,8 +231,6 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
   Future<void> _loadDistricts() async {
     try {
       await _locationsProvider.initialize();
-
-      // Update state in a safe way
       if (mounted) {
         setState(() {
           _districts = _locationsProvider.districts;
@@ -171,37 +253,38 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
       _isLoadingAreas = true;
       _areas = [];
       _selectedAreaName = null;
+      _selectedAreaId = null;
     });
 
     try {
       final areas = await _locationsProvider.getAreasForDistrict(districtId);
-      setState(() {
-        _areas = areas;
-        _isLoadingAreas = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingAreas = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Không thể tải danh sách khu vực/phường'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-    }
-  }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+      if (mounted) {
+        setState(() {
+          _areas = areas;
+          _isLoadingAreas = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAreas = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể tải danh sách khu vực/phường'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
     _siteNameController.dispose();
     _addressController.dispose();
-    _buildingNameController.dispose();
+    _sizeController.dispose();
     _floorNumberController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -222,16 +305,13 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
       });
 
       try {
-        // Lấy dữ liệu ảnh từ AdditionalNotesComponent
-        final additionalNotesState = _additionalNotesKey.currentState;
-
-        // Tạo request object từ reportData và danh sách ảnh URL
         final siteRequest = SiteCreateRequest.fromReportData(reportData);
-
-        // Gọi API tạo site
-        final result = await _apiService.createSite(siteRequest);
-
-        // Hiển thị thông báo thành công
+        print(
+          "Building ID from reportData: ${reportData['siteInfo']['buildingId']}",
+        );
+        print("Final buildingId in request: ${siteRequest.buildingId}");
+        print("Full site request: ${siteRequest.toJson()}");
+        await _apiService.createSite(siteRequest);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -243,14 +323,13 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
           ),
         );
 
-        // Sau khi tạo thành công, có thể điều hướng về trang trước hoặc đến trang chi tiết site
         Navigator.pop(context);
       } catch (e) {
-        // Hiển thị thông báo lỗi
+        print("Lỗi: ${e.toString()}");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Lỗi: ${e.toString()}',
+              'Bạn đã tạo thông tin cho mặt bằng này trước đó rồi !!!',
               style: TextStyle(color: Theme.of(context).colorScheme.onError),
             ),
             backgroundColor: Theme.of(context).colorScheme.error,
@@ -263,7 +342,6 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
         });
       }
     } else {
-      // Nếu form chưa hợp lệ, thông báo cho người dùng
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Vui lòng điền đầy đủ thông tin'),
@@ -277,7 +355,6 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      // Chuyển sang trang báo cáo đầy đủ với dữ liệu đã thu thập
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -300,99 +377,58 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
     }
   }
 
-  // Custom styled dropdown for district and area
-  Widget _buildStyledDropdown({
-    required String label,
-    required IconData icon,
-    required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
-    bool isLoading = false,
-    bool isEnabled = true,
-  }) {
-    final theme = Theme.of(context);
+  void _handleDistrictChanged(String? value) {
+    if (value != null) {
+      final district = _districts.firstWhere(
+        (d) => d.name == value,
+        orElse: () => District(id: -1, name: '', cityId: -1),
+      );
 
-    // Custom theme for dropdown with limited height
-    return Theme(
-      data: Theme.of(context).copyWith(),
-      child: AnimatedOpacity(
-        opacity: isLoading ? 0.6 : 1.0, // Fade out when loading
-        duration: Duration(milliseconds: 300),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow:
-                isLoading
-                    ? []
-                    : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 5,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-          ),
-          child: DropdownButtonFormField<String>(
-            value: value,
-            decoration: InputDecoration(
-              labelText: label,
-              prefixIcon: Icon(icon, color: theme.colorScheme.primary),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 16.0,
-                horizontal: 16.0,
-              ),
-              filled: true, // Bật màu nền
-              fillColor: theme.colorScheme.surface,
-              suffixIcon:
-                  isLoading
-                      ? Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.0,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              theme.colorScheme.primary.withOpacity(0.5),
-                            ),
-                          ),
-                        ),
-                      )
-                      : null,
-              enabled: isEnabled && !isLoading,
-            ),
-            items:
-                items.map((String item) {
-                  return DropdownMenuItem<String>(
-                    value: item,
-                    child: Text(
-                      item,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }).toList(),
-            onChanged: isEnabled && !isLoading ? onChanged : null,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Vui lòng chọn $label';
-              }
-              return null;
-            },
-            isExpanded: true,
-            icon: Icon(Icons.arrow_drop_down, color: theme.colorScheme.primary),
-            // Limit items shown in dropdown
-            menuMaxHeight: 200, // Show maximum of ~5 items at once
-            dropdownColor: theme.colorScheme.surface,
-          ),
-        ),
-      ),
-    );
+      if (district.id != -1) {
+        setState(() {
+          _selectedDistrictName = value;
+          _selectedDistrictId = district.id;
+          _selectedAreaName = null;
+          _selectedAreaId = null;
+        });
+        _updateReportData('areaId', null);
+        _loadAreas(district.id);
+      }
+    }
+  }
+
+  void _handleAreaChanged(String? value) {
+    if (value != null) {
+      final area = _areas.firstWhere(
+        (a) => a.name == value,
+        orElse: () => Area(id: -1, name: '', districtId: -1),
+      );
+
+      if (area.id != -1) {
+        setState(() {
+          _selectedAreaName = value;
+          _selectedAreaId = area.id;
+        });
+        _updateReportData('areaId', area.id);
+      }
+    }
+  }
+
+  void _handleBuildingSelected(BuildingCreateRequest? building) {
+    setState(() {
+      _selectedBuilding = building;
+    });
+    print("Selected building: ${building?.id}, ${building?.name}");
+  }
+
+  void _handleBuildingDataChanged(int? buildingId, String? buildingName) {
+    _updateReportData('buildingId', buildingId);
+    _updateReportData('buildingName', buildingName ?? '');
+    print("Updated buildingId in reportData: $buildingId");
+  }
+
+  void _handleFloorNumberChanged(String? value) {
+    _updateReportData('floorNumber', value);
   }
 
   @override
@@ -412,222 +448,168 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
           actions: [
             IconButton(
               icon: Icon(Icons.info_outline),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder:
-                      (context) => AlertDialog(
-                        title: Text('Hướng dẫn'),
-                        content: Text(
-                          'Điền đầy đủ thông tin mặt bằng và thêm ghi chú, hình ảnh để tiến hành khảo sát đầy đủ. Nếu bạn điền xong và chỉ muốn đăng tải thông tin của mặt bằng lên trước thì bạn hãy tạo thông tin cho mặt trước rồi sau đó tiếp tục viết báo cáo chi tiết sau !!!',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('Đã hiểu'),
-                          ),
-                        ],
-                      ),
-                );
-              },
+              onPressed: () => _showHelpDialog(context),
             ),
           ],
+          elevation: 0,
+          backgroundColor: theme.scaffoldBackgroundColor,
         ),
         body: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            physics: BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Section: Thông tin Mặt bằng
-                  _buildSectionHeader(
-                    title: 'Thông tin Mặt bằng',
-                    icon: Icons.store_mall_directory,
-                    theme: theme,
-                  ),
-                  SizedBox(height: 16),
-                  // Tên mặt bằng - Using CustomInputField
-                  CustomInputField(
-                    label: 'Tên mặt bằng',
-                    icon: Icons.store,
-                    onSaved: (value) => _updateReportData('siteName', value),
-                    theme: theme,
-                    initialValue: _siteNameController.text,
-                  ),
-                  SizedBox(height: 16),
-                  // Loại mặt bằng (read-only)
-                  _buildReadOnlyField(
-                    label: 'Loại mặt bằng',
-                    value: widget.siteCategory ?? 'Commercial',
-                    icon: Icons.category,
-                  ),
-                  SizedBox(height: 16),
-                  // Địa chỉ - Using CustomInputField
-                  CustomInputField(
-                    label: 'Địa chỉ',
-                    icon: Icons.location_on,
-                    onSaved: (value) => _updateReportData('address', value),
-                    theme: theme,
-                    initialValue: _addressController.text,
-                  ),
-                  SizedBox(height: 16),
-                  // Dropdown: Thành phố và Quận/Huyện with improved styling
-                  _buildStyledDropdown(
-                    label: 'Quận/Huyện',
-                    icon: Icons.location_city,
-                    value: _selectedDistrictName,
-                    items: _districts.map((district) => district.name).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        final district = _districts.firstWhere(
-                          (d) => d.name == value,
-                          orElse: () => District(id: -1, name: '', cityId: -1),
-                        );
-
-                        if (district.id != -1) {
-                          setState(() {
-                            _selectedDistrictName = value;
-                            _selectedDistrictId = district.id;
-                            _selectedAreaName = null;
-                          });
-                          _updateReportData('areaId', null);
-                          _loadAreas(district.id);
-                        }
-                      }
-                    },
-                  ),
-                  SizedBox(height: 23),
-                  _buildStyledDropdown(
-                    label: 'Phường/Xã',
-                    icon: Icons.map,
-                    value: _selectedAreaName,
-                    items: _areas.map((area) => area.name).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        final area = _areas.firstWhere(
-                          (a) => a.name == value,
-                          orElse: () => Area(id: -1, name: '', districtId: -1),
-                        );
-
-                        if (area.id != -1) {
-                          setState(() {
-                            _selectedAreaName = value;
-                          });
-                          _updateReportData('areaId', area.id);
-                        }
-                      }
-                    },
-                    isLoading: _isLoadingAreas,
-                    isEnabled: _selectedDistrictId != null && _areas.isNotEmpty,
-                  ),
-                  SizedBox(height: 23),
-                  // Trạng thái (read-only)
-                  _buildReadOnlyField(
-                    label: 'Trạng thái',
-                    value: 'Available',
-                    icon: Icons.check_circle,
-                  ),
-                  // Hiển thị thông tin tòa nhà nếu báo cáo thuộc loại Building
-                  if (_isInBuilding) ...[
-                    SizedBox(height: 24),
-                    _buildSectionHeader(
-                      title: 'Thông tin Tòa nhà',
-                      icon: Icons.apartment,
-                      theme: theme,
-                    ),
-                    SizedBox(height: 16),
-                    // Using CustomInputField for building name
-                    CustomInputField(
-                      label: 'Tên tòa nhà',
-                      icon: Icons.apartment,
-                      onSaved:
-                          (value) => _updateReportData('buildingName', value),
-                      theme: theme,
-                      initialValue: _buildingNameController.text,
-                    ),
-                    SizedBox(height: 16),
-                    // Using CustomInputField for floor number
-                    CustomInputField(
-                      label: 'Số tầng',
-                      icon: Icons.stairs,
-                      onSaved:
-                          (value) => _updateReportData('floorNumber', value),
-                      theme: theme,
-                      initialValue: _floorNumberController.text,
-                    ),
-                  ],
-                  SizedBox(height: 24),
-                  Divider(color: theme.colorScheme.primary.withOpacity(0.2)),
-                  SizedBox(height: 24),
-                  // Component: Ghi chú & Hình ảnh
-                  AdditionalNotesComponent(
-                    key: _additionalNotesKey,
-                    reportData: reportData,
-                    theme: theme,
-                  ),
-                  SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
+          child:
+              _isInitialized
+                  ? _buildFormContent(theme)
+                  : Center(child: CircularProgressIndicator()),
         ),
-        // Cập nhật bottomNavigationBar để thêm button "Tạo thông tin cho mặt bằng"
-        bottomNavigationBar: Padding(
-          padding: const EdgeInsets.all(16.0),
+        bottomNavigationBar: _buildBottomBar(theme),
+      ),
+    );
+  }
+
+  Widget _buildFormContent(ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            theme.colorScheme.primary.withOpacity(0.05),
+            theme.scaffoldBackgroundColor,
+          ],
+          stops: [0.0, 0.3],
+        ),
+      ),
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        physics: BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 24.0),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Button gọi API tạo site
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createSite,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.secondary,
-                    foregroundColor: theme.colorScheme.onSecondary,
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child:
-                      _isLoading
-                          ? CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              theme.colorScheme.onSecondary,
-                            ),
-                          )
-                          : Text('Tạo thông tin cho mặt bằng'),
-                ),
-              ),
-              SizedBox(height: 8),
-              // Nút Hủy và Tiếp tục báo cáo đầy đủ
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.colorScheme.primary,
+              // Progress indicator
+              _buildProgressIndicator(theme),
+              SizedBox(height: 24),
+
+              // Section: Thông tin Mặt bằng
+              _buildSectionWithAnimation(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionHeader(
+                      title: 'Thông tin Mặt bằng',
+                      icon: Icons.store_mall_directory,
                     ),
-                    icon: Icon(Icons.arrow_back),
-                    label: Text('Hủy'),
-                  ),
-                  FilledButton.icon(
-                    onPressed: _proceedToFullReport,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                    SizedBox(height: 20),
+
+                    // Site Info Section - in a card
+                    _buildElevatedCard(
+                      child: SiteInfoSection(
+                        siteNameController: _siteNameController,
+                        addressController: _addressController,
+                        sizeController: _sizeController,
+                        siteCategory: widget.siteCategory ?? 'Commercial',
+                        onSiteNameSaved:
+                            (value) => _updateReportData('siteName', value),
+                        onAddressSaved:
+                            (value) => _updateReportData('address', value),
+                        onSizeSaved:
+                            (value) => _updateReportData('size', value),
                       ),
                     ),
-                    icon: Icon(Icons.navigate_next),
-                    label: Text('Tiếp tục báo cáo đầy đủ'),
-                  ),
-                ],
+                  ],
+                ),
               ),
+
+              SizedBox(height: 32),
+
+              // Location Section
+              _buildSectionWithAnimation(
+                delay: Duration(milliseconds: 150),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionHeader(title: 'Vị trí', icon: Icons.location_on),
+                    SizedBox(height: 20),
+
+                    // Location fields in a card
+                    _buildElevatedCard(
+                      child: LocationSection(
+                        districts: _districts,
+                        areas: _areas,
+                        selectedDistrictName: _selectedDistrictName,
+                        selectedAreaName: _selectedAreaName,
+                        isLoadingAreas: _isLoadingAreas,
+                        onDistrictChanged: _handleDistrictChanged,
+                        onAreaChanged: _handleAreaChanged,
+                        isAreaSelectionEnabled:
+                            _selectedDistrictId != null && _areas.isNotEmpty,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Building Section (conditional)
+              if (_isInBuilding) ...[
+                SizedBox(height: 32),
+                _buildSectionWithAnimation(
+                  delay: Duration(milliseconds: 300),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SectionHeader(
+                        title: 'Thông tin Tòa nhà',
+                        icon: Icons.apartment,
+                      ),
+                      SizedBox(height: 20),
+
+                      // Building fields in a card
+                      _buildElevatedCard(
+                        child: BuildingSection(
+                          areaId: _userAreaId,
+                          buildings: _buildings,
+                          isLoadingBuildings: _isLoadingBuildings,
+                          onBuildingSelected: _handleBuildingSelected,
+                          onBuildingDataChanged: _handleBuildingDataChanged,
+                          initialSelectedBuilding: _selectedBuilding,
+                          floorNumber: reportData['siteInfo']['floorNumber'],
+                          onFloorNumberChanged: _handleFloorNumberChanged,
+                          onReloadBuildings: _loadAllBuildings,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              SizedBox(height: 32),
+
+              // Additional Notes Component
+              _buildSectionWithAnimation(
+                delay: Duration(milliseconds: 450),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionHeader(
+                      title: 'Ghi chú bổ sung',
+                      icon: Icons.note_add,
+                    ),
+                    SizedBox(height: 20),
+
+                    // Notes in a card
+                    _buildElevatedCard(
+                      child: AdditionalNotesComponent(
+                        key: _additionalNotesKey,
+                        reportData: reportData,
+                        theme: theme,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 80), // Space for bottom bar
             ],
           ),
         ),
@@ -635,45 +617,210 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
     );
   }
 
-  Widget _buildSectionHeader({
-    required String title,
-    required IconData icon,
-    required ThemeData theme,
-  }) {
-    return Row(
+  Widget _buildProgressIndicator(ThemeData theme) {
+    // Calculate progress based on form completion
+    double progress = 0.25; // Minimum progress
+
+    if (_selectedDistrictId != null) progress += 0.25;
+    if (_selectedAreaId != null) progress += 0.25;
+    if (_siteNameController.text.isNotEmpty &&
+        _addressController.text.isNotEmpty)
+      progress += 0.25;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: theme.colorScheme.primary, size: 28),
-        SizedBox(width: 12),
-        Text(
-          title,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.bold,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Tiến độ thông tin',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              '${(progress * 100).toInt()}%',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: progress,
+            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              theme.colorScheme.primary,
+            ),
+            minHeight: 10,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildReadOnlyField({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return TextFormField(
-      initialValue: value,
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16.0,
-          horizontal: 16.0,
-        ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+  Widget _buildSectionWithAnimation({required Widget child, Duration? delay}) {
+    return AnimatedOpacity(
+      opacity: _isInitialized ? 1.0 : 0.0,
+      duration: Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+      // Thêm delay để tạo hiệu ứng tuần tự
+      onEnd: () {},
+      child: AnimatedSlide(
+        offset: _isInitialized ? Offset.zero : Offset(0, 0.1),
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+        child: child,
       ),
+    );
+  }
+
+  Widget _buildElevatedCard({required Widget child}) {
+    return Card(
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(padding: EdgeInsets.all(16), child: child),
+    );
+  }
+
+  Widget _buildBottomBar(ThemeData theme) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            offset: Offset(0, -4),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child:
+            _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Nút lưu mặt bằng
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _createSite,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        icon: Icon(Icons.save),
+                        label: Text(
+                          'Lưu thông tin mặt bằng',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    // Row chứa nút tiếp tục và nút hủy
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: theme.colorScheme.error,
+                              side: BorderSide(color: theme.colorScheme.error),
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.close,
+                                  color: theme.colorScheme.error,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Hủy',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        // Nút tiếp tục báo cáo đầy đủ
+                        Expanded(
+                          flex: 3,
+                          child: OutlinedButton.icon(
+                            onPressed: _proceedToFullReport,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: theme.colorScheme.primary,
+                              side: BorderSide(
+                                color: theme.colorScheme.primary,
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: Icon(Icons.navigate_next),
+                            label: Text(
+                              'Tiếp tục báo cáo đầy đủ',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Nút hủy với viền và icon
+                      ],
+                    ),
+                  ],
+                ),
+      ),
+    );
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Hướng dẫn'),
+            content: Text(
+              'Điền đầy đủ thông tin mặt bằng và thêm ghi chú để tiến hành khảo sát đầy đủ. Nếu bạn điền xong và chỉ muốn đăng tải thông tin của mặt bằng lên trước thì bạn hãy tạo thông tin cho mặt trước rồi sau đó tiếp tục viết báo cáo chi tiết sau !!!',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Đã hiểu'),
+              ),
+            ],
+          ),
     );
   }
 }

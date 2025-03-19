@@ -7,8 +7,8 @@ import 'package:siteplus_mb/pages/SiteViewPage/components/site_filter_chip.dart'
 import 'package:siteplus_mb/pages/TaskPage/components/pagination_component.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
-import 'package:siteplus_mb/utils/Site/site_category.dart';
-import 'package:siteplus_mb/utils/Site/site_model.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
 class SiteViewPage extends StatefulWidget {
   const SiteViewPage({super.key});

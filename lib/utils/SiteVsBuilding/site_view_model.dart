@@ -11,7 +11,7 @@ class Site {
   final DateTime createdAt;
   final DateTime updatedAt;
   final Task? task;
-  final Building? building;
+  final BuildingViewModel? building;
   final List<Image>? images;
   final List<Site>? matchingSites;
 
@@ -48,7 +48,7 @@ class Site {
       updatedAt: DateTime.parse(json['updatedAt'] ?? ''),
       task: json['task'] != null ? Task.fromJson(json['task']) : null,
       building:
-          json['building'] != null ? Building.fromJson(json['building']) : null,
+          json['building'] != null ? BuildingViewModel.fromJson(json['building']) : null,
       images:
           json['images'] != null
               ? List<Image>.from(json['images'].map((x) => Image.fromJson(x)))
@@ -100,21 +100,21 @@ class Task {
   }
 }
 
-class Building {
+class BuildingViewModel{
   final int id;
   final String name;
   final int areaId;
   final String status;
 
-  Building({
+  BuildingViewModel({
     required this.id,
     required this.name,
     required this.areaId,
     required this.status,
   });
 
-  factory Building.fromJson(Map<String, dynamic> json) {
-    return Building(
+  factory BuildingViewModel.fromJson(Map<String, dynamic> json) {
+    return BuildingViewModel(
       id: json['id'],
       name: json['name'],
       areaId: json['areaId'],

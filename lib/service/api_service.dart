@@ -2,14 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/HomePage/site_report_statistics.dart';
 import 'package:siteplus_mb/utils/HomePage/task_statistics.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_model.dart';
-import 'package:siteplus_mb/utils/Site/site_api_create_model.dart';
-import 'package:siteplus_mb/utils/Site/site_category.dart';
-import 'package:siteplus_mb/utils/Site/site_model.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_api_create_model.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
 import 'api_endpoints.dart';
 import 'api_link.dart';
@@ -19,6 +20,151 @@ class ApiService {
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token') ?? '';
+  }
+
+  Future<List<String>> getSiteImages(int siteId) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.getImageSite}/$siteId/images';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        final List<dynamic> images = jsonResponse['images'];
+        return images.map((url) => url.toString()).toList();
+      } else {
+        debugPrint('Lỗi lấy ảnh site: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        throw Exception('Lỗi lấy ảnh site: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Exception when fetching site images: $e');
+      throw Exception('Lỗi khi lấy ảnh site: $e');
+    }
+  }
+
+  Future<List<String>> uploadImages(
+    List<XFile> images,
+    int siteId, {
+    int? buildingId,
+  }) async {
+    final token = await getToken();
+    String url = '${ApiLink.baseUrl}${ApiEndpoints.imageUpload}?siteId=$siteId';
+
+    // Add buildingId to query parameters if it exists
+    if (buildingId != null) {
+      url += '&buildingId=$buildingId';
+    }
+
+    // Create multipart request
+    var request = http.MultipartRequest('POST', Uri.parse(url));
+
+    // Add authorization header
+    request.headers['Authorization'] = 'Bearer $token';
+
+    // Add image files to the request
+    for (var image in images) {
+      final file = await http.MultipartFile.fromPath('files', image.path);
+      request.files.add(file);
+    }
+
+    try {
+      // Send the request
+      var response = await request.send();
+
+      // Read response
+      final responseString = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        // Parse the response
+        final Map<String, dynamic> jsonResponse = jsonDecode(responseString);
+        final List<dynamic> imageUrls = jsonResponse['imageUrls'];
+
+        // Convert dynamic list to String list
+        return imageUrls.map((url) => url.toString()).toList();
+      } else {
+        debugPrint('Lỗi upload ảnh: ${response.statusCode}');
+        debugPrint('Response body: $responseString');
+        throw Exception('Lỗi upload ảnh: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Exception during upload: $e');
+      throw Exception('Lỗi khi upload ảnh: $e');
+    }
+  }
+
+  Future<List<BuildingCreateRequest>> getBuildingsByAreaId(int areaId) async {
+    final token = await getToken();
+    final uri = Uri.parse(
+      '${ApiLink.baseUrl}${ApiEndpoints.getAllBuilding}/$areaId',
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonData = jsonDecode(response.body);
+      debugPrint('Buildings API Response: ${jsonEncode(jsonData)}');
+
+      final buildings =
+          jsonData.map((item) => BuildingCreateRequest.fromJson(item)).toList();
+      return buildings;
+    } else {
+      debugPrint('Lỗi khi lấy danh sách tòa nhà: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+      throw Exception('Lỗi khi lấy danh sách tòa nhà: ${response.statusCode}');
+    }
+  }
+
+  Future<BuildingCreateRequest> createBuilding(String name, int areaId) async {
+    final token = await getToken();
+    final uri = Uri.parse('${ApiLink.baseUrl}${ApiEndpoints.createBuilding}');
+
+    final Map<String, dynamic> requestBody = {'name': name, 'areaId': areaId};
+
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(requestBody),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final jsonData = jsonDecode(response.body);
+
+      if (jsonData['success'] == true && jsonData['data'] != null) {
+        // Lấy id của building vừa tạo
+        final int buildingId = jsonData['data'];
+        return BuildingCreateRequest(
+          id: buildingId,
+          name: name,
+          areaId: areaId,
+          areaName: '',
+          status: 1,
+          statusName: 'Available',
+        );
+      } else {
+        throw Exception('Lỗi khi tạo Building: ${jsonData['message']}');
+      }
+    } else {
+      debugPrint('Lỗi khi tạo Building: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+      throw Exception('Lỗi khi tạo Building: ${response.statusCode}');
+    }
   }
 
   Future<List<Site>> getSites({
@@ -203,6 +349,7 @@ class ApiService {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
+      print("response api create site: " + jsonDecode(response.body));
       return jsonDecode(response.body);
     } else {
       throw Exception(

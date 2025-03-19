@@ -70,8 +70,7 @@ class EnhancedTaskCard extends StatelessWidget {
                   _buildPrimaryTaskContent(context),
 
                   // Secondary Content - Brand & Site Info (if available)
-                  if (task.request?.brand != null ||
-                      (task.status == STATUS_HOAN_THANH && task.site != null))
+                  if (task.request?.brand != null || (task.site != null))
                     _buildSecondaryContent(context),
 
                   // Actions Footer
@@ -162,14 +161,11 @@ class EnhancedTaskCard extends StatelessWidget {
           // Brand Information Section
           if (task.request?.brand != null) _buildBrandInfo(context),
 
-          // Site Information (if task is completed)
-          if (task.status == STATUS_HOAN_THANH && task.site != null)
+          // Site Information
+          if (task.site?.id != null)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (task.request?.brand != null) const SizedBox(height: 12),
-                _buildSiteInfo(context),
-              ],
+              children: [const SizedBox(height: 12), _buildSiteInfo(context)],
             ),
         ],
       ),

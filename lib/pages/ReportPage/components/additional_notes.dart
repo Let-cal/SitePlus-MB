@@ -1,7 +1,5 @@
 // lib/pages/ReportPage/components/additional_notes.dart
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 class AdditionalNotesComponent extends StatefulWidget {
   final Map<String, dynamic> reportData;
@@ -14,7 +12,8 @@ class AdditionalNotesComponent extends StatefulWidget {
   });
 
   @override
-  State<AdditionalNotesComponent> createState() => AdditionalNotesComponentState();
+  State<AdditionalNotesComponent> createState() =>
+      AdditionalNotesComponentState();
 }
 
 class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
@@ -32,9 +31,11 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _controller.forward();
-    
+
     // Initialize with existing data if available
-    _notesController = TextEditingController(text: widget.reportData['additionalNotes'] ?? '');
+    _notesController = TextEditingController(
+      text: widget.reportData['additionalNotes'] ?? '',
+    );
   }
 
   @override
@@ -43,8 +44,6 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
     _notesController.dispose();
     super.dispose();
   }
-
-
 
   Widget _buildInfoCard({
     required IconData icon,
@@ -65,9 +64,7 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
         children: [
           Icon(icon, color: iconColor),
           SizedBox(width: 12),
-          Expanded(
-            child: Text(content),
-          ),
+          Expanded(child: Text(content)),
         ],
       ),
     );
@@ -92,7 +89,9 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
           _buildInfoCard(
             icon: Icons.lightbulb_outline,
             content: 'Thêm các chi tiết mô tả về mặt bằng này.',
-            backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.3),
+            backgroundColor: theme.colorScheme.primaryContainer.withOpacity(
+              0.3,
+            ),
             iconColor: theme.colorScheme.primary,
             borderRadius: 12.0,
             padding: EdgeInsets.all(16.0),
@@ -118,8 +117,6 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
             ),
           ),
           SizedBox(height: 24),
-         
-         
         ],
       ),
     );

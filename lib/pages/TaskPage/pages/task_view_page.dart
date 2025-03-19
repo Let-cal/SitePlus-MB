@@ -129,7 +129,12 @@ class _TasksPageState extends State<TasksPage>
 
       if (result['success'] == true) {
         final TaskResponse response = TaskResponse.fromJson(result);
-
+        print("Danh sách nhiệm vụ:");
+        for (var task in response.listData) {
+          print(
+            "Task ID: ${task.id}, Name: ${task.name}, Status: ${task.status}, site ID: ${task.site?.id}",
+          );
+        }
         setState(() {
           tasks = response.listData;
           totalPages = response.totalPage;

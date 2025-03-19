@@ -1,6 +1,8 @@
 class ApiEndpoints {
   static const String login = '/user/login';
   static const String siteCate = '/SiteCate';
+  static const String getAllBuilding = '/Building/area';
+  static const String createBuilding = '/Building';
   static const String createSite = '/Site';
   static const String getAllSites = '/Site/staff';
   static const String notification = '/Notification';
@@ -11,4 +13,6 @@ class ApiEndpoints {
   static const String getAllDistricts = '/districts/get-all';
   static const String getAllAreaByDistrict = '/areas';
   static const String getAllAreas = '/areas/get-all';
+  static const String imageUpload = '/Image/upload';
+  static const String getImageSite = '/Image/site';
 }

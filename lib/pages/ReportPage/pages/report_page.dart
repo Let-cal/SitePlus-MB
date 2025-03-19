@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../components/convenience.dart';
-import '../components/customer_concentration.dart';
-import '../components/customer_model.dart';
-import '../components/customer_traffic.dart';
-import '../components/environmental_factors.dart';
-import '../components/site_area.dart';
-import '../components/visibility_obstruction.dart';
+import '../components/7_Attributes/convenience.dart';
+import '../components/7_Attributes/customer_concentration.dart';
+import '../components/7_Attributes/customer_model.dart';
+import '../components/7_Attributes/customer_traffic.dart';
+import '../components/7_Attributes/environmental_factors.dart';
+import '../components/7_Attributes/site_area.dart';
+import '../components/7_Attributes/visibility_obstruction.dart';
 
 class ReportPage extends StatefulWidget {
   final String reportType; // 'Commercial' hoặc 'Building'
   final String? siteCategory; // Tên danh mục
   final int? siteCategoryId; // ID danh mục từ API
+  final int? taskId; // ID danh mục từ API
   final Map<String, dynamic>? initialReportData;
 
   const ReportPage({
@@ -19,6 +20,7 @@ class ReportPage extends StatefulWidget {
     required this.reportType,
     this.siteCategory,
     this.siteCategoryId,
+    this.taskId,
     this.initialReportData,
   });
 
@@ -49,8 +51,10 @@ class _ReportPageState extends State<ReportPage> {
             'address': '',
             'areaId': null,
             'status': 'Available',
+            'buildingId': null,
             'buildingName': '',
             'floorNumber': '',
+            'taskId': widget.taskId,
           },
           'customerFlow': {
             'vehicles': {

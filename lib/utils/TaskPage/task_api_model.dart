@@ -48,7 +48,7 @@ class Task {
   final RequestInfo? request;
   final SiteInfo? site;
   final DateTime deadline;
-  final String areaName; 
+  final String areaName;
 
   Task({
     required this.id,
@@ -116,12 +116,12 @@ class Task {
 
     // Create SiteInfo if location exists and status is completed
     SiteInfo? siteInfo;
-    if (json['location'] != null && json['status'] == 3 && json['location']['siteId'] != 0) {
+    if (json['location'] != null &&
+        json['location']['siteId'] != null &&
+        json['location']['siteId'] != 0) {
       BuildingInfo? buildingInfo;
       if (json['location']['buildingName'] != null) {
-        buildingInfo = BuildingInfo(
-          name: json['location']['buildingName'],
-        );
+        buildingInfo = BuildingInfo(name: json['location']['buildingName']);
       }
 
       siteInfo = SiteInfo(
@@ -138,9 +138,10 @@ class Task {
       description: json['description'] ?? "",
       status: statusText,
       priority: priorityText,
-      requestId: json['brandInfo'] != null && json['brandInfo']['requestId'] != 0
-          ? json['brandInfo']['requestId'].toString()
-          : null,
+      requestId:
+          json['brandInfo'] != null && json['brandInfo']['requestId'] != 0
+              ? json['brandInfo']['requestId'].toString()
+              : null,
       request: requestInfo,
       site: siteInfo,
       deadline: DateTime.parse(json['deadline']),
@@ -168,10 +169,10 @@ class TaskResponse {
       page: data['page'],
       totalPage: data['totalPage'],
       totalRecords: data['totalRecords'],
-      listData: (data['listData'] as List)
-          .map((item) => Task.fromJson(item))
-          .toList(),
+      listData:
+          (data['listData'] as List)
+              .map((item) => Task.fromJson(item))
+              .toList(),
     );
   }
 }
-

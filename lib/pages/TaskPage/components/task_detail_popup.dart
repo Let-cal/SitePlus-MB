@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:siteplus_mb/pages/TaskPage/components/image_upload_dialog.dart';
+import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
@@ -25,37 +25,72 @@ class ViewDetailTask extends StatelessWidget {
   }
 
   void _showReportSelection(BuildContext context) async {
-    // Lấy token đã lưu trong SharedPreferences
+    // Store the context at the root level
+    final rootContext = Navigator.of(context).context;
+
+    // Get token from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token') ?? '';
 
     if (token.isEmpty) {
-      // Xử lý khi không có token
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Vui lòng đăng nhập lại')));
       return;
     }
 
-    showDialog(
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder:
-          (context) => ReportSelectionDialog(
+          (dialogContext) => ReportSelectionDialog(
             token: token,
             onReportSelected: (
               String reportType,
               int categoryId,
               String categoryName,
             ) {
-              SiteNavigation.navigateToReport(
-                context,
-                reportType,
-                categoryId,
-                categoryName,
-              );
+              // Return the selection data
+              Navigator.of(dialogContext).pop({
+                'reportType': reportType,
+                'categoryId': categoryId,
+                'categoryName': categoryName,
+              });
             },
           ),
     );
+
+    // Debug the result to see what's being returned
+    print('Dialog result: $result');
+
+    // Check if result exists and then handle navigation
+    if (result != null) {
+      // First close the bottom sheet
+      Navigator.of(context).pop();
+
+      // Add a debug print before navigation
+      print(
+        'Navigating with: ${result['reportType']}, ${result['categoryId']}, ${result['categoryName']}',
+      );
+
+      // Get the LocationsProvider before the context is deactivated
+      final locationsProvider = Provider.of<LocationsProvider>(
+        rootContext,
+        listen: false,
+      );
+
+      // Then navigate after the bottom sheet is closed
+      Future.delayed(Duration(milliseconds: 300), () {
+        // Use a navigation method that doesn't rely on the deactivated context
+        SiteNavigation.navigateToReport(
+          rootContext,
+          result['reportType'],
+          result['categoryId'],
+          result['categoryName'],
+          task.id,
+          locationsProvider,
+        );
+      });
+    }
   }
 
   @override
@@ -353,7 +388,6 @@ class ViewDetailTask extends StatelessWidget {
   }
 
   Widget _buildBrandInfo(BuildContext context) {
-    final theme = Theme.of(context);
     final brand = task.request?.brand;
 
     if (brand == null) return const SizedBox.shrink();
@@ -373,7 +407,6 @@ class ViewDetailTask extends StatelessWidget {
   }
 
   Widget _buildSiteInfo(BuildContext context) {
-    final theme = Theme.of(context);
     final site = task.site;
     Map<String, String> parseAddress(String fullAddress) {
       // Giả định địa chỉ có định dạng "[Địa chỉ chi tiết], [Quận], [Thành phố]"
@@ -392,12 +425,12 @@ class ViewDetailTask extends StatelessWidget {
         // Trường hợp thiếu thành phố: "2 Hải Triều, Quận 1"
         specificAddress = parts[0];
         district = parts[1];
-        city = "Không xác định";
+        city = "TP.HCM";
       } else if (parts.length == 1) {
         // Trường hợp chỉ có địa chỉ không đầy đủ
         specificAddress = parts[0];
         district = "Không xác định";
-        city = "Không xác định";
+        city = "TP.HCM";
       }
 
       return {
@@ -522,55 +555,32 @@ class ViewDetailTask extends StatelessWidget {
 
   Widget _buildActionButtons(BuildContext context) {
     final theme = Theme.of(context);
-    List<XFile> uploadedImages = [];
-
-    void handleImageUpload() async {
-      final result = await ImageUploadDialog.show(
-        context,
-        initialImages: uploadedImages,
-      );
-
-      if (result != null) {
-        uploadedImages = result;
-
-        if (uploadedImages.isNotEmpty) {
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Đã cập nhật ${uploadedImages.length} hình ảnh',
-                style: TextStyle(color: theme.colorScheme.onPrimary),
-              ),
-              backgroundColor: theme.colorScheme.primary,
-            ),
-          );
-        }
-      }
-    }
 
     return Column(
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: handleImageUpload,
-                icon: const Icon(Icons.image),
-                label: const Text('Tải ảnh'),
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+                label: const Text('Đóng'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: theme.colorScheme.primary),
+                  side: BorderSide(color: theme.colorScheme.outline),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: FilledButton.icon(
                 onPressed: () {
-                  if (task.status == STATUS_HOAN_THANH) {
+                  if (task.status == STATUS_HOAN_THANH &&
+                      task.status == STATUS_DA_NHAN) {
                     _showEditReport(context);
                   } else {
                     _showReportSelection(context);
@@ -578,7 +588,8 @@ class ViewDetailTask extends StatelessWidget {
                 },
                 icon: const Icon(Icons.edit),
                 label: Text(
-                  task.status == STATUS_HOAN_THANH
+                  task.status == STATUS_HOAN_THANH &&
+                          task.status == STATUS_DA_NHAN
                       ? 'Sửa Báo Cáo'
                       : 'Tạo Báo Cáo',
                 ),
@@ -593,28 +604,13 @@ class ViewDetailTask extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.close),
-          label: const Text('Đóng'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            side: BorderSide(color: theme.colorScheme.outline),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            minimumSize: Size(double.infinity, 48),
+        const SizedBox(height: 12),
+        if (task.status != STATUS_HOAN_THANH)
+          Text(
+            'Hành động này là điền thông tin mặt bằng. Sau khi điền xong, bạn có thể tạo báo cáo và gửi lên quản lý.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          task.status == STATUS_HOAN_THANH
-              ? ''
-              : 'Hành động này là điền thông tin mặt bằng. Sau khi điền xong, bạn có thể tạo báo cáo và gửi lên quản lý.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
-        ),
       ],
     );
   }

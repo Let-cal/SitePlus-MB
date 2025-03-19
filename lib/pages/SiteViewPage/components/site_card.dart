@@ -4,7 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/components/unified_card_footer.dart';
 import 'package:siteplus_mb/components/unified_card_header.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/site_detail_popup.dart';
-import 'package:siteplus_mb/utils/Site/site_model.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
 class SiteCard extends StatelessWidget {
   final Site site;

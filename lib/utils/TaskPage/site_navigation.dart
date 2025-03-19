@@ -9,8 +9,9 @@ class SiteNavigation {
     String reportType,
     int categoryId,
     String categoryName,
+    String taskId,
+    LocationsProvider locationsProvider,
   ) async {
-    Widget page;
     String reportTypeValue;
     if (categoryId == 2) {
       // Mặt bằng độc lập (ID = 2 dựa vào API response)
@@ -19,21 +20,15 @@ class SiteNavigation {
       // Mặt bằng nội khu (ID = 1)
       reportTypeValue = "Building";
     }
-    final locationsProvider = Provider.of<LocationsProvider>(
-      context,
-      listen: false,
-    );
-
-    // Pre-initialize the provider if possible
-    await locationsProvider.initialize();
 
     // Wrap the SiteBuildingPage with ChangeNotifierProvider
-    page = ChangeNotifierProvider<LocationsProvider>.value(
+    final page = ChangeNotifierProvider<LocationsProvider>.value(
       value: locationsProvider,
       child: SiteBuildingPage(
         reportType: reportTypeValue,
         siteCategory: categoryName,
         siteCategoryId: categoryId,
+        taskId: taskId,
       ),
     );
 

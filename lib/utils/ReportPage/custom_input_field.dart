@@ -6,31 +6,35 @@ class CustomInputField extends StatelessWidget {
   final IconData icon;
   final Function(String) onSaved;
   final ThemeData theme;
-  final String initialValue;  // Add this
+  final String initialValue;
+  final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomInputField({
-    super.key,
+    Key? key,
     required this.label,
     required this.icon,
     required this.onSaved,
     required this.theme,
-    this.initialValue = '',  // Add this
-  });
+    this.initialValue = '',
+    this.keyboardType = TextInputType.text, // Mặc định là text
+    this.inputFormatters,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
-        initialValue: initialValue,  // Add this
+        initialValue: initialValue,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: theme.colorScheme.primary),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
         ),
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        onChanged: onSaved,  // Change this from onSaved to onChanged
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        onChanged: onSaved,
       ),
     );
   }

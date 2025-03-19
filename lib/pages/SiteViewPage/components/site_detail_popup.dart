@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:siteplus_mb/utils/Site/site_model.dart';
+import 'package:siteplus_mb/pages/SiteViewPage/components/ImageComponents/image_upload_dialog_ui.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
 class ViewDetailSite extends StatelessWidget {
   final Site site;
@@ -34,6 +35,27 @@ class ViewDetailSite extends StatelessWidget {
             areaMap: areaMap,
           ),
     );
+  }
+
+  Future<void> handleImageUpload(BuildContext) async {
+    final siteId = site.id;
+    final buildingId = site.building?.id;
+
+    final selectedImages = await ImageUploadDialogUI.show(
+      BuildContext,
+      siteId: siteId,
+      buildingId: buildingId,
+      loadExistingImages: true,
+    );
+
+    if (selectedImages != null && selectedImages.isNotEmpty) {
+      ScaffoldMessenger.of(BuildContext).showSnackBar(
+        SnackBar(
+          content: Text('Đã tải lên ${selectedImages.length} ảnh thành công!'),
+          backgroundColor: Theme.of(BuildContext).colorScheme.primary,
+        ),
+      );
+    }
   }
 
   @override
@@ -427,7 +449,7 @@ class ViewDetailSite extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onTap,
                 icon: Icon(site.status == 2 ? Icons.check_rounded : Icons.edit),
-                label: Text(site.status == 2 ? 'Đồng ý' : 'Tạo báo cáo'),
+                label: Text(site.status == 2 ? 'Đồng ý' : 'Tạo báo cáo'),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   backgroundColor: theme.colorScheme.primary,
@@ -446,6 +468,26 @@ class ViewDetailSite extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   side: BorderSide(color: theme.colorScheme.outline),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  minimumSize: Size(double.infinity, 48),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => handleImageUpload(context),
+                icon: const Icon(Icons.image),
+                label: const Text('Tải ảnh'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(color: theme.colorScheme.primary),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
