@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/components/SectionHeader.dart';
-import 'package:siteplus_mb/pages/TaskPage/components/pagination_component.dart';
+import 'package:siteplus_mb/components/pagination_component.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
 import 'package:siteplus_mb/service/api_service.dart';

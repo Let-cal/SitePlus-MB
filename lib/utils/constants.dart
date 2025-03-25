@@ -2,6 +2,9 @@
 
 // Task Status
 
+import 'package:flutter/material.dart';
+import 'package:siteplus_mb/utils/ReportPage/CustomerSegmentModel/customer_segment_provider.dart';
+
 const String STATUS_CHUA_NHAN = 'Chưa Nhận';
 const String STATUS_DA_NHAN = 'Đã Nhận';
 const String STATUS_HOAN_THANH = 'Hoàn Thành';
@@ -46,8 +49,49 @@ const String TOURISTS = 'Khách du lịch';
 const String STUDENTS = 'Sinh viên';
 const String OFFICE_WORKERS = 'Nhân viên văn phòng';
 const String WORKERS = 'Công nhân/Kỹ sư';
+// Customer segment constants
+Map<String, String> CUSTOMER_SEGMENTS = {};
+Map<String, IconData> CUSTOMER_SEGMENT_ICONS = {};
+Map<String, IconData> DEFAULT_CUSTOMER_SEGMENT_ICONS = {
+  "1": Icons.school,
+  "2": Icons.family_restroom,
+  "3": Icons.business,
+  "4": Icons.location_city,
+  "5": Icons.engineering,
+};
 
- Map<String, int> STATUS_API_MAP = {
+// Initialize method to be called at app startup, in ReportPage, or in the main.dart
+Future<void> initCustomerSegments() async {
+  final customerSegmentService = CustomerSegmentProvider();
+  final segments = await customerSegmentService.getCustomerSegments();
+
+  // Reset maps
+  CUSTOMER_SEGMENTS = {};
+  CUSTOMER_SEGMENT_ICONS = {};
+
+  for (var segment in segments) {
+    CUSTOMER_SEGMENTS[segment.id.toString()] = segment.name;
+
+    // Sử dụng icon trong danh sách nếu có, nếu không dùng icon mặc định
+    CUSTOMER_SEGMENT_ICONS[segment.id.toString()] =
+        DEFAULT_CUSTOMER_SEGMENT_ICONS[segment.id.toString()] ?? Icons.people;
+  }
+
+  // Nếu API không trả về dữ liệu, giữ nguyên các giá trị mặc định
+  if (CUSTOMER_SEGMENTS.isEmpty) {
+    CUSTOMER_SEGMENTS = {
+      "1": DOMESTIC,
+      "2": TOURISTS,
+      "3": STUDENTS,
+      "4": OFFICE_WORKERS,
+      "5": WORKERS,
+    };
+
+    CUSTOMER_SEGMENT_ICONS = DEFAULT_CUSTOMER_SEGMENT_ICONS;
+  }
+}
+
+Map<String, int> STATUS_API_MAP = {
   STATUS_CHUA_NHAN: 1,
   STATUS_DA_NHAN: 2,
   STATUS_HOAN_THANH: 3,
@@ -61,7 +105,7 @@ const Map<String, int> PRIORITY_API_MAP = {
 };
 
 // Reverse mappings
- Map<int, String> API_STATUS_MAP = {
+Map<int, String> API_STATUS_MAP = {
   1: STATUS_CHUA_NHAN,
   2: STATUS_DA_NHAN,
   3: STATUS_HOAN_THANH,

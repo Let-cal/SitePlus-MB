@@ -14,14 +14,9 @@ class BuildingInfo {
 
 class RequestInfo {
   final String id;
-  final String description;
   final BrandInfo brand;
 
-  RequestInfo({
-    required this.id,
-    required this.description,
-    required this.brand,
-  });
+  RequestInfo({required this.id, required this.brand});
 }
 
 class SiteInfo {
@@ -49,6 +44,7 @@ class Task {
   final SiteInfo? site;
   final DateTime deadline;
   final String areaName;
+  final int? areaId;
 
   Task({
     required this.id,
@@ -61,6 +57,7 @@ class Task {
     this.site,
     required this.deadline,
     required this.areaName,
+    required this.areaId,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -101,7 +98,6 @@ class Task {
     if (json['brandInfo'] != null && json['brandInfo']['requestId'] != 0) {
       requestInfo = RequestInfo(
         id: json['brandInfo']['requestId'].toString(),
-        description: json['description'] ?? "",
         brand: BrandInfo(
           name: json['brandInfo']['brandName'] ?? "Không xác định",
         ),
@@ -112,6 +108,10 @@ class Task {
     String areaName = "Không xác định";
     if (json['location'] != null && json['location']['areaName'] != null) {
       areaName = json['location']['areaName'];
+    }
+    int? areaId;
+    if (json['location'] != null && json['location']['areaId'] != null) {
+      areaId = json['location']['areaId'];
     }
 
     // Create SiteInfo if location exists and status is completed
@@ -146,6 +146,7 @@ class Task {
       site: siteInfo,
       deadline: DateTime.parse(json['deadline']),
       areaName: areaName,
+      areaId: areaId,
     );
   }
 }

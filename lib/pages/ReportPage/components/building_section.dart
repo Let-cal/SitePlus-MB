@@ -10,7 +10,7 @@ class BuildingSection extends StatefulWidget {
   final Function(BuildingCreateRequest?) onBuildingSelected;
   final Function(int?, String?) onBuildingDataChanged;
   final BuildingCreateRequest? initialSelectedBuilding;
-  final String? floorNumber;
+  final String? totalFloorNumber;
   final Function(String?) onFloorNumberChanged;
   final Function() onReloadBuildings;
 
@@ -22,7 +22,7 @@ class BuildingSection extends StatefulWidget {
     required this.onBuildingSelected,
     required this.onBuildingDataChanged,
     this.initialSelectedBuilding,
-    this.floorNumber,
+    this.totalFloorNumber,
     required this.onFloorNumberChanged,
     required this.onReloadBuildings,
   }) : super(key: key);
@@ -34,13 +34,13 @@ class BuildingSection extends StatefulWidget {
 class _BuildingSectionState extends State<BuildingSection> {
   final ApiService _apiService = ApiService();
   BuildingCreateRequest? _selectedBuilding;
-  late TextEditingController _floorNumberController;
+  late TextEditingController _totalFloorNumberController;
 
   @override
   void initState() {
     super.initState();
-    _floorNumberController = TextEditingController(
-      text: widget.floorNumber ?? '',
+    _totalFloorNumberController = TextEditingController(
+      text: widget.totalFloorNumber ?? '',
     );
     _selectedBuilding = widget.initialSelectedBuilding;
   }
@@ -55,14 +55,14 @@ class _BuildingSectionState extends State<BuildingSection> {
       });
     }
 
-    if (widget.floorNumber != _floorNumberController.text) {
-      _floorNumberController.text = widget.floorNumber ?? '';
+    if (widget.totalFloorNumber != _totalFloorNumberController.text) {
+      _totalFloorNumberController.text = widget.totalFloorNumber ?? '';
     }
   }
 
   @override
   void dispose() {
-    _floorNumberController.dispose();
+    _totalFloorNumberController.dispose();
     super.dispose();
   }
 
@@ -270,11 +270,11 @@ class _BuildingSectionState extends State<BuildingSection> {
   }
 
   // Input field for floor number
-  Widget _buildFloorNumberInput() {
+  Widget _buildTotalFloorNumberInput() {
     return TextFormField(
-      controller: _floorNumberController,
+      controller: _totalFloorNumberController,
       decoration: InputDecoration(
-        labelText: 'Số tầng',
+        labelText: 'Tổng số tầng của tòa nhà',
         prefixIcon: Icon(
           Icons.stairs,
           color: Theme.of(context).colorScheme.primary,
@@ -363,7 +363,7 @@ class _BuildingSectionState extends State<BuildingSection> {
         SizedBox(height: 16),
 
         // Floor number input
-        _buildFloorNumberInput(),
+        _buildTotalFloorNumberInput(),
       ],
     );
   }

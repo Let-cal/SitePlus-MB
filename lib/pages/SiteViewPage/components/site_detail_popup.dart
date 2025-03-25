@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:siteplus_mb/pages/ReportPage/pages/report_create_dialog.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/ImageComponents/image_upload_dialog_ui.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_status.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
 class ViewDetailSite extends StatelessWidget {
@@ -9,13 +11,14 @@ class ViewDetailSite extends StatelessWidget {
   final Map<int, String> siteCategoryMap;
   final VoidCallback? onTap;
   final Map<int, String> areaMap;
-
+  final BuildContext parentContext;
   const ViewDetailSite({
     super.key,
     this.onTap,
     required this.site,
     required this.siteCategoryMap,
     required this.areaMap,
+    required this.parentContext,
   });
 
   static Future<void> show(
@@ -33,6 +36,7 @@ class ViewDetailSite extends StatelessWidget {
             site: site,
             siteCategoryMap: siteCategoryMap,
             areaMap: areaMap,
+            parentContext: context,
           ),
     );
   }
@@ -311,9 +315,9 @@ class ViewDetailSite extends StatelessWidget {
         _buildInfoRow(
           context,
           label: 'Trạng Thái',
-          value: _getVietnameseStatus(site.status),
-          icon: _getStatusIcon(site.status),
-          valueColor: _getStatusColor(context, site.status),
+          value: getVietnameseStatus(site.status),
+          icon: getStatusIcon(site.status),
+          valueColor: getStatusColor(context, site.status),
         ),
       ],
     );
@@ -409,9 +413,9 @@ class ViewDetailSite extends StatelessWidget {
 
   Widget _buildStatusBadge(BuildContext context) {
     final theme = Theme.of(context);
-    final status = _getVietnameseStatus(site.status);
-    final color = _getStatusColor(context, site.status);
-    final icon = _getStatusIcon(site.status);
+    final status = getVietnameseStatus(site.status);
+    final color = getStatusColor(context, site.status);
+    final icon = getStatusIcon(site.status);
     return Container(
       height: 36,
       decoration: BoxDecoration(
@@ -441,15 +445,82 @@ class ViewDetailSite extends StatelessWidget {
 
   Widget _buildActionButtons(BuildContext context) {
     final theme = Theme.of(context);
+
+    void _navigateToReportCreate({bool isEditMode = false}) {
+      String reportTypeValue;
+      if (site.siteCategoryId == 2) {
+        reportTypeValue = "Commercial";
+      } else {
+        reportTypeValue = "Building";
+      }
+
+      // Sử dụng pushReplacement để thay thế bottom sheet bằng ReportCreateDialog
+      Navigator.of(parentContext).pushReplacement(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 400),
+          pageBuilder:
+              (context, animation, secondaryAnimation) => ReportCreateDialog(
+                reportType: reportTypeValue,
+                siteCategory: siteCategoryMap[site.siteCategoryId] ?? 'Unknown',
+                siteCategoryId: site.siteCategoryId,
+                siteId: site.id,
+                taskId: site.task?.id,
+                isEditMode: isEditMode,
+              ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            var fadeTween = Tween<double>(
+              begin: 0.0,
+              end: 1.0,
+            ).chain(CurveTween(curve: Curves.easeInOut));
+            var slideTween = Tween<Offset>(
+              begin: const Offset(0.0, 1.0),
+              end: Offset.zero,
+            ).chain(CurveTween(curve: Curves.easeInOut));
+
+            return FadeTransition(
+              opacity: animation.drive(fadeTween),
+              child: SlideTransition(
+                position: animation.drive(slideTween),
+                child: child,
+              ),
+            );
+          },
+        ),
+      );
+    }
+
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: FilledButton.icon(
-                onPressed: onTap,
-                icon: Icon(site.status == 2 ? Icons.check_rounded : Icons.edit),
-                label: Text(site.status == 2 ? 'Đồng ý' : 'Tạo báo cáo'),
+                onPressed: () {
+                  if (site.status == 2) {
+                    // Create report mode
+                    _navigateToReportCreate(isEditMode: false);
+                  } else if (site.status == 5) {
+                    _navigateToReportCreate(isEditMode: true);
+                    // Navigator.of(context).pop();
+                  } else {
+                    // Edit report mode
+                    _navigateToReportCreate(isEditMode: true);
+                  }
+                },
+                icon: Icon(
+                  site.status == 2
+                      ? Icons.edit
+                      : site.status == 5
+                      ? Icons.check
+                      : Icons.create,
+                ),
+                label: Text(
+                  site.status == 2
+                      ? 'Tạo báo cáo'
+                      : site.status == 5
+                      ? 'Xác nhận'
+                      : 'Sửa báo cáo',
+                ),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   backgroundColor: theme.colorScheme.primary,
@@ -505,57 +576,5 @@ class ViewDetailSite extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _getVietnameseStatus(int status) {
-    switch (status) {
-      case 1:
-        return 'Có sẵn';
-      case 2:
-        return 'Đang tiến hành';
-      case 3:
-        return 'Chờ phê duyệt';
-      case 4:
-        return 'Bị từ chối';
-      case 5:
-        return 'Đã đóng';
-      default:
-        return 'Không xác định';
-    }
-  }
-
-  IconData _getStatusIcon(int status) {
-    switch (status) {
-      case 1:
-        return Icons.check;
-      case 2:
-        return Icons.timer;
-      case 3:
-        return Icons.hourglass_full;
-      case 4:
-        return Icons.close;
-      case 5:
-        return Icons.archive;
-      default:
-        return Icons.help;
-    }
-  }
-
-  Color _getStatusColor(BuildContext context, int status) {
-    final theme = Theme.of(context);
-    switch (status) {
-      case 1:
-        return Colors.green;
-      case 2:
-        return Colors.orange;
-      case 3:
-        return Colors.blue;
-      case 4:
-        return theme.colorScheme.error;
-      case 5:
-        return Colors.grey;
-      default:
-        return theme.colorScheme.secondary;
-    }
   }
 }

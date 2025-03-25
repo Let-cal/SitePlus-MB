@@ -19,7 +19,6 @@ class ReportSelectionDialog extends StatefulWidget {
 }
 
 class _ReportSelectionDialogState extends State<ReportSelectionDialog> {
-  final ApiService _apiService = ApiService();
   late SiteCategoriesProvider _categoriesProvider;
   List<SiteCategory> _categories = [];
   bool _isLoading = true;

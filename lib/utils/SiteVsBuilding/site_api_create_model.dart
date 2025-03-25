@@ -1,35 +1,35 @@
 class SiteCreateRequest {
-  final String name;
   final int taskId;
   final int siteCategoryId;
   final int areaId;
   final String address;
   final double size;
   final int floor;
+  final int totalFloor;
   final String description;
   final int buildingId;
 
   SiteCreateRequest({
-    required this.name,
     required this.taskId,
     required this.siteCategoryId,
     required this.areaId,
     required this.address,
     required this.size,
     required this.floor,
+    required this.totalFloor,
     required this.description,
     required this.buildingId,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      'name': name,
       'taskId': taskId,
       'siteCategoryId': siteCategoryId,
       'areaId': areaId,
       'address': address,
       'size': size,
       'floor': floor,
+      'totalFloor': totalFloor,
       'description': description,
       'buildingId': buildingId,
       'brandId': null, // Theo yêu cầu, brandId luôn là null
@@ -50,6 +50,7 @@ class SiteCreateRequest {
       buildingId = int.tryParse(siteInfo['buildingId'].toString()) ?? 0;
     }
     int floor = 0;
+    int totalFloor = 0;
     // Chuyển giá trị size sang double
     final double size =
         siteInfo['size'] != null && siteInfo['size'].toString().isNotEmpty
@@ -57,19 +58,21 @@ class SiteCreateRequest {
             : 0;
 
     if (isInBuilding &&
-        siteInfo['floorNumber'] != null &&
-        siteInfo['floorNumber'].toString().isNotEmpty) {
-      floor = int.tryParse(siteInfo['floorNumber'].toString()) ?? 0;
+        siteInfo['totalFloor'] != null &&
+        siteInfo['totalFloor'].toString().isNotEmpty) {
+      floor = int.tryParse(siteInfo['totalFloor'].toString()) ?? 0;
     }
-
+    if (siteInfo['floor'] != null && siteInfo['floor'].toString().isNotEmpty) {
+      totalFloor = int.tryParse(siteInfo['floor'].toString()) ?? 0;
+    }
     return SiteCreateRequest(
-      name: siteInfo['siteName'] ?? '',
       taskId: taskId,
       siteCategoryId: siteCategoryId,
       areaId: areaId,
       address: siteInfo['address'] ?? '',
       size: size,
       floor: floor,
+      totalFloor: totalFloor,
       description: reportData['additionalNotes'] ?? '',
       buildingId: buildingId,
     );

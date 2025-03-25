@@ -8,6 +8,7 @@ import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/HomePage/site_report_statistics.dart';
 import 'package:siteplus_mb/utils/HomePage/task_statistics.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_model.dart';
+import 'package:siteplus_mb/utils/ReportPage/CustomerSegmentModel/customer_segment.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_api_create_model.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
@@ -20,6 +21,212 @@ class ApiService {
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token') ?? '';
+  }
+
+  Future<bool> updateSiteStatus(int siteId, int status) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.updateSiteStatus}';
+
+    final body = {'siteId': siteId, 'status': status};
+
+    try {
+      final response = await http.patch(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json-patch+json',
+          'Accept': '*/*',
+        },
+        body: jsonEncode(body),
+      );
+
+      debugPrint('Update Site Status URL: $url');
+      debugPrint('Request Body: ${jsonEncode(body)}');
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        debugPrint('Site status updated successfully to $status');
+        return true;
+      } else {
+        debugPrint('Failed to update site status: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception when updating site status: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateTaskStatus(int taskId, int status) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.updateTaskStatus}';
+
+    final body = {'siteId': taskId, 'status': status};
+
+    try {
+      final response = await http.patch(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json-patch+json',
+          'Accept': '*/*',
+        },
+        body: jsonEncode(body),
+      );
+
+      debugPrint('Update Task Status URL: $url');
+      debugPrint('Request Body: ${jsonEncode(body)}');
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        debugPrint('Task status updated successfully to $status');
+        return true;
+      } else {
+        debugPrint('Failed to update site status: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception when updating Task status: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateReport(
+    int siteId,
+    List<Map<String, dynamic>> reportData,
+  ) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.updateReport}/$siteId';
+
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json-patch+json',
+          'Accept': '*/*',
+        },
+        body: jsonEncode(reportData),
+      );
+      debugPrint('Update report URL: $url');
+      debugPrint('Request body: ${jsonEncode(reportData)}');
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        debugPrint('Update report successful');
+        return true;
+      } else {
+        debugPrint('Failed to update report: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception when updating report: $e');
+      return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAttributeValuesBySiteId(
+    int siteId,
+  ) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.getAttributeValues}/$siteId';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+
+        if (jsonResponse['data'] != null) {
+          return List<Map<String, dynamic>>.from(jsonResponse['data']);
+        } else {
+          debugPrint('No attribute values found for site ID: $siteId');
+          return [];
+        }
+      } else {
+        debugPrint('Error fetching attribute values: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Exception when fetching attribute values: $e');
+      return [];
+    }
+  }
+
+  Future<List<CustomerSegment>> getCustomerSegments() async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.getCustomerSegments}';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+
+        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          final List<dynamic> data = jsonResponse['data'];
+          return data.map((item) => CustomerSegment.fromJson(item)).toList();
+        } else {
+          debugPrint(
+            'No customer segments data found or request not successful',
+          );
+          return [];
+        }
+      } else {
+        debugPrint('Error fetching customer segments: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Exception when fetching customer segments: $e');
+      return [];
+    }
+  }
+
+  Future<bool> createReport(List<Map<String, dynamic>> reportData) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.createReport}';
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(reportData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('Report created successfully!');
+        return true;
+      } else {
+        debugPrint('Error creating report: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception when creating report: $e');
+      return false;
+    }
   }
 
   Future<List<String>> getSiteImages(int siteId) async {
@@ -37,8 +244,10 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-        final List<dynamic> images = jsonResponse['images'];
-        return images.map((url) => url.toString()).toList();
+        // Access the nested 'data' array inside 'images'
+        final List<dynamic> imagesData = jsonResponse['images']['data'];
+        // Extract the 'url' from each image object
+        return imagesData.map((image) => image['url'].toString()).toList();
       } else {
         debugPrint('Lỗi lấy ảnh site: ${response.statusCode}');
         debugPrint('Response body: ${response.body}');

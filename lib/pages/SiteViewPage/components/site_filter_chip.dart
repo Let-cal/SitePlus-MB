@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/components/filter_chip.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_status.dart';
 
 /// Mở rộng FilterChipPanel để hỗ trợ filter động
 class SiteFilterChipPanel extends StatefulWidget {
@@ -41,7 +42,6 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
   }
 
   void _initializeFilterSections() {
-    
     // Debug before initializing
     debugPrint(
       'Initializing filters with ${widget.categories.length} categories',
@@ -60,7 +60,8 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
 
           return FilterOption(
             label: category.name,
-            color: _getCategoryColor(category.id),
+            icon: getSiteCategoryIcon(category.id),
+            color: getCategoryColor(category.id),
             isSelected: isSelected,
             onTap: () {
               debugPrint('Selecting category: ${category.id}');
@@ -72,34 +73,46 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
     // Prepare status filter options với 5 trạng thái
     final statusOptions = [
       FilterOption(
-        label: 'Có sẵn',
+        label: getVietnameseStatus(1),
         color: Colors.green,
+        icon: getStatusIcon(1),
         isSelected: 1 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(1),
       ),
       FilterOption(
-        label: 'Đang tiến hành',
+        label: getVietnameseStatus(2),
         color: Colors.orange,
+        icon: getStatusIcon(2),
         isSelected: 2 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(2),
       ),
       FilterOption(
-        label: 'Chờ phê duyệt',
+        label: getVietnameseStatus(3),
         color: Colors.blue,
+        icon: getStatusIcon(3),
         isSelected: 3 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(3),
       ),
       FilterOption(
-        label: 'Bị từ chối',
+        label: getVietnameseStatus(4),
         color: Colors.red,
+        icon: getStatusIcon(4),
         isSelected: 4 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(4),
       ),
       FilterOption(
-        label: 'Đã đóng',
+        label: getVietnameseStatus(5),
         color: Colors.grey,
+        icon: getStatusIcon(5),
         isSelected: 5 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(5),
+      ),
+      FilterOption(
+        label: getVietnameseStatus(6),
+        icon: getStatusIcon(6),
+        color: Colors.grey,
+        isSelected: 6 == widget.initialSelectedStatus,
+        onTap: () => _handleStatusSelection(6),
       ),
     ];
 
@@ -114,19 +127,6 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
 
     // Initialize active filters if any
     _updateActiveFilters();
-  }
-
-  Color _getCategoryColor(int categoryId) {
-    switch (categoryId) {
-      case 1:
-        return Colors.green.shade300;
-      case 2:
-        return Colors.blue.shade300;
-      case 3:
-        return Colors.purple.shade300;
-      default:
-        return Colors.grey;
-    }
   }
 
   void _handleCategorySelection(int categoryId) {

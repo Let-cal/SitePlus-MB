@@ -15,4 +15,11 @@ class ApiEndpoints {
   static const String getAllAreas = '/areas/get-all';
   static const String imageUpload = '/Image/upload';
   static const String getImageSite = '/Image/site';
+  static const String getAttribute = '/Attribute';
+  static const String createReport = '/report';
+  static const String getCustomerSegments = '/CustomerSegment';
+  static const String getAttributeValues = '/attribute-values';
+  static const String updateReport = '/report';
+  static const String updateSiteStatus = '/Site/status';
+  static const String updateTaskStatus = '/Task/status';
 }

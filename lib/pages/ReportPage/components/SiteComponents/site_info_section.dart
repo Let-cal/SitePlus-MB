@@ -7,20 +7,24 @@ class SiteInfoSection extends StatelessWidget {
   final TextEditingController siteNameController;
   final TextEditingController addressController;
   final TextEditingController sizeController;
+  final TextEditingController floorNumberController;
   final String siteCategory;
   final Function(String?) onSiteNameSaved;
   final Function(String?) onAddressSaved;
   final Function(String?) onSizeSaved;
+  final Function(String?) onFloorSaved;
 
   const SiteInfoSection({
     Key? key,
     required this.siteNameController,
     required this.addressController,
     required this.sizeController,
+    required this.floorNumberController,
     required this.siteCategory,
     required this.onSiteNameSaved,
     required this.onAddressSaved,
     required this.onSizeSaved,
+    required this.onFloorSaved,
   }) : super(key: key);
 
   @override
@@ -29,16 +33,6 @@ class SiteInfoSection extends StatelessWidget {
 
     return Column(
       children: [
-        // Tên mặt bằng (cho phép nhập chữ)
-        CustomInputField(
-          label: 'Tên mặt bằng',
-          icon: Icons.store,
-          onSaved: onSiteNameSaved,
-          theme: theme,
-          initialValue: siteNameController.text,
-        ),
-        const SizedBox(height: 16),
-
         // Loại mặt bằng (read-only)
         _buildReadOnlyField(
           context: context,
@@ -51,6 +45,7 @@ class SiteInfoSection extends StatelessWidget {
         // Địa chỉ (cho phép nhập chữ)
         CustomInputField(
           label: 'Địa chỉ',
+          hintText: 'Ví dụ: phường 14/200 đường D3...',
           icon: Icons.location_on,
           onSaved: onAddressSaved,
           theme: theme,
@@ -61,10 +56,23 @@ class SiteInfoSection extends StatelessWidget {
         // Diện tích (Size) - chỉ nhận số
         CustomInputField(
           label: 'Diện tích',
+          hintText: 'Ví dụ: 200m2',
           icon: Icons.square_foot,
           onSaved: onSizeSaved,
+          suffixText: "m2",
           theme: theme,
           initialValue: sizeController.text,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        ),
+        const SizedBox(height: 16),
+        CustomInputField(
+          label: 'Tầng',
+          hintText: 'Ví dụ: tầng 2',
+          icon: Icons.stairs,
+          onSaved: onSizeSaved,
+          theme: theme,
+          initialValue: floorNumberController.text,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),

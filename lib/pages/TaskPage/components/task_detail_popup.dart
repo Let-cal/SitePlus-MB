@@ -6,8 +6,8 @@ import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
-import '../../../utils/TaskPage/site_navigation.dart';
-import './report_selection_dialog.dart';
+import '../../../components/report_selection_dialog.dart';
+import '../../../service/navigation_component.dart';
 
 class ViewDetailTask extends StatelessWidget {
   final Task task;
@@ -81,7 +81,7 @@ class ViewDetailTask extends StatelessWidget {
       // Then navigate after the bottom sheet is closed
       Future.delayed(Duration(milliseconds: 300), () {
         // Use a navigation method that doesn't rely on the deactivated context
-        SiteNavigation.navigateToReport(
+        NavigationComponent.navigateToSiteReport(
           rootContext,
           result['reportType'],
           result['categoryId'],
@@ -484,13 +484,11 @@ class ViewDetailTask extends StatelessWidget {
   Widget _buildDescription(BuildContext context) {
     final theme = Theme.of(context);
 
-    String description = _getDescription();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          description,
+          task.description,
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurface.withOpacity(0.8),
             height: 1.5,
@@ -650,15 +648,6 @@ class ViewDetailTask extends StatelessWidget {
 
   String _getLocationText() {
     return task.areaName.isNotEmpty ? task.areaName : 'Quận 1, TP. Hồ Chí Minh';
-  }
-
-  String _getDescription() {
-    // If there's a request_id, show the request description
-    if (task.requestId != null && task.request != null) {
-      return task.request!.description;
-    }
-    // Otherwise, show the task description
-    return task.description;
   }
 
   Color _getStatusColor(BuildContext context, String status) {

@@ -66,12 +66,15 @@ class _CustomChipGroupState extends State<CustomChipGroup> {
                 // Preset chips
                 ...widget.options.map((option) {
                   final isSelected = widget.selectedOptions.contains(option);
+                  IconData iconData =
+                      widget.optionIcons[option] ?? Icons.people;
                   return FilterChip(
                     label: Text(option),
                     selected: isSelected,
                     onSelected: (_) => widget.onOptionSelected(option),
-                    avatar: Icon(widget.optionIcons[option], size: 18),
+                    avatar: Icon(iconData, size: 18),
                     showCheckmark: false,
+                    visualDensity: VisualDensity.compact,
                   );
                 }),
 
@@ -86,6 +89,7 @@ class _CustomChipGroupState extends State<CustomChipGroup> {
                       showCheckmark: false,
                       deleteIcon: const Icon(Icons.close, size: 18),
                       onDeleted: () => widget.onCustomOptionRemoved!(option),
+                      visualDensity: VisualDensity.compact,
                     );
                   }),
               ],
@@ -96,7 +100,7 @@ class _CustomChipGroupState extends State<CustomChipGroup> {
             TextField(
               controller: _otherController,
               decoration: InputDecoration(
-                labelText: 'Add other option',
+                labelText: 'Điền lựa chọn khác của bạn',
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: _addOtherOption,

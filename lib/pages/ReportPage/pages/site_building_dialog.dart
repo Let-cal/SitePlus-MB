@@ -7,17 +7,17 @@ import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/section_h
 import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/site_info_section.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/additional_notes.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/building_section.dart';
-import 'package:siteplus_mb/pages/ReportPage/pages/report_page.dart';
+import 'package:siteplus_mb/pages/ReportPage/pages/report_create_dialog.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_api_create_model.dart';
 
-class SiteBuildingPage extends StatefulWidget {
+class SiteBuildingDialog extends StatefulWidget {
   final String reportType;
   final int? siteCategoryId;
   final String? siteCategory;
   final String taskId;
-  const SiteBuildingPage({
+  const SiteBuildingDialog({
     super.key,
     required this.reportType,
     required this.siteCategoryId,
@@ -26,12 +26,13 @@ class SiteBuildingPage extends StatefulWidget {
   });
 
   @override
-  State<SiteBuildingPage> createState() => _SiteBuildingPageState();
+  State<SiteBuildingDialog> createState() => _SiteBuildingDialogState();
 }
 
-class _SiteBuildingPageState extends State<SiteBuildingPage> {
+class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
   late TextEditingController _siteNameController;
   late TextEditingController _addressController;
+  late TextEditingController _totalFloorNumberController;
   late TextEditingController _floorNumberController;
   late TextEditingController _sizeController;
   final _formKey = GlobalKey<FormState>();
@@ -77,6 +78,7 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
     _addressController = TextEditingController(text: '');
     _sizeController = TextEditingController(text: '');
     _floorNumberController = TextEditingController(text: '');
+    _totalFloorNumberController = TextEditingController(text: '');
 
     // Determine if it's a site within a building
     _isInBuilding = widget.reportType == 'Building';
@@ -106,60 +108,12 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
         'size': '',
         'areaId': null,
         'status': 'Available',
+        'floor': '',
         'buildingId': null,
         'buildingName': '',
-        'floorNumber': '',
+        'totalFloor': '',
         'taskId': widget.taskId,
       },
-      'customerFlow': {
-        'vehicles': {
-          'motorcycle': 0,
-          'car': 0,
-          'bicycle': 0,
-          'pedestrian': 0,
-          'other': null,
-        },
-        'peakHours': {'morning': 0, 'noon': 0, 'afternoon': 0, 'evening': 0},
-        'overallRating': null,
-      },
-      'customerConcentration': {
-        'customerTypes': [],
-        'averageCustomers': null,
-        'overallRating': null,
-      },
-      'customerModel': {
-        'gender': null,
-        'ageGroups': {'under18': 0, '18to30': 0, '31to45': 0, 'over45': 0},
-        'income': null,
-        'overallRating': null,
-      },
-      'siteArea': {
-        'totalArea': 0,
-        'shape': null,
-        'condition': null,
-        'overallRating': null,
-      },
-      'environmentalFactors': {
-        'airQuality': null,
-        'naturalLight': null,
-        'greenery': null,
-        'waste': null,
-        'surroundingStores': [],
-        'overallRating': null,
-      },
-      'visibilityAndObstruction': {
-        'hasObstruction': false,
-        'obstructionType': null,
-        'obstructionLevel': null,
-        'overallRating': null,
-      },
-      'convenience': {
-        'terrain': null,
-        'accessibility': null,
-        'overallRating': null,
-      },
-      'additionalNotes': null,
-      'hasImages': false,
     };
   }
 
@@ -286,6 +240,7 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
     _addressController.dispose();
     _sizeController.dispose();
     _floorNumberController.dispose();
+    _totalFloorNumberController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -359,7 +314,7 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
         context,
         MaterialPageRoute(
           builder:
-              (context) => ReportPage(
+              (context) => ReportCreateDialog(
                 reportType: widget.reportType,
                 siteCategory: widget.siteCategory,
                 siteCategoryId: widget.siteCategoryId,
@@ -428,7 +383,7 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
   }
 
   void _handleFloorNumberChanged(String? value) {
-    _updateReportData('floorNumber', value);
+    _updateReportData('totalFloor', value);
   }
 
   @override
@@ -508,6 +463,7 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
                         siteNameController: _siteNameController,
                         addressController: _addressController,
                         sizeController: _sizeController,
+                        floorNumberController: _floorNumberController,
                         siteCategory: widget.siteCategory ?? 'Commercial',
                         onSiteNameSaved:
                             (value) => _updateReportData('siteName', value),
@@ -515,6 +471,8 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
                             (value) => _updateReportData('address', value),
                         onSizeSaved:
                             (value) => _updateReportData('size', value),
+                        onFloorSaved:
+                            (value) => _updateReportData('floor', value),
                       ),
                     ),
                   ],
@@ -573,7 +531,8 @@ class _SiteBuildingPageState extends State<SiteBuildingPage> {
                           onBuildingSelected: _handleBuildingSelected,
                           onBuildingDataChanged: _handleBuildingDataChanged,
                           initialSelectedBuilding: _selectedBuilding,
-                          floorNumber: reportData['siteInfo']['floorNumber'],
+                          totalFloorNumber:
+                              reportData['siteInfo']['totalFloor'],
                           onFloorNumberChanged: _handleFloorNumberChanged,
                           onReloadBuildings: _loadAllBuildings,
                         ),
