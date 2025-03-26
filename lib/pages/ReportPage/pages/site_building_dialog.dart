@@ -11,18 +11,28 @@ import 'package:siteplus_mb/pages/ReportPage/pages/report_create_dialog.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_api_create_model.dart';
+import 'package:siteplus_mb/utils/constants.dart';
 
 class SiteBuildingDialog extends StatefulWidget {
   final String reportType;
   final int? siteCategoryId;
+  final int? areaId;
   final String? siteCategory;
-  final String taskId;
+  final int taskId;
+  final String taskStatus;
+  final int? siteId;
+  final VoidCallback? onUpdateSuccess;
+
   const SiteBuildingDialog({
     super.key,
     required this.reportType,
     required this.siteCategoryId,
+    required this.areaId,
     required this.siteCategory,
     required this.taskId,
+    required this.taskStatus,
+    this.siteId,
+    this.onUpdateSuccess,
   });
 
   @override
@@ -30,7 +40,6 @@ class SiteBuildingDialog extends StatefulWidget {
 }
 
 class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
-  late TextEditingController _siteNameController;
   late TextEditingController _addressController;
   late TextEditingController _totalFloorNumberController;
   late TextEditingController _floorNumberController;
@@ -66,33 +75,183 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
   @override
   void initState() {
     super.initState();
+    _locationsProvider = Provider.of<LocationsProvider>(context, listen: false);
     _initializeData();
   }
 
-  void _initializeData() async {
-    // Initialize the report data
+  Future<void> _initializeData() async {
     reportData = _createInitialReportData();
 
-    // Initialize controllers
-    _siteNameController = TextEditingController(text: '');
     _addressController = TextEditingController(text: '');
     _sizeController = TextEditingController(text: '');
     _floorNumberController = TextEditingController(text: '');
     _totalFloorNumberController = TextEditingController(text: '');
 
-    // Determine if it's a site within a building
     _isInBuilding = widget.reportType == 'Building';
     await _getUserAreaInfo();
 
-    // Load buildings independently from area selection
+    await _loadDistricts();
+    if (_districts.isEmpty) {
+      debugPrint('Districts chưa được tải, không thể chọn district/area');
+      return;
+    }
+
+    // Kiểm tra nếu là chỉnh sửa (task.status == STATUS_DA_NHAN và có siteId)
+    if (widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null) {
+      await _loadSiteData(widget.siteId!);
+    } else if (widget.areaId != null) {
+      // Trường hợp tạo mới với areaId từ task
+      await _autoSelectDistrictAndArea(widget.areaId!);
+    }
+
     if (_isInBuilding) {
       _loadAllBuildings();
     }
 
-    // Initialize locations provider in the next frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeProviders();
     });
+  }
+
+  Future<void> _loadSiteData(int siteId) async {
+    try {
+      final siteResponse = await _apiService.getSiteById(siteId);
+      final siteData = siteResponse['data'];
+
+      setState(() {
+        // Điền dữ liệu vào controllers
+        _addressController.text = siteData['address'] ?? '';
+        _sizeController.text = siteData['size'].toString();
+        _floorNumberController.text = siteData['floor'].toString();
+        _totalFloorNumberController.text = siteData['totalFloor'].toString();
+
+        // Cập nhật reportData
+        reportData['siteInfo'] = {
+          'siteName': '',
+          'siteCategory': widget.siteCategory,
+          'siteCategoryId': siteData['siteCategoryId'],
+          'address': siteData['address'],
+          'size': siteData['size'].toString(),
+          'areaId': siteData['areaId'],
+          'status': siteData['status'],
+          'floor': siteData['floor'].toString(),
+          'buildingId': siteData['buildingId'],
+          'buildingName': siteData['buildingName'] ?? '',
+          'totalFloor': siteData['totalFloor'].toString(),
+          'taskId': widget.taskId,
+        };
+
+        // Cập nhật selection cho area và district
+        _selectedAreaId = siteData['areaId'];
+        _selectedAreaName = siteData['areaName'];
+      });
+
+      // Tự động chọn district dựa trên areaId
+      await _autoSelectDistrictFromArea(siteData['areaId']);
+    } catch (e) {
+      debugPrint('Error loading site data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải thông tin site: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _autoSelectDistrictFromArea(int areaId) async {
+    final allAreas = await _apiService.getAllAreas();
+    final selectedArea = allAreas.firstWhere((area) => area.id == areaId);
+    final district = _districts.firstWhere(
+      (d) => d.id == selectedArea.districtId,
+    );
+
+    setState(() {
+      _selectedDistrictId = district.id;
+      _selectedDistrictName = district.name;
+    });
+
+    await _loadAreas(district.id);
+    setState(() {
+      _selectedAreaId = areaId;
+      _selectedAreaName = selectedArea.name;
+    });
+  }
+
+  Future<void> _createOrUpdateSite() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final siteRequest =
+            SiteCreateRequest.fromReportData(reportData).toJson();
+
+        if (widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null) {
+          // Cập nhật site
+          final response = await _apiService.updateSite(
+            widget.siteId!,
+            siteRequest,
+          );
+          if (response['success'] == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Cập nhật mặt bằng thành công!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            await Future.delayed(Duration(milliseconds: 500));
+            widget.onUpdateSuccess?.call();
+            Navigator.of(context).pop(true);
+          } else {
+            throw Exception('Failed to update site: ${response['message']}');
+          }
+        } else {
+          // Tạo mới site
+          final response = await _apiService.createSite(
+            SiteCreateRequest.fromReportData(reportData),
+          );
+          if (response['success'] == true || response.containsKey('siteId')) {
+            final statusTaskUpdated = await _apiService.updateTaskStatus(
+              widget.taskId,
+              2,
+            );
+            if (statusTaskUpdated) {
+              debugPrint('Task status updated to "Đã nhận" (2)');
+            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Tạo mặt bằng thành công!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            await Future.delayed(Duration(milliseconds: 500));
+            widget.onUpdateSuccess?.call();
+            Navigator.of(context).pop(true);
+          } else {
+            throw Exception('Failed to create site: ${response['message']}');
+          }
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')));
+    }
   }
 
   Map<String, dynamic> _createInitialReportData() {
@@ -115,6 +274,74 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         'taskId': widget.taskId,
       },
     };
+  }
+
+  Future<void> _loadDistricts() async {
+    try {
+      await _locationsProvider.initialize();
+      if (mounted) {
+        setState(() {
+          _districts = _locationsProvider.districts;
+          debugPrint('Districts loaded: ${_districts.length}');
+          _districts.forEach((district) {
+            debugPrint('District: ${district.id} - ${district.name}');
+          });
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading districts: $e');
+    }
+  }
+
+  Future<void> _autoSelectDistrictAndArea(int areaId) async {
+    try {
+      // Gọi API để lấy tất cả areas
+      final allAreas = await _apiService.getAllAreas();
+
+      // Tìm area có id bằng areaId
+      final selectedArea = allAreas.firstWhere(
+        (area) => area.id == areaId,
+        orElse: () => Area(id: -1, name: '', districtId: -1),
+      );
+
+      if (selectedArea.id != -1) {
+        final districtId = selectedArea.districtId;
+
+        // Tìm district tương ứng trong _districts
+        final selectedDistrict = _districts.firstWhere(
+          (district) => district.id == districtId,
+          orElse: () => District(id: -1, name: '', cityId: -1),
+        );
+
+        if (selectedDistrict.id != -1) {
+          setState(() {
+            _selectedDistrictId = districtId;
+            _selectedDistrictName = selectedDistrict.name;
+            _selectedAreaId = areaId;
+            _selectedAreaName = selectedArea.name;
+          });
+
+          // Load areas cho district đã chọn
+          await _loadAreas(districtId);
+
+          // Cập nhật reportData
+          _updateReportData('areaId', areaId);
+        } else {
+          debugPrint('Không tìm thấy district với districtId: $districtId');
+        }
+      } else {
+        debugPrint('Không tìm thấy area với areaId: $areaId');
+      }
+    } catch (e) {
+      debugPrint('Lỗi khi tự động chọn district và area: $e');
+      // Có thể hiển thị thông báo lỗi cho người dùng nếu cần
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tự động chọn vị trí: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
   }
 
   Future<void> _getUserAreaInfo() async {
@@ -182,26 +409,6 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     });
   }
 
-  Future<void> _loadDistricts() async {
-    try {
-      await _locationsProvider.initialize();
-      if (mounted) {
-        setState(() {
-          _districts = _locationsProvider.districts;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không thể tải danh sách quận/huyện'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _loadAreas(int districtId) async {
     setState(() {
       _isLoadingAreas = true;
@@ -236,7 +443,6 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
   @override
   void dispose() {
-    _siteNameController.dispose();
     _addressController.dispose();
     _sizeController.dispose();
     _floorNumberController.dispose();
@@ -251,61 +457,6 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     });
   }
 
-  Future<void> _createSite() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        final siteRequest = SiteCreateRequest.fromReportData(reportData);
-        print(
-          "Building ID from reportData: ${reportData['siteInfo']['buildingId']}",
-        );
-        print("Final buildingId in request: ${siteRequest.buildingId}");
-        print("Full site request: ${siteRequest.toJson()}");
-        await _apiService.createSite(siteRequest);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Tạo mặt bằng thành công!',
-              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        Navigator.pop(context);
-      } catch (e) {
-        print("Lỗi: ${e.toString()}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Bạn đã tạo thông tin cho mặt bằng này trước đó rồi !!!',
-              style: TextStyle(color: Theme.of(context).colorScheme.onError),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Vui lòng điền đầy đủ thông tin'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-    }
-  }
-
   void _proceedToFullReport() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -318,6 +469,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                 reportType: widget.reportType,
                 siteCategory: widget.siteCategory,
                 siteCategoryId: widget.siteCategoryId,
+                taskId: widget.taskId,
                 initialReportData: reportData,
               ),
         ),
@@ -383,6 +535,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
   }
 
   void _handleFloorNumberChanged(String? value) {
+    debugPrint('Updating totalFloor in reportData: $value');
     _updateReportData('totalFloor', value);
   }
 
@@ -460,19 +613,23 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                     // Site Info Section - in a card
                     _buildElevatedCard(
                       child: SiteInfoSection(
-                        siteNameController: _siteNameController,
                         addressController: _addressController,
                         sizeController: _sizeController,
                         floorNumberController: _floorNumberController,
                         siteCategory: widget.siteCategory ?? 'Commercial',
+                        siteCategoryId: widget.siteCategoryId,
                         onSiteNameSaved:
                             (value) => _updateReportData('siteName', value),
                         onAddressSaved:
                             (value) => _updateReportData('address', value),
                         onSizeSaved:
                             (value) => _updateReportData('size', value),
-                        onFloorSaved:
-                            (value) => _updateReportData('floor', value),
+                        onFloorSaved: (value) {
+                          debugPrint(
+                            'Floor saved from SiteInfoSection: $value',
+                          );
+                          _updateReportData('floor', value);
+                        },
                       ),
                     ),
                   ],
@@ -582,8 +739,9 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
     if (_selectedDistrictId != null) progress += 0.25;
     if (_selectedAreaId != null) progress += 0.25;
-    if (_siteNameController.text.isNotEmpty &&
-        _addressController.text.isNotEmpty)
+    if (_addressController.text.isNotEmpty &&
+        _sizeController.text.isNotEmpty &&
+        _floorNumberController.text.isNotEmpty)
       progress += 0.25;
 
     return Column(
@@ -672,7 +830,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: _createSite,
+                        onPressed: _createOrUpdateSite,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: theme.colorScheme.onPrimary,
@@ -684,7 +842,9 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                         ),
                         icon: Icon(Icons.save),
                         label: Text(
-                          'Lưu thông tin mặt bằng',
+                          widget.taskStatus == STATUS_DA_NHAN
+                              ? 'Cập nhật mặt bằng'
+                              : 'Lưu thông tin mặt bằng',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

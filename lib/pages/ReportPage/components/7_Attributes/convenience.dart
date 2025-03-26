@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:siteplus_mb/utils/ReportPage/animated_expansion_card.dart';
-import 'package:siteplus_mb/utils/ReportPage/custom_chip_group.dart';
-import 'package:siteplus_mb/utils/ReportPage/custom_input_field.dart';
-import 'package:siteplus_mb/utils/ReportPage/info_card.dart';
+import 'package:siteplus_mb/components/7_AttributesComponents/animated_expansion_card.dart';
+import 'package:siteplus_mb/components/7_AttributesComponents/custom_chip_group.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
+import 'package:siteplus_mb/components/7_AttributesComponents/info_card.dart';
 
 class ConvenienceSection extends StatefulWidget {
   final Map<String, dynamic> reportData;

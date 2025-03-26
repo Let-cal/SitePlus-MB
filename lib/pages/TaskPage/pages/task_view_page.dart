@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/components/SectionHeader.dart';
 import 'package:siteplus_mb/components/pagination_component.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
@@ -39,7 +40,6 @@ class _TasksPageState extends State<TasksPage>
       if (result['success'] == true) {
         final statusData = result['data']['statuses'] as List<dynamic>;
 
-        // Cập nhật STATUS_API_MAP và STATUS_ID_TO_NAME_MAP
         Map<String, int> newStatusMap = {};
         Map<int, String> newStatusIdToNameMap = {};
 
@@ -47,25 +47,35 @@ class _TasksPageState extends State<TasksPage>
           final int id = status['id'];
           final String name = status['name'];
 
-          // Chuẩn hóa tên status để phù hợp với UI
+          // Ánh xạ tên từ API sang UI constants
           String uiName;
-          if (name == 'Chưa nhận')
-            uiName = STATUS_CHUA_NHAN;
-          else if (name == 'Đã nhận')
-            uiName = STATUS_DA_NHAN;
-          else if (name == 'Hoàn thành')
-            uiName = STATUS_HOAN_THANH;
-          else
-            uiName = name; // Trường hợp có status mới từ API
+          switch (name) {
+            case 'Chưa nhận':
+              uiName = STATUS_CHUA_NHAN;
+              break;
+            case 'Đã nhận':
+              uiName = STATUS_DA_NHAN;
+              break;
+            case 'Đợi duyệt':
+              uiName = STATUS_CHO_PHE_DUYET;
+              break;
+            case 'Hoàn thành':
+              uiName = STATUS_HOAN_THANH;
+              break;
+            default:
+              uiName = name; // Giữ nguyên nếu có status mới
+          }
 
           newStatusMap[uiName] = id;
           newStatusIdToNameMap[id] = uiName;
         }
 
-        // Cập nhật map toàn cục
         setState(() {
           STATUS_API_MAP = newStatusMap;
           API_STATUS_MAP = newStatusIdToNameMap;
+          // Cập nhật biến cục bộ
+          statusApiMap = Map.from(STATUS_API_MAP);
+          apiStatusMap = Map.from(API_STATUS_MAP);
         });
       }
     } catch (e) {
@@ -78,7 +88,6 @@ class _TasksPageState extends State<TasksPage>
   bool isLoading = true;
   bool isLoadingMore = false;
   late AnimationController _animationController;
-  final PageController _pageController = PageController();
 
   @override
   void initState() {
@@ -97,13 +106,6 @@ class _TasksPageState extends State<TasksPage>
     });
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _pageController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadTasks() async {
     if (!mounted) return;
 
@@ -114,7 +116,6 @@ class _TasksPageState extends State<TasksPage>
     try {
       int? statusValue =
           selectedStatus != 'Tất Cả' ? STATUS_API_MAP[selectedStatus] : null;
-
       int? priorityValue =
           selectedPriority != 'Tất Cả'
               ? PRIORITY_API_MAP[selectedPriority]
@@ -129,15 +130,12 @@ class _TasksPageState extends State<TasksPage>
 
       if (result['success'] == true) {
         final TaskResponse response = TaskResponse.fromJson(result);
-        print("Danh sách nhiệm vụ:");
-        for (var task in response.listData) {
-          print(
-            "Task ID: ${task.id}, Name: ${task.name}, Status: ${task.status}, site ID: ${task.site?.id}",
-          );
-        }
+        print('Số lượng tasks từ API: ${response.listData.length}');
+
         setState(() {
-          tasks = response.listData;
-          totalPages = response.totalPage;
+          // Giới hạn số lượng tasks hiển thị theo pageSize
+          tasks = response.listData.take(pageSize).toList();
+          totalPages = (response.totalRecords / pageSize).ceil();
           totalRecords = response.totalRecords;
           isLoading = false;
         });
@@ -187,15 +185,7 @@ class _TasksPageState extends State<TasksPage>
     setState(() {
       currentPage = page;
     });
-    _pageController
-        .animateToPage(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        )
-        .then((_) {
-          _loadTasks();
-        });
+    _loadTasks();
   }
 
   @override
@@ -358,17 +348,51 @@ class _TasksPageState extends State<TasksPage>
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final task = tasks[index];
-        // Calculate staggered delay based on index
         final delayMs = 100 + (index * 100);
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Hero(
-            // Use ID as hero tag to enable smooth transitions if you implement task details page
-            tag: 'task-card-${task.id}',
+            tag: 'task-card-${task.id.toString()}',
             child: Material(
               color: Colors.transparent,
-              child: AnimatedTaskCard(task: task, index: index, delay: delayMs),
+              child: EnhancedTaskCard(
+                    key: ValueKey('task-${task.id.toString()}'),
+                    task: task,
+                    onTap: () async {
+                      final result = await ViewDetailTask.show(
+                        context,
+                        task,
+                        onUpdateSuccess: () async {
+                          if (mounted) {
+                            print('Update success callback triggered');
+                            await _loadTasks();
+                          }
+                        },
+                      );
+                      print('Task detail result: $result');
+                    },
+                  )
+                  .animate()
+                  .fadeIn(
+                    duration: 600.ms,
+                    delay: Duration(milliseconds: delayMs),
+                    curve: Curves.easeOutQuad,
+                  )
+                  .slideY(
+                    begin: 0.2,
+                    end: 0,
+                    duration: 600.ms,
+                    delay: Duration(milliseconds: delayMs),
+                    curve: Curves.easeOutQuad,
+                  )
+                  .scale(
+                    begin: const Offset(0.95, 0.95),
+                    end: const Offset(1, 1),
+                    duration: 600.ms,
+                    delay: Duration(milliseconds: delayMs),
+                    curve: Curves.easeOutQuad,
+                  ),
             ),
           ),
         );
@@ -391,7 +415,10 @@ class AnimatedTaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return EnhancedTaskCard(key: ValueKey('task-${task.id}'), task: task)
+    return EnhancedTaskCard(
+          key: ValueKey('task-${task.id.toString()}'),
+          task: task,
+        )
         .animate()
         .fadeIn(
           duration: 600.ms,

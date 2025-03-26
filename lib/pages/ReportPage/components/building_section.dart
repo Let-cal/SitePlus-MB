@@ -288,6 +288,7 @@ class _BuildingSectionState extends State<BuildingSection> {
         fillColor: Theme.of(context).colorScheme.surface,
       ),
       onChanged: (value) {
+        debugPrint('TotalFloor changed from BuildingSection: $value');
         widget.onFloorNumberChanged(value);
       },
     );

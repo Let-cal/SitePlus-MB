@@ -5,12 +5,15 @@ import 'package:siteplus_mb/pages/ReportPage/pages/site_building_dialog.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 
 class NavigationComponent {
-  static void navigateToSiteReport(
+  static Future<dynamic> navigateToSiteReport(
     BuildContext context,
     String reportType,
     int categoryId,
     String categoryName,
-    String taskId,
+    int taskId,
+    int? areaId,
+    String taskStatus,
+    int? siteId,
     LocationsProvider locationsProvider,
   ) async {
     String reportTypeValue;
@@ -22,7 +25,7 @@ class NavigationComponent {
       reportTypeValue = "Building";
     }
 
-    // Wrap the SiteBuildingPage with ChangeNotifierProvider
+    // Wrap the SiteBuildingDialog with ChangeNotifierProvider
     final page = ChangeNotifierProvider<LocationsProvider>.value(
       value: locationsProvider,
       child: SiteBuildingDialog(
@@ -30,10 +33,14 @@ class NavigationComponent {
         siteCategory: categoryName,
         siteCategoryId: categoryId,
         taskId: taskId,
+        areaId: areaId,
+        taskStatus: taskStatus,
+        siteId: siteId,
       ),
     );
 
-    Navigator.push(
+    // Trả về kết quả từ Navigator.push
+    return await Navigator.push(
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
@@ -70,10 +77,8 @@ class NavigationComponent {
   ) async {
     String reportTypeValue;
     if (categoryId == 2) {
-      // Mặt bằng độc lập (ID = 2 dựa vào API response)
       reportTypeValue = "Commercial";
     } else {
-      // Mặt bằng nội khu (ID = 1)
       reportTypeValue = "Building";
     }
 
@@ -81,6 +86,7 @@ class NavigationComponent {
       reportType: reportTypeValue,
       siteCategory: categoryName,
       siteCategoryId: categoryId,
+      taskId: taskId,
       siteId: siteId,
     );
 

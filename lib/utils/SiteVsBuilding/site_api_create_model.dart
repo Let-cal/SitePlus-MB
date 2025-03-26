@@ -7,7 +7,7 @@ class SiteCreateRequest {
   final int floor;
   final int totalFloor;
   final String description;
-  final int buildingId;
+  final int? buildingId;
 
   SiteCreateRequest({
     required this.taskId,
@@ -18,7 +18,7 @@ class SiteCreateRequest {
     required this.floor,
     required this.totalFloor,
     required this.description,
-    required this.buildingId,
+    this.buildingId,
   });
 
   Map<String, dynamic> toJson() {
@@ -42,29 +42,27 @@ class SiteCreateRequest {
     final int siteCategoryId = reportData['siteCategoryId'] ?? 0;
     final bool isInBuilding = reportData['reportType'] == 'Building';
     final int areaId = siteInfo['areaId'] ?? 0;
-    // Chuyển taskId từ chuỗi sang số nguyên
     final int taskId = int.tryParse(siteInfo['taskId'].toString()) ?? 0;
-    int buildingId = 0;
+    int? buildingId;
     if (isInBuilding && siteInfo['buildingId'] != null) {
-      // Chuyển đổi buildingId thành int để đảm bảo
       buildingId = int.tryParse(siteInfo['buildingId'].toString()) ?? 0;
     }
     int floor = 0;
     int totalFloor = 0;
-    // Chuyển giá trị size sang double
     final double size =
         siteInfo['size'] != null && siteInfo['size'].toString().isNotEmpty
             ? double.tryParse(siteInfo['size'].toString()) ?? 0
             : 0;
 
+    if (siteInfo['floor'] != null && siteInfo['floor'].toString().isNotEmpty) {
+      floor = int.tryParse(siteInfo['floor'].toString()) ?? 0;
+    }
     if (isInBuilding &&
         siteInfo['totalFloor'] != null &&
         siteInfo['totalFloor'].toString().isNotEmpty) {
-      floor = int.tryParse(siteInfo['totalFloor'].toString()) ?? 0;
+      totalFloor = int.tryParse(siteInfo['totalFloor'].toString()) ?? 0;
     }
-    if (siteInfo['floor'] != null && siteInfo['floor'].toString().isNotEmpty) {
-      totalFloor = int.tryParse(siteInfo['floor'].toString()) ?? 0;
-    }
+
     return SiteCreateRequest(
       taskId: taskId,
       siteCategoryId: siteCategoryId,

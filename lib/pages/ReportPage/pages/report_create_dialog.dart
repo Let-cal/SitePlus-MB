@@ -27,7 +27,7 @@ class ReportCreateDialog extends StatefulWidget {
     this.siteCategory,
     this.siteCategoryId,
     this.siteId,
-    this.taskId,
+    required this.taskId,
     this.initialReportData,
     this.isEditMode = false,
   });
@@ -612,6 +612,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog> {
               widget.siteId!,
               3,
             );
+            debugPrint('Task ID before updating status: ${widget.taskId}');
             final statusTaskUpdated = await _reportApiService.updateTaskStatus(
               widget.taskId!,
               3,
@@ -636,6 +637,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog> {
                     ? 'Báo cáo đã được cập nhật'
                     : 'Báo cáo đã được gửi thành công',
               ),
+              backgroundColor: Colors.green,
             ),
           );
           Navigator.of(context).pop(true);
@@ -647,6 +649,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog> {
                     ? 'Cập nhật báo cáo thất bại'
                     : 'Gửi báo cáo thất bại',
               ),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -655,9 +658,12 @@ class _ReportCreateDialogState extends State<ReportCreateDialog> {
           _isSubmitting = false;
         });
         debugPrint('Error submitting form: $e');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Đã xảy ra lỗi: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã xảy ra lỗi: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     }
   }

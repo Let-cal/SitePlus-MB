@@ -8,6 +8,7 @@ import 'package:siteplus_mb/utils/ReportPage/CustomerSegmentModel/customer_segme
 const String STATUS_CHUA_NHAN = 'Chưa Nhận';
 const String STATUS_DA_NHAN = 'Đã Nhận';
 const String STATUS_HOAN_THANH = 'Hoàn Thành';
+const String STATUS_CHO_PHE_DUYET = 'Đợi duyệt';
 
 // Task Priority
 const String PRIORITY_CAO = 'Cao';
@@ -94,7 +95,8 @@ Future<void> initCustomerSegments() async {
 Map<String, int> STATUS_API_MAP = {
   STATUS_CHUA_NHAN: 1,
   STATUS_DA_NHAN: 2,
-  STATUS_HOAN_THANH: 3,
+  STATUS_CHO_PHE_DUYET: 3,
+  STATUS_HOAN_THANH: 4,
 };
 
 // Priority mapping for API
@@ -108,7 +110,8 @@ const Map<String, int> PRIORITY_API_MAP = {
 Map<int, String> API_STATUS_MAP = {
   1: STATUS_CHUA_NHAN,
   2: STATUS_DA_NHAN,
-  3: STATUS_HOAN_THANH,
+  3: STATUS_CHO_PHE_DUYET,
+  4: STATUS_HOAN_THANH,
 };
 
 const Map<int, String> API_PRIORITY_MAP = {

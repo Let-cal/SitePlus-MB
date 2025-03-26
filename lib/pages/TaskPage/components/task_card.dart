@@ -7,6 +7,7 @@ import 'package:siteplus_mb/components/unified_card_footer.dart';
 import 'package:siteplus_mb/components/unified_card_header.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
+import 'package:siteplus_mb/utils/TaskPage/task_status.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 class EnhancedTaskCard extends StatelessWidget {
@@ -111,9 +112,9 @@ class EnhancedTaskCard extends StatelessWidget {
                     onDetailTap: () {
                       ViewDetailTask.show(context, task);
                     },
-                    statusBadgeText: _getVietnameseStatus(task.status),
-                    statusBadgeIcon: _getStatusIcon(task.status),
-                    statusBadgeColor: _getStatusColor(context, task.status),
+                    statusBadgeText: getVietnameseStatus(task.status),
+                    statusBadgeIcon: getStatusIcon(task.status),
+                    statusBadgeColor: getStatusColor(context, task.status),
                     showDetailButtonBorder: true,
                   ),
                 ],
@@ -198,45 +199,6 @@ class EnhancedTaskCard extends StatelessWidget {
     return SecondaryCardContent(sections: sections);
   }
 
-  String _getVietnameseStatus(String status) {
-    switch (status) {
-      case STATUS_CHUA_NHAN:
-        return 'Chưa nhận';
-      case STATUS_DA_NHAN:
-        return 'Đang xử lý';
-      case STATUS_HOAN_THANH:
-        return 'Hoàn thành';
-      default:
-        return 'Không xác định';
-    }
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case STATUS_CHUA_NHAN:
-        return Icons.radio_button_checked;
-      case STATUS_DA_NHAN:
-        return LucideIcons.clock;
-      case STATUS_HOAN_THANH:
-        return Icons.check_circle;
-      default:
-        return LucideIcons.circle;
-    }
-  }
-
-  Color _getStatusColor(BuildContext context, String status) {
-    final theme = Theme.of(context);
-    switch (status) {
-      case STATUS_CHUA_NHAN:
-        return theme.colorScheme.primary;
-      case STATUS_DA_NHAN:
-        return Colors.orange;
-      case STATUS_HOAN_THANH:
-        return Colors.green;
-      default:
-        return theme.colorScheme.secondary;
-    }
-  }
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';

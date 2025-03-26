@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:siteplus_mb/pages/ReportPage/pages/site_building_dialog.dart';
+import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
+import 'package:siteplus_mb/utils/TaskPage/task_status.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 import '../../../components/report_selection_dialog.dart';
@@ -11,16 +14,32 @@ import '../../../service/navigation_component.dart';
 
 class ViewDetailTask extends StatelessWidget {
   final Task task;
+  final BuildContext parentContext;
+  final VoidCallback? onUpdateSuccess;
 
-  const ViewDetailTask({super.key, required this.task});
+  const ViewDetailTask({
+    super.key,
+    required this.task,
+    required this.parentContext,
+    this.onUpdateSuccess,
+  });
 
   // Method to show the bottom sheet
-  static Future<void> show(BuildContext context, Task task) async {
-    return showModalBottomSheet(
+  static Future<bool?> show(
+    BuildContext context,
+    Task task, {
+    VoidCallback? onUpdateSuccess, // Thêm callback vào show
+  }) async {
+    return await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ViewDetailTask(task: task),
+      builder:
+          (bottomSheetContext) => ViewDetailTask(
+            task: task,
+            parentContext: context,
+            onUpdateSuccess: onUpdateSuccess,
+          ),
     );
   }
 
@@ -87,8 +106,16 @@ class ViewDetailTask extends StatelessWidget {
           result['categoryId'],
           result['categoryName'],
           task.id,
+          task.areaId,
+          task.status,
+          task.site?.id,
           locationsProvider,
-        );
+        ).then((siteBuildingResult) {
+          print('SiteBuildingDialog result: $siteBuildingResult');
+          if (siteBuildingResult == true) {
+            Navigator.of(rootContext).pop(true); // Truyền true về TasksPage
+          }
+        });
       });
     }
   }
@@ -260,7 +287,7 @@ class ViewDetailTask extends StatelessWidget {
               ),
             ),
             Text(
-              task.id,
+              task.id.toString(),
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -364,8 +391,8 @@ class ViewDetailTask extends StatelessWidget {
           context,
           label: 'Trạng Thái',
           value: task.status,
-          icon: _getStatusIcon(task.status),
-          valueColor: _getStatusColor(context, task.status),
+          icon: getStatusIcon(task.status),
+          valueColor: getStatusColor(context, task.status),
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
@@ -542,13 +569,47 @@ class ViewDetailTask extends StatelessWidget {
   }
 
   void _showEditReport(BuildContext context) async {
-    // TODO: Thực hiện logic chỉnh sửa báo cáo.
-    // Ví dụ: Hiển thị dialog hoặc chuyển sang màn hình chỉnh sửa báo cáo.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chức năng chỉnh sửa báo cáo đang được phát triển'),
-      ),
-    );
+    try {
+      if (task.site == null) {
+        ScaffoldMessenger.of(parentContext).showSnackBar(
+          SnackBar(content: Text('Không có thông tin site để chỉnh sửa')),
+        );
+        return;
+      }
+
+      final siteResponse = await ApiService().getSiteById(task.site!.id);
+      final siteId = siteResponse['data']['id'];
+
+      Navigator.of(context).pop(); // Đóng bottom sheet
+
+      final result = await Navigator.push(
+        parentContext, // Sử dụng parentContext để mở SiteBuildingDialog
+        MaterialPageRoute(
+          builder:
+              (context) => SiteBuildingDialog(
+                reportType:
+                    siteResponse['data']['siteCategoryId'] == 1
+                        ? 'Building'
+                        : 'Site',
+                siteCategoryId: siteResponse['data']['siteCategoryId'],
+                areaId: siteResponse['data']['areaId'],
+                siteCategory: siteResponse['data']['siteCategoryName'],
+                taskId: task.id,
+                taskStatus: task.status,
+                siteId: siteId,
+                onUpdateSuccess: onUpdateSuccess,
+              ),
+        ),
+      );
+
+      print('Result from SiteBuildingDialog: $result');
+    } catch (e) {
+      ScaffoldMessenger.of(parentContext).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải thông tin site để chỉnh sửa: $e'),
+        ),
+      );
+    }
   }
 
   Widget _buildActionButtons(BuildContext context) {
@@ -577,19 +638,21 @@ class ViewDetailTask extends StatelessWidget {
             Expanded(
               child: FilledButton.icon(
                 onPressed: () {
-                  if (task.status == STATUS_HOAN_THANH &&
-                      task.status == STATUS_DA_NHAN) {
+                  if (task.status == STATUS_DA_NHAN) {
                     _showEditReport(context);
-                  } else {
+                  } else if (task.status == STATUS_CHUA_NHAN) {
                     _showReportSelection(context);
+                  } else {
+                    Navigator.of(context).pop();
                   }
                 },
                 icon: const Icon(Icons.edit),
                 label: Text(
-                  task.status == STATUS_HOAN_THANH &&
-                          task.status == STATUS_DA_NHAN
+                  task.status == STATUS_DA_NHAN
                       ? 'Sửa Báo Cáo'
-                      : 'Tạo Báo Cáo',
+                      : task.status == STATUS_CHUA_NHAN
+                      ? 'Tạo Báo Cáo'
+                      : 'Đồng ý',
                 ),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -616,8 +679,8 @@ class ViewDetailTask extends StatelessWidget {
   Widget _buildStatusBadge(BuildContext context) {
     final theme = Theme.of(context);
     final status = task.status;
-    final color = _getStatusColor(context, task.status);
-    final icon = _getStatusIcon(task.status);
+    final color = getStatusColor(context, task.status);
+    final icon = getStatusIcon(task.status);
 
     return Container(
       height: 36,
@@ -648,34 +711,6 @@ class ViewDetailTask extends StatelessWidget {
 
   String _getLocationText() {
     return task.areaName.isNotEmpty ? task.areaName : 'Quận 1, TP. Hồ Chí Minh';
-  }
-
-  Color _getStatusColor(BuildContext context, String status) {
-    final theme = Theme.of(context);
-
-    switch (status) {
-      case STATUS_CHUA_NHAN:
-        return theme.colorScheme.primary;
-      case STATUS_DA_NHAN:
-        return theme.colorScheme.tertiary;
-      case STATUS_HOAN_THANH:
-        return Colors.green;
-      default:
-        return theme.colorScheme.secondary;
-    }
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case STATUS_CHUA_NHAN:
-        return Icons.radio_button_checked;
-      case STATUS_DA_NHAN:
-        return Icons.pending;
-      case STATUS_HOAN_THANH:
-        return Icons.check_circle;
-      default:
-        return Icons.circle_outlined;
-    }
   }
 
   String _formatDate(DateTime date) {

@@ -63,7 +63,7 @@ class ApiService {
     final token = await getToken();
     final url = '${ApiLink.baseUrl}${ApiEndpoints.updateTaskStatus}';
 
-    final body = {'siteId': taskId, 'status': status};
+    final body = {'taskId': taskId, 'status': status};
 
     try {
       final response = await http.patch(
@@ -546,6 +546,47 @@ class ApiService {
     }
   }
 
+  // Lấy thông tin Site theo ID
+  Future<Map<String, dynamic>> getSiteById(int siteId) async {
+    final token = await getToken();
+    final response = await http.get(
+      Uri.parse('${ApiLink.baseUrl}${ApiEndpoints.getSiteById}/$siteId'),
+      headers: {'Authorization': 'Bearer $token', 'Accept': '*/*'},
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      return jsonResponse;
+    } else {
+      throw Exception('Failed to load site: ${response.statusCode}');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateSite(
+    int siteId,
+    Map<String, dynamic> siteData,
+  ) async {
+    final token = await getToken();
+    final response = await http.put(
+      Uri.parse('${ApiLink.baseUrl}${ApiEndpoints.updateSite}/$siteId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': '*/*',
+        'Content-Type': 'application/json-patch+json',
+      },
+      body: json.encode(siteData),
+    );
+
+    final jsonResponse = json.decode(response.body);
+    if (response.statusCode == 200) {
+      return jsonResponse;
+    } else {
+      throw Exception(
+        'Failed to update site: ${response.statusCode} - ${jsonResponse['message']}',
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> createSite(SiteCreateRequest request) async {
     final token = await getToken();
     final response = await http.post(
@@ -558,7 +599,8 @@ class ApiService {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      print("response api create site: " + jsonDecode(response.body));
+      final responseBody = jsonDecode(response.body);
+      print("response api create site: $responseBody");
       return jsonDecode(response.body);
     } else {
       throw Exception(

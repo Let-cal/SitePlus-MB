@@ -17,12 +17,6 @@ class HomePageWidget extends StatefulWidget {
 }
 
 class _HomePageWidgetState extends State<HomePageWidget> {
-  final Map<String, List<double>> _reportData = {
-    'total': [45, 52, 48, 55, 50, 58, 62], // Tổng số báo cáo
-    'accepted': [38, 43, 40, 48, 42, 50, 53], // Báo cáo được chấp nhận
-    'declined': [7, 9, 8, 7, 8, 8, 9], // Báo cáo bị từ chối
-  };
-
   @override
   void initState() {
     super.initState();
@@ -40,7 +34,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     // Sử dụng Consumer để lắng nghe thay đổi từ TaskStatisticsProvider
     return Consumer<TaskStatisticsProvider>(
       builder: (context, taskStatsProvider, child) {

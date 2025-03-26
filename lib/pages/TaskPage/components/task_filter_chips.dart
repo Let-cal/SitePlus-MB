@@ -46,6 +46,9 @@ class TaskFilterChips extends StatelessWidget {
       } else if (label == STATUS_HOAN_THANH) {
         icon = Icons.task_alt;
         color = Colors.green;
+      } else if (label == STATUS_CHO_PHE_DUYET) {
+        icon = Icons.access_time;
+        color = Colors.teal;
       } else {
         icon = Icons.circle;
         color = Colors.grey;
@@ -116,6 +119,8 @@ class TaskFilterChips extends StatelessWidget {
                   ? Colors.orange
                   : selectedStatus == STATUS_HOAN_THANH
                   ? Colors.green
+                  : selectedStatus == STATUS_CHO_PHE_DUYET
+                  ? Colors.teal
                   : Colors.grey,
           onRemove: () => onStatusSelected('Tất Cả'),
         ),

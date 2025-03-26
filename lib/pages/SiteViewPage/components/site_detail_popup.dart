@@ -21,13 +21,13 @@ class ViewDetailSite extends StatelessWidget {
     required this.parentContext,
   });
 
-  static Future<void> show(
+  static Future<bool?> show(
     BuildContext context,
     Site site,
     Map<int, String> siteCategoryMap,
     Map<int, String> areaMap,
   ) async {
-    return showModalBottomSheet(
+    return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -446,47 +446,62 @@ class ViewDetailSite extends StatelessWidget {
   Widget _buildActionButtons(BuildContext context) {
     final theme = Theme.of(context);
 
-    void _navigateToReportCreate({bool isEditMode = false}) {
+    void navigateToReportCreate({bool isEditMode = false}) {
       String reportTypeValue;
       if (site.siteCategoryId == 2) {
         reportTypeValue = "Commercial";
       } else {
         reportTypeValue = "Building";
       }
-
+      debugPrint('Navigating with taskId: ${site.task?.id}');
       // Sử dụng pushReplacement để thay thế bottom sheet bằng ReportCreateDialog
-      Navigator.of(parentContext).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 400),
-          pageBuilder:
-              (context, animation, secondaryAnimation) => ReportCreateDialog(
-                reportType: reportTypeValue,
-                siteCategory: siteCategoryMap[site.siteCategoryId] ?? 'Unknown',
-                siteCategoryId: site.siteCategoryId,
-                siteId: site.id,
-                taskId: site.task?.id,
-                isEditMode: isEditMode,
-              ),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            var fadeTween = Tween<double>(
-              begin: 0.0,
-              end: 1.0,
-            ).chain(CurveTween(curve: Curves.easeInOut));
-            var slideTween = Tween<Offset>(
-              begin: const Offset(0.0, 1.0),
-              end: Offset.zero,
-            ).chain(CurveTween(curve: Curves.easeInOut));
-
-            return FadeTransition(
-              opacity: animation.drive(fadeTween),
-              child: SlideTransition(
-                position: animation.drive(slideTween),
-                child: child,
-              ),
-            );
-          },
-        ),
-      );
+      Navigator.of(parentContext)
+          .push(
+            PageRouteBuilder(
+              transitionDuration: const Duration(milliseconds: 400),
+              pageBuilder:
+                  (context, animation, secondaryAnimation) =>
+                      ReportCreateDialog(
+                        reportType: reportTypeValue,
+                        siteCategory:
+                            siteCategoryMap[site.siteCategoryId] ?? 'Unknown',
+                        siteCategoryId: site.siteCategoryId,
+                        siteId: site.id,
+                        taskId: site.task?.id,
+                        isEditMode: isEditMode,
+                      ),
+              transitionsBuilder: (
+                context,
+                animation,
+                secondaryAnimation,
+                child,
+              ) {
+                var fadeTween = Tween<double>(
+                  begin: 0.0,
+                  end: 1.0,
+                ).chain(CurveTween(curve: Curves.easeInOut));
+                var slideTween = Tween<Offset>(
+                  begin: const Offset(0.0, 1.0),
+                  end: Offset.zero,
+                ).chain(CurveTween(curve: Curves.easeInOut));
+                return FadeTransition(
+                  opacity: animation.drive(fadeTween),
+                  child: SlideTransition(
+                    position: animation.drive(slideTween),
+                    child: child,
+                  ),
+                );
+              },
+            ),
+          )
+          .then((result) {
+            // Khi ReportCreateDialog đóng, truyền kết quả trở lại SiteViewPage
+            if (result == true) {
+              Navigator.of(
+                parentContext,
+              ).pop(true); // Truyền true về SiteViewPage
+            }
+          });
     }
 
     return Column(
@@ -498,13 +513,12 @@ class ViewDetailSite extends StatelessWidget {
                 onPressed: () {
                   if (site.status == 2) {
                     // Create report mode
-                    _navigateToReportCreate(isEditMode: false);
+                    navigateToReportCreate(isEditMode: false);
                   } else if (site.status == 5) {
-                    _navigateToReportCreate(isEditMode: true);
-                    // Navigator.of(context).pop();
+                    Navigator.of(context).pop();
                   } else {
                     // Edit report mode
-                    _navigateToReportCreate(isEditMode: true);
+                    navigateToReportCreate(isEditMode: true);
                   }
                 },
                 icon: Icon(

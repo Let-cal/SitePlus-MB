@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/components/SectionHeader.dart';
-import 'package:siteplus_mb/pages/SiteViewPage/components/site_card.dart';
-import 'package:siteplus_mb/pages/SiteViewPage/components/site_filter_chip.dart';
 import 'package:siteplus_mb/components/pagination_component.dart';
+import 'package:siteplus_mb/pages/SiteViewPage/components/site_card.dart';
+import 'package:siteplus_mb/pages/SiteViewPage/components/site_detail_popup.dart';
+import 'package:siteplus_mb/pages/SiteViewPage/components/site_filter_chip.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
@@ -103,7 +104,6 @@ class _SiteViewPageState extends State<SiteViewPage>
         search: null,
         status: selectedStatusId,
       );
-
       // Nếu có filter theo site category (id khác 0), lọc danh sách
       List<Site> filteredSites = fetchedSites;
       if (selectedCategoryId != 0) {
@@ -112,7 +112,6 @@ class _SiteViewPageState extends State<SiteViewPage>
                 .where((site) => site.siteCategoryId == selectedCategoryId)
                 .toList();
       }
-
       setState(() {
         sites = filteredSites;
         totalRecords = sites.length;
@@ -128,6 +127,7 @@ class _SiteViewPageState extends State<SiteViewPage>
   }
 
   void _onFilterChanged(int? categoryId, int? status) {
+    debugPrint('Filter changed - Category: $categoryId, Status: $status');
     setState(() {
       selectedCategoryId = categoryId ?? 0;
       selectedStatusId = status;
@@ -318,8 +318,17 @@ class _SiteViewPageState extends State<SiteViewPage>
             site: site,
             siteCategoryMap: siteCategoryMap,
             areaMap: areaMap,
-            onTap: () {
+            onTap: () async {
               print('Navigating to site details for site ${site.id}');
+              final result = await ViewDetailSite.show(
+                context,
+                site,
+                siteCategoryMap,
+                areaMap,
+              );
+              if (result == true) {
+                await _loadSites();
+              }
             },
           ),
         );

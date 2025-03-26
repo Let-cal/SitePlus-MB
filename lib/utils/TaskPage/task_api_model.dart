@@ -20,7 +20,7 @@ class RequestInfo {
 }
 
 class SiteInfo {
-  final String id;
+  final int id;
   final String areaName;
   final String address;
   final BuildingInfo? building;
@@ -34,7 +34,7 @@ class SiteInfo {
 }
 
 class Task {
-  final String id;
+  final int id;
   final String name;
   final String description;
   final String status;
@@ -61,6 +61,7 @@ class Task {
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
+    print('json[\'id\']: ${json['id']}, type: ${json['id'].runtimeType}');
     // Convert numerical status to string status for display
     String statusText;
     switch (json['status']) {
@@ -71,6 +72,9 @@ class Task {
         statusText = STATUS_DA_NHAN;
         break;
       case 3:
+        statusText = STATUS_CHO_PHE_DUYET;
+        break;
+      case 4:
         statusText = STATUS_HOAN_THANH;
         break;
       default:
@@ -125,7 +129,7 @@ class Task {
       }
 
       siteInfo = SiteInfo(
-        id: json['location']['siteId'].toString(),
+        id: int.parse(json['location']['siteId'].toString()),
         areaName: areaName,
         address: json['location']['siteAddress'] ?? "Không xác định",
         building: buildingInfo,
@@ -133,7 +137,7 @@ class Task {
     }
 
     return Task(
-      id: json['id'].toString(),
+      id: int.parse(json['id'].toString()),
       name: json['name'] ?? "",
       description: json['description'] ?? "",
       status: statusText,

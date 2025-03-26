@@ -8,6 +8,7 @@ import 'package:siteplus_mb/utils/HomePage/site_report_provider.dart';
 import 'package:siteplus_mb/utils/HomePage/task_statistics_provider.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category_provider.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/sites_provider.dart';
 
 import 'pages/LoginPage/pages/login_page.dart';
 import 'theme.dart';
@@ -22,6 +23,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => TaskStatisticsProvider()),
         ChangeNotifierProvider(create: (_) => SiteReportProvider()),
         ChangeNotifierProvider(create: (_) => LocationsProvider()),
+        ChangeNotifierProvider(create: (_) => SitesProvider()),
       ],
       child: const MyApp(),
     ),

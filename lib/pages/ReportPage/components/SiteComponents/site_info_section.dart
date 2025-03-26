@@ -1,14 +1,14 @@
 // site_info_section.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:siteplus_mb/utils/ReportPage/custom_input_field.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
 
 class SiteInfoSection extends StatelessWidget {
-  final TextEditingController siteNameController;
   final TextEditingController addressController;
   final TextEditingController sizeController;
   final TextEditingController floorNumberController;
   final String siteCategory;
+  final int? siteCategoryId;
   final Function(String?) onSiteNameSaved;
   final Function(String?) onAddressSaved;
   final Function(String?) onSizeSaved;
@@ -16,11 +16,11 @@ class SiteInfoSection extends StatelessWidget {
 
   const SiteInfoSection({
     Key? key,
-    required this.siteNameController,
     required this.addressController,
     required this.sizeController,
     required this.floorNumberController,
     required this.siteCategory,
+    required this.siteCategoryId,
     required this.onSiteNameSaved,
     required this.onAddressSaved,
     required this.onSizeSaved,
@@ -68,9 +68,12 @@ class SiteInfoSection extends StatelessWidget {
         const SizedBox(height: 16),
         CustomInputField(
           label: 'Tầng',
-          hintText: 'Ví dụ: tầng 2',
+          hintText:
+              siteCategoryId == 1
+                  ? 'Ví dụ: tầng 2'
+                  : 'Ví dụ: tổng cộng có 2 tầng',
           icon: Icons.stairs,
-          onSaved: onSizeSaved,
+          onSaved: onFloorSaved,
           theme: theme,
           initialValue: floorNumberController.text,
           keyboardType: TextInputType.number,
