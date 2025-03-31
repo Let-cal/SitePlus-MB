@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/animated_expansion_card.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/custom_chip_group.dart';
-import 'package:siteplus_mb/components/custom_input_field.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/info_card.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/selectable_option_button.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
 
 class SiteAreaSection extends StatefulWidget {
   final Map<String, dynamic> reportData;
@@ -499,8 +499,9 @@ class SiteAreaSectionState extends State<SiteAreaSection> {
     } catch (e) {
       return 'Không thể xác định khoảng cách so với mặt đường';
     }
-    if (distance == null)
+    if (distance == null) {
       return 'Không thể xác định khoảng cách so với mặt đường';
+    }
     if (distance < 2) {
       return 'Khoảng cách < 2m, quá gần mặt đường, hạn chế không gian.';
     } else if (distance >= 2 && distance <= 4) {
@@ -586,7 +587,7 @@ class SiteAreaSectionState extends State<SiteAreaSection> {
         children: [
           Text(
             'IV. Mặt Bằng',
-            style: widget.theme.textTheme.headlineLarge?.copyWith(
+            style: widget.theme.textTheme.titleLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
@@ -616,18 +617,17 @@ class SiteAreaSectionState extends State<SiteAreaSection> {
               CustomInputField(
                 label: 'Diện tích tổng (m²)',
                 hintText: 'Ví dụ 120(m²)',
+                suffixText: 'm2',
                 icon: Icons.edit,
                 theme: widget.theme,
                 initialValue: getInitialValue(localSiteData['totalArea']),
                 keyboardType: TextInputType.number,
                 numbersOnly: true,
                 onSaved: (value) {
-                  if (value != null) {
-                    setState(() {
-                      localSiteData['totalArea'] = value;
-                      _updateAttributeValues();
-                    });
-                  }
+                  setState(() {
+                    localSiteData['totalArea'] = value;
+                    _updateAttributeValues();
+                  });
                 },
               ),
             ],
@@ -647,18 +647,17 @@ class SiteAreaSectionState extends State<SiteAreaSection> {
                 CustomInputField(
                   label: 'Bề ngang mặt tiền (m)',
                   hintText: 'Ví dụ 6(m)',
+                  suffixText: 'm',
                   icon: Icons.edit,
                   theme: widget.theme,
                   initialValue: getInitialValue(localSiteData['frontageWidth']),
                   keyboardType: TextInputType.number,
                   numbersOnly: true,
                   onSaved: (value) {
-                    if (value != null) {
-                      setState(() {
-                        localSiteData['frontageWidth'] = value;
-                        _updateAttributeValues();
-                      });
-                    }
+                    setState(() {
+                      localSiteData['frontageWidth'] = value;
+                      _updateAttributeValues();
+                    });
                   },
                 ),
               ],
@@ -678,18 +677,17 @@ class SiteAreaSectionState extends State<SiteAreaSection> {
                 CustomInputField(
                   label: 'Khoảng cách so với mặt đường (m)',
                   hintText: 'Ví dụ 3(m)',
+                  suffixText: 'm',
                   icon: Icons.edit,
                   theme: widget.theme,
                   initialValue: getInitialValue(localSiteData['roadDistance']),
                   keyboardType: TextInputType.number,
                   numbersOnly: true,
                   onSaved: (value) {
-                    if (value != null) {
-                      setState(() {
-                        localSiteData['roadDistance'] = value;
-                        _updateAttributeValues();
-                      });
-                    }
+                    setState(() {
+                      localSiteData['roadDistance'] = value;
+                      _updateAttributeValues();
+                    });
                   },
                 ),
               ],

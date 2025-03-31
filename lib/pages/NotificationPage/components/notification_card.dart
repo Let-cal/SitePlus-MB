@@ -39,15 +39,20 @@ class NotificationCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0x4D9489F5),
+                  color: theme.colorScheme.primary.withOpacity(
+                    0.3,
+                  ), // Adjusted for dark theme
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF6F61EF), width: 2),
+                  border: Border.all(
+                    color: theme.colorScheme.primary,
+                    width: 2,
+                  ),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.all(2),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
                   child: Icon(
                     LucideIcons.clipboardList,
-                    color: Color(0xFF6F61EF),
+                    color: theme.colorScheme.primary,
                     size: 20,
                   ),
                 ),
@@ -82,14 +87,20 @@ class NotificationCard extends StatelessWidget {
                                   TextSpan(
                                     text: '${notification.notificationName}: ',
                                     style: theme.textTheme.bodyLarge?.copyWith(
-                                      color: const Color(0xFF6F61EF),
                                       fontWeight: FontWeight.w600,
+                                      color:
+                                          theme
+                                              .colorScheme
+                                              .primary, // Use primary for emphasis
                                     ),
                                   ),
                                   TextSpan(
                                     text: notification.description,
                                     style: theme.textTheme.bodyLarge?.copyWith(
-                                      color: const Color(0xFF15161E),
+                                      color:
+                                          theme
+                                              .colorScheme
+                                              .onSurface, // Primary text color
                                     ),
                                   ),
                                   TextSpan(
@@ -97,6 +108,10 @@ class NotificationCard extends StatelessWidget {
                                     style: theme.textTheme.bodyLarge?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 17,
+                                      color:
+                                          theme
+                                              .colorScheme
+                                              .onSurface, // Primary text color
                                     ),
                                   ),
                                 ],
@@ -107,8 +122,8 @@ class NotificationCard extends StatelessWidget {
                             Container(
                               width: 12,
                               height: 12,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF6F61EF),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -123,10 +138,12 @@ class NotificationCard extends StatelessWidget {
                         curve: Curves.easeInOut,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: const Color(0x4D9489F5),
+                          color: theme.colorScheme.primary.withOpacity(
+                            0.3,
+                          ), // Adjusted for dark theme
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF6F61EF),
+                            color: theme.colorScheme.primary,
                             width: 2,
                           ),
                         ),
@@ -140,8 +157,11 @@ class NotificationCard extends StatelessWidget {
                               Text(
                                 notification.taskName,
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: const Color(0xFF6F61EF),
                                   fontWeight: FontWeight.bold,
+                                  color:
+                                      theme
+                                          .colorScheme
+                                          .primary, // Emphasized text
                                 ),
                               ),
 
@@ -155,7 +175,12 @@ class NotificationCard extends StatelessWidget {
                                 ),
                                 child: Text(
                                   notification.taskDescription,
-                                  style: theme.textTheme.labelMedium,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color:
+                                        theme
+                                            .colorScheme
+                                            .onSurfaceVariant, // Secondary text color
+                                  ),
                                 ),
                               ),
 
@@ -171,17 +196,21 @@ class NotificationCard extends StatelessWidget {
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         LucideIcons.mapPin,
                                         size: 14,
-                                        color: Color(0xFF606A85),
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         notification.cityDistrict,
                                         style: theme.textTheme.labelMedium
                                             ?.copyWith(
-                                              color: const Color(0xFF606A85),
+                                              color:
+                                                  theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant, // Secondary text color
                                             ),
                                       ),
                                     ],
@@ -200,17 +229,21 @@ class NotificationCard extends StatelessWidget {
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         LucideIcons.clock,
                                         size: 14,
-                                        color: Color(0xFF606A85),
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Hạn: ${DateFormat('dd/MM/yyyy').format(notification.taskDeadline!)}',
                                         style: theme.textTheme.labelMedium
                                             ?.copyWith(
-                                              color: const Color(0xFF606A85),
+                                              color:
+                                                  theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant, // Secondary text color
                                             ),
                                       ),
                                     ],
@@ -229,7 +262,10 @@ class NotificationCard extends StatelessWidget {
                           'dd/MM/yyyy \'lúc\' HH:mm',
                         ).format(notification.createdAt),
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: const Color(0xFF606A85),
+                          color:
+                              theme
+                                  .colorScheme
+                                  .onSurfaceVariant, // Secondary text color
                         ),
                       ),
                     ),

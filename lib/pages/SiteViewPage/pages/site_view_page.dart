@@ -12,8 +12,9 @@ import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
 class SiteViewPage extends StatefulWidget {
-  const SiteViewPage({super.key});
-
+  final int? filterSiteId;
+  final void Function(int? filterTaskId)? onNavigateToTaskTab;
+  const SiteViewPage({super.key, this.filterSiteId, this.onNavigateToTaskTab});
   @override
   State<SiteViewPage> createState() => _SiteViewPageState();
 }
@@ -40,8 +41,10 @@ class _SiteViewPageState extends State<SiteViewPage>
   List<Area> _areas = [];
   Map<int, String> siteCategoryMap = {};
   Map<int, String> areaMap = {};
-
+  // Danh sách tất cả site khi cần duyệt qua các trang
+  List<Site> allSites = [];
   // In _SiteViewPageState._loadData() add these debug prints:
+
   Future<void> _loadData() async {
     try {
       final token = await ApiService().getToken();
@@ -57,7 +60,7 @@ class _SiteViewPageState extends State<SiteViewPage>
       // Debug prints
       debugPrint('Fetched categories: ${fetchedSiteCategories.length}');
       for (var cat in fetchedSiteCategories) {
-        debugPrint('Category: ${cat?.id} - ${cat?.name}');
+        debugPrint('Category: ${cat.id} - ${cat.name}');
       }
 
       setState(() {
@@ -66,18 +69,16 @@ class _SiteViewPageState extends State<SiteViewPage>
 
         // Make sure siteCategoryMap is created correctly
         debugPrint('Creating maps...');
-        siteCategoryMap = Map.fromIterable(
-          _siteCategories.where((cat) => cat != null),
-          key: (cat) => cat!.id,
-          value: (cat) => cat!.name,
-        );
+        siteCategoryMap = {
+          for (var cat in _siteCategories.where((cat) => cat != null))
+            cat!.id: cat!.name,
+        };
         debugPrint('siteCategoryMap size: ${siteCategoryMap.length}');
 
-        areaMap = Map.fromIterable(
-          _areas.where((area) => area != null),
-          key: (area) => area!.id,
-          value: (area) => area!.name,
-        );
+        areaMap = {
+          for (var area in _areas.where((area) => area != null))
+            area!.id: area!.name,
+        };
       });
       debugPrint('areaMap size: ${areaMap.length}');
     } catch (e) {
@@ -96,33 +97,66 @@ class _SiteViewPageState extends State<SiteViewPage>
   Future<void> _loadSites() async {
     setState(() {
       isLoading = true;
+      sites = [];
     });
+
     try {
-      final fetchedSites = await ApiService().getSites(
-        pageNumber: currentPage,
-        pageSize: pageSize,
-        search: null,
-        status: selectedStatusId,
-      );
-      // Nếu có filter theo site category (id khác 0), lọc danh sách
-      List<Site> filteredSites = fetchedSites;
-      if (selectedCategoryId != 0) {
-        filteredSites =
-            fetchedSites
-                .where((site) => site.siteCategoryId == selectedCategoryId)
-                .toList();
+      if (widget.filterSiteId != null) {
+        // Nếu có filterSiteId, tìm site theo site id bằng tham số search
+        final response = await ApiService().getSites(
+          pageNumber: 1, // Chỉ cần trang 1 vì tìm theo id
+          pageSize: 1, // Chỉ cần 1 kết quả
+          search: widget.filterSiteId.toString(), // Tìm theo site id
+          status: selectedStatusId,
+        );
+
+        final fetchedSites = List<Site>.from(
+          response['listData'].map((item) => Site.fromJson(item)),
+        );
+
+        setState(() {
+          sites = fetchedSites;
+          totalRecords = fetchedSites.length; // Số lượng site tìm được
+          totalPages = 1; // Chỉ hiển thị 1 trang khi lọc
+        });
+      } else {
+        // Nếu không có filterSiteId, hiển thị bình thường với phân trang
+        final response = await ApiService().getSites(
+          pageNumber: currentPage,
+          pageSize: pageSize,
+          search: null,
+          status: selectedStatusId,
+        );
+
+        final fetchedSites = List<Site>.from(
+          response['listData'].map((item) => Site.fromJson(item)),
+        );
+
+        List<Site> filteredSites = fetchedSites;
+        if (selectedCategoryId != 0) {
+          filteredSites =
+              fetchedSites
+                  .where((site) => site.siteCategoryId == selectedCategoryId)
+                  .toList();
+        }
+
+        setState(() {
+          sites = filteredSites;
+          totalRecords = response['totalRecords']; // Lấy từ API
+          totalPages = response['totalPage']; // Lấy từ API
+        });
       }
-      setState(() {
-        sites = filteredSites;
-        totalRecords = sites.length;
-        totalPages = (totalRecords / pageSize).ceil();
-        isLoading = false;
-      });
     } catch (e) {
+      print('Error loading sites: $e');
+      setState(() {
+        sites = [];
+        totalRecords = 0;
+        totalPages = 1;
+      });
+    } finally {
       setState(() {
         isLoading = false;
       });
-      print('Error loading sites: $e');
     }
   }
 
@@ -148,6 +182,7 @@ class _SiteViewPageState extends State<SiteViewPage>
     if (page < 1 || page > totalPages || page == currentPage) return;
     setState(() {
       currentPage = page;
+      _loadSites();
     });
   }
 
@@ -211,21 +246,39 @@ class _SiteViewPageState extends State<SiteViewPage>
               if (isLoading)
                 SliverFillRemaining(
                   child: Center(
-                    child: CircularProgressIndicator()
-                        .animate(onPlay: (controller) => controller.repeat())
-                        .scaleXY(
-                          begin: 0.8,
-                          end: 1.2,
-                          duration: 1000.ms,
-                          curve: Curves.easeInOut,
-                        )
-                        .then()
-                        .scaleXY(
-                          begin: 1.2,
-                          end: 0.8,
-                          duration: 1000.ms,
-                          curve: Curves.easeInOut,
-                        ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator()
+                            .animate(
+                              onPlay: (controller) => controller.repeat(),
+                            )
+                            .scaleXY(
+                              begin: 0.8,
+                              end: 1.2,
+                              duration: 1000.ms,
+                              curve: Curves.easeInOut,
+                            )
+                            .then()
+                            .scaleXY(
+                              begin: 1.2,
+                              end: 0.8,
+                              duration: 1000.ms,
+                              curve: Curves.easeInOut,
+                            ),
+                        const SizedBox(height: 16),
+                        Text(
+                              'Đang tải mặt bằng...',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            )
+                            .animate(
+                              onPlay: (controller) => controller.repeat(),
+                            )
+                            .fadeIn(duration: 1000.ms)
+                            .then()
+                            .fadeOut(duration: 1000.ms),
+                      ],
+                    ),
                   ),
                 )
               else
@@ -318,6 +371,7 @@ class _SiteViewPageState extends State<SiteViewPage>
             site: site,
             siteCategoryMap: siteCategoryMap,
             areaMap: areaMap,
+            onNavigateToTaskTab: widget.onNavigateToTaskTab,
             onTap: () async {
               print('Navigating to site details for site ${site.id}');
               final result = await ViewDetailSite.show(
@@ -325,6 +379,7 @@ class _SiteViewPageState extends State<SiteViewPage>
                 site,
                 siteCategoryMap,
                 areaMap,
+                onNavigateToTaskTab: widget.onNavigateToTaskTab,
               );
               if (result == true) {
                 await _loadSites();

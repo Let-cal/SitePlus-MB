@@ -21,7 +21,7 @@ class UnifiedCardHeader extends StatelessWidget {
   final bool secondaryBadgeBelow;
 
   const UnifiedCardHeader({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
@@ -34,7 +34,7 @@ class UnifiedCardHeader extends StatelessWidget {
     this.secondaryBadgeColor,
     this.showSecondaryBadge = false,
     this.secondaryBadgeBelow = true,
-  }) : super(key: key);
+  });
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

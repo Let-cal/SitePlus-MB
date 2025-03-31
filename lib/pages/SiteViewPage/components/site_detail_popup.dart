@@ -12,6 +12,8 @@ class ViewDetailSite extends StatelessWidget {
   final VoidCallback? onTap;
   final Map<int, String> areaMap;
   final BuildContext parentContext;
+  final void Function(int? filterTaskId)? onNavigateToTaskTab;
+
   const ViewDetailSite({
     super.key,
     this.onTap,
@@ -19,14 +21,16 @@ class ViewDetailSite extends StatelessWidget {
     required this.siteCategoryMap,
     required this.areaMap,
     required this.parentContext,
+    this.onNavigateToTaskTab,
   });
 
   static Future<bool?> show(
     BuildContext context,
     Site site,
     Map<int, String> siteCategoryMap,
-    Map<int, String> areaMap,
-  ) async {
+    Map<int, String> areaMap, {
+    void Function(int? filterTaskId)? onNavigateToTaskTab,
+  }) async {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -37,6 +41,7 @@ class ViewDetailSite extends StatelessWidget {
             siteCategoryMap: siteCategoryMap,
             areaMap: areaMap,
             parentContext: context,
+            onNavigateToTaskTab: onNavigateToTaskTab,
           ),
     );
   }
@@ -469,6 +474,7 @@ class ViewDetailSite extends StatelessWidget {
                         siteId: site.id,
                         taskId: site.task?.id,
                         isEditMode: isEditMode,
+                        initialReportData: {'siteStatus': site.status},
                       ),
               transitionsBuilder: (
                 context,
@@ -504,47 +510,115 @@ class ViewDetailSite extends StatelessWidget {
           });
     }
 
+    void navigateToTaskPage() {
+      if (site.task?.id == null) {
+        ScaffoldMessenger.of(parentContext).showSnackBar(
+          SnackBar(
+            content: Text('Không có nhiệm vụ liên quan đến mặt bằng này'),
+          ),
+        );
+        return;
+      }
+      print('Navigating to TasksPage with taskId: ${site.task!.id}');
+      Navigator.of(context).pop(); // Đóng dialog
+      if (onNavigateToTaskTab != null) {
+        onNavigateToTaskTab!(site.task!.id); // Gọi callback để chuyển tab
+      } else {
+        print('Callback onNavigateToTaskTab không được cung cấp');
+      }
+    }
+
+    // Xác định nút dựa trên status
+    Widget primaryButton() {
+      switch (site.status) {
+        case 2: // Đang tiến hành
+          return FilledButton.icon(
+            onPressed: () => navigateToReportCreate(isEditMode: false),
+            icon: const Icon(Icons.edit),
+            label: const Text('Tạo báo cáo'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        case 8: // Bản nháp
+          return FilledButton.icon(
+            onPressed: () => navigateToReportCreate(isEditMode: true),
+            icon: const Icon(Icons.note),
+            label: const Text('Sửa bản nháp'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        case 4: // Bị từ chối
+          return FilledButton.icon(
+            onPressed: () => navigateToReportCreate(isEditMode: true),
+            icon: const Icon(Icons.edit),
+            label: const Text('Sửa báo cáo'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        case 5: // Đã đóng
+        case 6: // Đã kết nối
+        case 1: // Có sẵn
+        case 3: // Chờ phê duyệt
+          return FilledButton.icon(
+            onPressed: navigateToTaskPage,
+            icon: const Icon(Icons.visibility),
+            label: const Text('Xem nhiệm vụ'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        case 7: // Đang thương lượng
+          return FilledButton.icon(
+            onPressed: () => navigateToReportCreate(isEditMode: true),
+            icon: const Icon(Icons.forum),
+            label: const Text('Thương lượng'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        default:
+          return FilledButton.icon(
+            onPressed: () => navigateToReportCreate(isEditMode: true),
+            icon: const Icon(Icons.create),
+            label: const Text('Sửa báo cáo'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+      }
+    }
+
     return Column(
       children: [
         Row(
           children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: () {
-                  if (site.status == 2) {
-                    // Create report mode
-                    navigateToReportCreate(isEditMode: false);
-                  } else if (site.status == 5) {
-                    Navigator.of(context).pop();
-                  } else {
-                    // Edit report mode
-                    navigateToReportCreate(isEditMode: true);
-                  }
-                },
-                icon: Icon(
-                  site.status == 2
-                      ? Icons.edit
-                      : site.status == 5
-                      ? Icons.check
-                      : Icons.create,
-                ),
-                label: Text(
-                  site.status == 2
-                      ? 'Tạo báo cáo'
-                      : site.status == 5
-                      ? 'Xác nhận'
-                      : 'Sửa báo cáo',
-                ),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: theme.colorScheme.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.of(context).pop(),
@@ -560,6 +634,8 @@ class ViewDetailSite extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(width: 16),
+            Expanded(child: primaryButton()),
           ],
         ),
         const SizedBox(height: 12),

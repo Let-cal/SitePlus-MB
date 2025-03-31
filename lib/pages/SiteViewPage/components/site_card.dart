@@ -15,15 +15,16 @@ class SiteCard extends StatelessWidget {
   final Map<int, String> areaMap;
   final VoidCallback? onTap;
   final VoidCallback? onCreateReport;
-
+  final void Function(int? filterTaskId)? onNavigateToTaskTab;
   const SiteCard({
-    Key? key,
+    super.key,
     required this.site,
     required this.siteCategoryMap,
     required this.areaMap,
     this.onTap,
     this.onCreateReport,
-  }) : super(key: key);
+     this.onNavigateToTaskTab,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +121,7 @@ class SiteCard extends StatelessWidget {
                         site,
                         siteCategoryMap,
                         areaMap,
+                        onNavigateToTaskTab: onNavigateToTaskTab
                       );
                     },
                     onPrimaryActionTap:
@@ -174,7 +176,7 @@ class SiteCard extends StatelessWidget {
       );
 
       // Area info
-      if (site.building != null && site.building!.areaId != null) {
+      if (site.building != null) {
         buildingItems.add(
           InfoItem(
             icon: LucideIcons.mapPin,

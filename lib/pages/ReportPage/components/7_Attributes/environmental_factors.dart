@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/animated_expansion_card.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/custom_chip_group.dart';
-import 'package:siteplus_mb/components/custom_input_field.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/info_card.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/selectable_option_button.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
 
 class EnvironmentalFactorsSection extends StatefulWidget {
   final Map<String, dynamic> reportData;
@@ -167,32 +167,24 @@ class EnvironmentalFactorsSectionState
       'surroundingStores': [],
       'customStores': [],
       'surroundingStores_additionalInfo': '',
+      'ventilation': {'exists': null, 'quality': null, 'additionalInfo': ''},
+      'airConditioning': {
+        'exists': null,
+        'quality': null,
+        'additionalInfo': '',
+      },
+      'commonAmenities': {
+        'hasCommonAmenities': null,
+        'selectedAmenities': [],
+        'selectedAmenityStatuses': {},
+        'customAmenities': [],
+        'additionalInfo': '',
+      },
     };
 
     defaultValues.forEach((key, value) {
       localEnvironmentalFactors.putIfAbsent(key, () => value);
     });
-
-    if (siteCategoryId == 1) {
-      localEnvironmentalFactors.putIfAbsent(
-        'ventilation',
-        () => {'exists': null, 'quality': null, 'additionalInfo': ''},
-      );
-      localEnvironmentalFactors.putIfAbsent(
-        'airConditioning',
-        () => {'exists': null, 'quality': null, 'additionalInfo': ''},
-      );
-      localEnvironmentalFactors.putIfAbsent(
-        'commonAmenities',
-        () => {
-          'hasCommonAmenities': null,
-          'selectedAmenities': [],
-          'selectedAmenityStatuses': {},
-          'customAmenities': [],
-          'additionalInfo': '',
-        },
-      );
-    }
 
     hasCommonAmenities =
         localEnvironmentalFactors['commonAmenities']['hasCommonAmenities'];
@@ -425,7 +417,7 @@ class EnvironmentalFactorsSectionState
     _logger.info('Before update - attributeValues: $attributeValues');
 
     // Cập nhật các yếu tố cơ bản
-    factorConfigs.keys.forEach((key) {
+    for (var key in factorConfigs.keys) {
       final attributeId = attributeIdMap[key];
       if (attributeId != null) {
         final factorData = localEnvironmentalFactors[key];
@@ -442,7 +434,7 @@ class EnvironmentalFactorsSectionState
           );
         }
       }
-    });
+    }
 
     // Cập nhật surroundingStores
     final stores = List<String>.from(
@@ -467,7 +459,7 @@ class EnvironmentalFactorsSectionState
 
     // Cập nhật các yếu tố bổ sung nếu siteCategoryId == 1
     if (siteCategoryId == 1) {
-      ['ventilation', 'airConditioning'].forEach((key) {
+      for (var key in ['ventilation', 'airConditioning']) {
         final attributeId = attributeIdMap[key];
         if (attributeId != null) {
           final factorData =
@@ -493,7 +485,7 @@ class EnvironmentalFactorsSectionState
             }
           }
         }
-      });
+      }
 
       // Cập nhật commonAmenities
       final commonAmenitiesData =
@@ -514,6 +506,7 @@ class EnvironmentalFactorsSectionState
                 )
                 .join(', ');
           }
+          debugPrint('Updating commonAmenities with value: $value');
           if (value.isNotEmpty) {
             _updateSingleAttribute(
               attributeValues,
@@ -553,6 +546,7 @@ class EnvironmentalFactorsSectionState
               additionalFactorConfigs['commonAmenities']!['statuses'][0];
         }
       }
+      debugPrint('Selected amenities: $selectedAmenities');
       localEnvironmentalFactors['commonAmenities']['selectedAmenities'] =
           selectedAmenities;
       localEnvironmentalFactors['commonAmenities']['selectedAmenityStatuses'] =
@@ -723,7 +717,7 @@ class EnvironmentalFactorsSectionState
         children: [
           Text(
             'V. Yếu Tố Môi Trường',
-            style: widget.theme.textTheme.headlineLarge?.copyWith(
+            style: widget.theme.textTheme.titleLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
@@ -1136,7 +1130,7 @@ class EnvironmentalFactorsSectionState
                             Container(
                               padding: const EdgeInsets.all(8.0),
                               decoration: BoxDecoration(
-                                color: widget.theme.colorScheme.surfaceVariant,
+                                color: widget.theme.colorScheme.surface,
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               child: Column(
@@ -1187,7 +1181,7 @@ class EnvironmentalFactorsSectionState
                             ),
                           ],
                         );
-                      }).toList(),
+                      }),
                       const SizedBox(height: 16),
                       CustomInputField(
                         label: 'Thông tin bổ sung',

@@ -17,14 +17,14 @@ class ImageUploadDialogUI extends StatefulWidget {
   final bool loadExistingImages;
 
   const ImageUploadDialogUI({
-    Key? key,
+    super.key,
     this.initialImages = const [],
     required this.onImagesSelected,
     this.maxImages = 3,
     required this.siteId,
     this.buildingId,
     this.loadExistingImages = true,
-  }) : super(key: key);
+  });
   // Thêm vào file image_upload_dialog_ui.dart
   static Future<List<ImageItem>?> show(
     BuildContext context, {
@@ -96,14 +96,17 @@ class _ImageUploadDialogUIState extends State<ImageUploadDialogUI>
   }
 
   Future<void> _handlePickImage() async {
+    print('handlePickImage called'); // Debug xem hàm có được gọi không
     try {
-      // Only call this method when the user explicitly adds new images
       final count = await _imageController.pickImage(context);
-      if (count > 0) {
-        return;
+      print('Picked image count: $count');
+      if (count == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không có ảnh nào được chọn')),
+        );
       }
     } catch (e) {
-      // Error handling remains the same
+      print('Error in handlePickImage: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -119,7 +122,6 @@ class _ImageUploadDialogUIState extends State<ImageUploadDialogUI>
   void _handleRemoveImage(int index) {
     final imageToRemove = _imageController.images[index];
 
-    // Show confirmation dialog for remote images
     if (imageToRemove.isRemote) {
       showDialog(
         context: context,
@@ -135,18 +137,18 @@ class _ImageUploadDialogUIState extends State<ImageUploadDialogUI>
                 FilledButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    _imageController.removeImage(index);
+                    _imageController.removeImage(index); // Chỉ xóa trên UI
                   },
-                  child: const Text('Xóa'),
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.error,
                   ),
+                  child: const Text('Xóa'),
                 ),
               ],
             ),
       );
     } else {
-      _imageController.removeImage(index);
+      _imageController.removeImage(index); // Xóa ảnh cục bộ ngay lập tức
     }
   }
 

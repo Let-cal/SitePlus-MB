@@ -5,10 +5,10 @@ class SecondaryCardContent extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   const SecondaryCardContent({
-    Key? key,
+    super.key,
     required this.sections,
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,7 @@ class SecondaryCardContent extends StatelessWidget {
       width: double.infinity, // Explicit width constraint
       padding: padding,
       decoration: BoxDecoration(
-        color: colorScheme.surfaceVariant.withOpacity(0.3),
+        color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
         border: Border(
           top: BorderSide(color: colorScheme.onSurface.withOpacity(0.1)),
           bottom: BorderSide(color: colorScheme.onSurface.withOpacity(0.1)),
@@ -48,7 +48,7 @@ class SecondaryCardContent extends StatelessWidget {
 class InfoSection extends StatelessWidget {
   final List<InfoItem> items;
 
-  const InfoSection({Key? key, required this.items}) : super(key: key);
+  const InfoSection({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -84,13 +84,13 @@ class InfoItem extends StatelessWidget {
   final String value;
 
   const InfoItem({
-    Key? key,
+    super.key,
     required this.icon,
     required this.iconColor,
     required this.iconBackgroundColor,
     required this.label,
     required this.value,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -101,15 +101,16 @@ class InfoItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: iconBackgroundColor,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, size: 16, color: iconColor),
         ),
-        const SizedBox(width: 10),
-        Expanded(
+        const SizedBox(width: 12),
+        Flexible(
+          // Thay Expanded bằng Flexible để cho phép wrap
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -118,7 +119,7 @@ class InfoItem extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurface.withOpacity(0.7),
                 ),
-                maxLines: 1,
+                maxLines: 1, // Giữ maxLines: 1 cho label để ngắn gọn
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
@@ -126,7 +127,7 @@ class InfoItem extends StatelessWidget {
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
-                maxLines: 1,
+                maxLines: 1, // Giữ maxLines: 1 cho label để ngắn gọn
                 overflow: TextOverflow.ellipsis,
               ),
             ],

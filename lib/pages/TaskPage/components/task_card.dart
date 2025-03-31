@@ -13,9 +13,13 @@ import 'package:siteplus_mb/utils/constants.dart';
 class EnhancedTaskCard extends StatelessWidget {
   final Task task;
   final VoidCallback? onTap;
-
-  const EnhancedTaskCard({Key? key, required this.task, this.onTap})
-    : super(key: key);
+  final void Function(int? filterSiteId)? onNavigateToSiteTab;
+  const EnhancedTaskCard({
+    super.key,
+    required this.task,
+    this.onTap,
+    this.onNavigateToSiteTab,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +50,11 @@ class EnhancedTaskCard extends StatelessWidget {
               onTap:
                   onTap ??
                   () {
-                    ViewDetailTask.show(context, task);
+                    ViewDetailTask.show(
+                      context,
+                      task,
+                      onNavigateToSiteTab: onNavigateToSiteTab,
+                    );
                   },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +150,7 @@ class EnhancedTaskCard extends StatelessWidget {
           iconColor: Colors.amber,
           iconBackgroundColor: Colors.amber.withOpacity(0.2),
           label: 'Thương hiệu',
-          value: task.request!.brand!.name,
+          value: task.request!.brand.name,
         ),
       );
 
@@ -198,7 +206,6 @@ class EnhancedTaskCard extends StatelessWidget {
     }
     return SecondaryCardContent(sections: sections);
   }
-
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';

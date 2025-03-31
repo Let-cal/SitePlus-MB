@@ -37,13 +37,28 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool? isLoggedIn;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLoginStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Gỡ observer
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Ứng dụng được mở lại từ background
+      _refreshData();
+    }
   }
 
   Future<void> _loadLoginStatus() async {
@@ -71,6 +86,19 @@ class _MyAppState extends State<MyApp> {
           listen: false,
         ).setCategories(categories);
       }
+    }
+  }
+
+  Future<void> _refreshData() async {
+    if (mounted) {
+      Provider.of<TaskStatisticsProvider>(
+        context,
+        listen: false,
+      ).refreshTaskStatistics();
+      Provider.of<SiteReportProvider>(
+        context,
+        listen: false,
+      ).refreshSiteReportStatistics();
     }
   }
 

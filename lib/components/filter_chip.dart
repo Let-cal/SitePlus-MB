@@ -7,6 +7,7 @@ class FilterOption {
   final Color color;
   bool isSelected;
   final VoidCallback onTap;
+  final bool isSwitch;
 
   FilterOption({
     required this.label,
@@ -14,6 +15,7 @@ class FilterOption {
     required this.color,
     required this.isSelected,
     required this.onTap,
+    this.isSwitch = false, // Mặc định là false (không phải switch)
   });
 }
 
@@ -54,11 +56,11 @@ class FilterChipPanel extends StatefulWidget {
   final List<ActiveFilter>? activeFilters;
 
   const FilterChipPanel({
-    Key? key,
+    super.key,
     this.headerTitle = 'Bộ Lọc',
     required this.sections,
     this.activeFilters,
-  }) : super(key: key);
+  });
 
   @override
   State<FilterChipPanel> createState() => _FilterChipPanelState();
@@ -119,7 +121,7 @@ class _FilterChipPanelState extends State<FilterChipPanel>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header với icon filter và nút mở/đóng
-          Row(
+         Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
@@ -162,7 +164,6 @@ class _FilterChipPanelState extends State<FilterChipPanel>
               ),
             ],
           ),
-          // Nội dung filter dạng mở rộng
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -173,7 +174,6 @@ class _FilterChipPanelState extends State<FilterChipPanel>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 20),
-                  // Lặp qua các section filter
                   ...widget.sections.map((section) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,45 +190,61 @@ class _FilterChipPanelState extends State<FilterChipPanel>
                         ),
                         section.isChipStyle
                             ? SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children:
-                                    section.options.map((option) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 8.0,
-                                        ),
-                                        child: _buildFilterChip(option, theme),
-                                      );
-                                    }).toList(),
-                              ),
-                            )
-                            : Container(
-                              decoration: BoxDecoration(
-                                color: colorScheme.surface,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: theme.dividerColor.withOpacity(0.5),
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: section.options.map((option) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 8.0),
+                                      child: _buildFilterChip(option, theme),
+                                    );
+                                  }).toList(),
                                 ),
-                              ),
-                              child: Column(
-                                children:
-                                    section.options.map((option) {
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: theme.dividerColor.withOpacity(0.5),
+                                  ),
+                                ),
+                                child: Column(
+                                  children: section.options.map((option) {
+                                    if (option.isSwitch) {
+                                      // Render switch cho FilterOption có isSwitch = true
+                                      return ListTile(
+                                        title: Text(
+                                          option.label,
+                                          style: theme.textTheme.bodyMedium,
+                                        ),
+                                        trailing: Switch(
+                                          value: option.isSelected,
+                                          activeColor: option.color,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              option.isSelected = value;
+                                            });
+                                            option.onTap();
+                                          },
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 16, vertical: 4),
+                                      );
+                                    } else {
+                                      // Render list item thông thường
                                       return Column(
                                         children: [
                                           InkWell(
                                             onTap: option.onTap,
                                             child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 16,
-                                                    vertical: 12,
-                                                  ),
-                                              color:
-                                                  option.isSelected
-                                                      ? option.color
-                                                          .withOpacity(0.1)
-                                                      : Colors.transparent,
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 12,
+                                              ),
+                                              color: option.isSelected
+                                                  ? option.color.withOpacity(0.1)
+                                                  : Colors.transparent,
                                               child: Row(
                                                 children: [
                                                   Container(
@@ -242,23 +258,17 @@ class _FilterChipPanelState extends State<FilterChipPanel>
                                                   const SizedBox(width: 12),
                                                   Text(
                                                     option.label,
-                                                    style: theme
-                                                        .textTheme
-                                                        .bodyMedium
-                                                        ?.copyWith(
-                                                          fontWeight:
-                                                              option.isSelected
-                                                                  ? FontWeight
-                                                                      .w600
-                                                                  : FontWeight
-                                                                      .normal,
-                                                          color:
-                                                              option.isSelected
-                                                                  ? option.color
-                                                                  : theme
-                                                                      .colorScheme
-                                                                      .onSurface,
-                                                        ),
+                                                    style: theme.textTheme
+                                                        .bodyMedium?.copyWith(
+                                                      fontWeight:
+                                                          option.isSelected
+                                                              ? FontWeight.w600
+                                                              : FontWeight.normal,
+                                                      color: option.isSelected
+                                                          ? option.color
+                                                          : theme.colorScheme
+                                                              .onSurface,
+                                                    ),
                                                   ),
                                                   const Spacer(),
                                                   if (option.isSelected)
@@ -279,28 +289,28 @@ class _FilterChipPanelState extends State<FilterChipPanel>
                                           ),
                                         ],
                                       );
-                                    }).toList(),
+                                    }
+                                  }).toList(),
+                                ),
                               ),
-                            ),
                         const SizedBox(height: 20),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),
           ),
-          // Hiển thị active filters (nếu có)
+          // Active filters (giữ nguyên)
           if (widget.activeFilters != null && widget.activeFilters!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children:
-                    widget.activeFilters!.map((activeFilter) {
-                      return _buildActiveFilterChip(activeFilter, theme);
-                    }).toList(),
+                children: widget.activeFilters!.map((activeFilter) {
+                  return _buildActiveFilterChip(activeFilter, theme);
+                }).toList(),
               ),
             ),
         ],

@@ -11,7 +11,6 @@ import 'package:siteplus_mb/utils/NotificationModel/notification_model.dart';
 import 'package:siteplus_mb/utils/ReportPage/CustomerSegmentModel/customer_segment.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_api_create_model.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
-import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
 import 'api_endpoints.dart';
 import 'api_link.dart';
@@ -21,6 +20,107 @@ class ApiService {
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token') ?? '';
+  }
+
+  Future<bool> createSiteDeal(Map<String, dynamic> dealData) async {
+    final token = await getToken();
+    const url =
+        '${ApiLink.baseUrl}${ApiEndpoints.createSiteDeal}'; // "api/SiteDeal"
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json-patch+json',
+          'Accept': '*/*',
+        },
+        body: jsonEncode(dealData),
+      );
+
+      debugPrint('Create Site Deal URL: $url');
+      debugPrint('Request Body: ${jsonEncode(dealData)}');
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('Site deal created successfully');
+        return true;
+      } else {
+        debugPrint('Failed to create site deal: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception when creating site deal: $e');
+      return false;
+    }
+  }
+
+  // Lấy Site Deal theo Site ID
+  Future<Map<String, dynamic>?> getSiteDealBySiteId(int siteId) async {
+    final token = await getToken();
+    final url =
+        '${ApiLink.baseUrl}${ApiEndpoints.getSiteDealBySiteId}/$siteId'; // "api/SiteDeal/site/{siteId}"
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Authorization': 'Bearer $token', 'Accept': '*/*'},
+      );
+
+      debugPrint('Get Site Deal URL: $url');
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        if (jsonResponse['data'] != null && jsonResponse['data'].isNotEmpty) {
+          return jsonResponse['data'][0]; // Lấy deal đầu tiên (giả sử chỉ có 1 deal mỗi site)
+        }
+        return null;
+      } else {
+        debugPrint('Failed to fetch site deal: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Exception when fetching site deal: $e');
+      return null;
+    }
+  }
+
+  // Cập nhật Site Deal (chưa có API, để trống)
+  Future<bool> updateSiteDeal(int dealId, Map<String, dynamic> dealData) async {
+    final token = await getToken();
+    final url =
+        '${ApiLink.baseUrl}${ApiEndpoints.updateSiteDeal}/$dealId'; // "api/SiteDeal/{id}"
+
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json-patch+json',
+          'Accept': '*/*',
+        },
+        body: jsonEncode(dealData),
+      );
+
+      debugPrint('Update Site Deal URL: $url');
+      debugPrint('Request Body: ${jsonEncode(dealData)}');
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        debugPrint('Site deal updated successfully');
+        return true;
+      } else {
+        debugPrint('Failed to update site deal: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception when updating site deal: $e');
+      return false;
+    }
   }
 
   Future<bool> updateSiteStatus(int siteId, int status) async {
@@ -229,7 +329,25 @@ class ApiService {
     }
   }
 
-  Future<List<String>> getSiteImages(int siteId) async {
+  Future<void> deleteImage(int imageId) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.deleteImage}/$imageId';
+
+    try {
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: {'Authorization': 'Bearer $token', 'Accept': '*/*'},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Lỗi xóa ảnh: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Lỗi khi xóa ảnh: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSiteImages(int siteId) async {
     final token = await getToken();
     final url = '${ApiLink.baseUrl}${ApiEndpoints.getImageSite}/$siteId/images';
 
@@ -244,10 +362,16 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-        // Access the nested 'data' array inside 'images'
         final List<dynamic> imagesData = jsonResponse['images']['data'];
-        // Extract the 'url' from each image object
-        return imagesData.map((image) => image['url'].toString()).toList();
+        // Trả về danh sách các map chứa id và url
+        return imagesData
+            .map(
+              (image) => {
+                'id': image['id'], // Giữ nguyên id từ API
+                'url': image['url'].toString(), // Chuyển url thành chuỗi
+              },
+            )
+            .toList();
       } else {
         debugPrint('Lỗi lấy ảnh site: ${response.statusCode}');
         debugPrint('Response body: ${response.body}');
@@ -376,14 +500,13 @@ class ApiService {
     }
   }
 
-  Future<List<Site>> getSites({
+  Future<Map<String, dynamic>> getSites({
     required int pageNumber,
     required int pageSize,
     String? search,
     int? status,
   }) async {
     final token = await getToken();
-
     Uri uri = Uri.parse('${ApiLink.baseUrl}${ApiEndpoints.getAllSites}');
     Map<String, String> params = {
       'pageNumber': pageNumber.toString(),
@@ -393,7 +516,6 @@ class ApiService {
     if (search != null && search.isNotEmpty) {
       params['search'] = search;
     }
-
     if (status != null) {
       params['status'] = status.toString();
     }
@@ -409,15 +531,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
-        print('API Response: ${jsonEncode(jsonData)}');
-
-        if (jsonData['listData'] != null && jsonData['listData'].isNotEmpty) {
-          return List<Site>.from(
-            jsonData['listData'].map((item) => Site.fromJson(item)),
-          );
-        } else {
-          return [];
-        }
+        print('API get all site Response: ${jsonEncode(jsonData)}');
+        return jsonData; // Trả về toàn bộ response
       } else {
         throw Exception('Lỗi khi tải dữ liệu: ${response.statusCode}');
       }
@@ -556,6 +671,7 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
+      print('API get all site by id Response: $jsonResponse');
       return jsonResponse;
     } else {
       throw Exception('Failed to load site: ${response.statusCode}');
@@ -579,6 +695,7 @@ class ApiService {
 
     final jsonResponse = json.decode(response.body);
     if (response.statusCode == 200) {
+      print("api update site response: ${jsonResponse}");
       return jsonResponse;
     } else {
       throw Exception(
@@ -680,7 +797,7 @@ class ApiService {
           'Authorization': 'Bearer $token',
         },
       );
-
+      print('API Response: ${response.body}');
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         return SiteReportStatistics.fromJson(data);
@@ -811,6 +928,7 @@ class ApiService {
     String? search,
     int? status,
     int? priority,
+    bool? isCompanyTaskOnly,
     int page = 1,
     int pageSize = 5,
   }) async {
@@ -838,7 +956,9 @@ class ApiService {
       if (priority != null) {
         queryParams['priority'] = priority.toString();
       }
-
+      if (isCompanyTaskOnly != null) {
+        queryParams['isCompanyTaskOnly'] = isCompanyTaskOnly.toString();
+      }
       final uri = Uri.parse(
         ApiLink.baseUrl + ApiEndpoints.task,
       ).replace(queryParameters: queryParams);

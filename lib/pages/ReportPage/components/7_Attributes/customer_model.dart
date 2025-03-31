@@ -562,7 +562,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           children: [
             Text(
               'III. Mô Hình Khách Hàng',
-              style: widget.theme.textTheme.headlineLarge?.copyWith(
+              style: widget.theme.textTheme.titleLarge?.copyWith(
                 color: widget.theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),

@@ -1,5 +1,6 @@
 // location_section.dart
 import 'package:flutter/material.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 
 class LocationSection extends StatelessWidget {
@@ -11,9 +12,11 @@ class LocationSection extends StatelessWidget {
   final Function(String?) onDistrictChanged;
   final Function(String?) onAreaChanged;
   final bool isAreaSelectionEnabled;
+  final TextEditingController addressController; // Thêm controller cho địa chỉ
+  final Function(String?) onAddressSaved; // Thêm callback cho địa chỉ
 
   const LocationSection({
-    Key? key,
+    super.key,
     required this.districts,
     required this.areas,
     required this.selectedDistrictName,
@@ -22,12 +25,26 @@ class LocationSection extends StatelessWidget {
     required this.onDistrictChanged,
     required this.onAreaChanged,
     required this.isAreaSelectionEnabled,
-  }) : super(key: key);
+    required this.addressController,
+    required this.onAddressSaved,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       children: [
+        // Địa chỉ - chuyển từ site_info_section
+        CustomInputField(
+          label: 'Địa chỉ',
+          hintText: 'Ví dụ: phường 14/200 đường D3...',
+          icon: Icons.location_on,
+          onSaved: onAddressSaved,
+          theme: theme,
+          initialValue: addressController.text,
+        ),
+        SizedBox(height: 23),
         // District Dropdown
         _buildStyledDropdown(
           context: context,
@@ -37,9 +54,8 @@ class LocationSection extends StatelessWidget {
           items: districts.map((district) => district.name).toList(),
           onChanged: onDistrictChanged,
         ),
-        
         SizedBox(height: 23),
-        
+
         // Area Dropdown
         _buildStyledDropdown(
           context: context,
@@ -50,16 +66,6 @@ class LocationSection extends StatelessWidget {
           onChanged: onAreaChanged,
           isLoading: isLoadingAreas,
           isEnabled: isAreaSelectionEnabled,
-        ),
-        
-        SizedBox(height: 23),
-        
-        // Status (read-only)
-        _buildReadOnlyField(
-          context: context,
-          label: 'Trạng thái',
-          value: 'Available',
-          icon: Icons.check_circle,
         ),
       ],
     );
@@ -83,15 +89,16 @@ class LocationSection extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          boxShadow: isLoading
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 5,
-                    offset: Offset(0, 3),
-                  ),
-                ],
+          boxShadow:
+              isLoading
+                  ? []
+                  : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 5,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
         ),
         child: DropdownButtonFormField<String>(
           value: value,
@@ -107,35 +114,34 @@ class LocationSection extends StatelessWidget {
             ),
             filled: true,
             fillColor: theme.colorScheme.surface,
-            suffixIcon: isLoading
-                ? Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.0,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          theme.colorScheme.primary.withOpacity(0.5),
+            suffixIcon:
+                isLoading
+                    ? Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.0,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.colorScheme.primary.withOpacity(0.5),
+                          ),
                         ),
                       ),
-                    ),
-                  )
-                : null,
+                    )
+                    : null,
             enabled: isEnabled && !isLoading,
           ),
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(
-                item,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            );
-          }).toList(),
+          items:
+              items.map((String item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(
+                    item,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                );
+              }).toList(),
           onChanged: isEnabled && !isLoading ? onChanged : null,
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -148,29 +154,6 @@ class LocationSection extends StatelessWidget {
           menuMaxHeight: 200,
           dropdownColor: theme.colorScheme.surface,
         ),
-      ),
-    );
-  }
-
-  Widget _buildReadOnlyField({
-    required BuildContext context,
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return TextFormField(
-      initialValue: value,
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16.0,
-          horizontal: 16.0,
-        ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
       ),
     );
   }

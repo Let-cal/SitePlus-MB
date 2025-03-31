@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/animated_expansion_card.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/custom_chip_group.dart';
-import 'package:siteplus_mb/components/custom_input_field.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/info_card.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 class CustomerFlowSection extends StatefulWidget {
@@ -91,6 +91,7 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       _updateDebugInfo();
     });
   }
+  
 
   void _initializeData() {
     localCustomerFlow = Map<String, dynamic>.from(
@@ -153,9 +154,9 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       String newAdditionalInfo = _generatePeakHourAdditionalInfo(
         selectedPeakHours,
       );
-      selectedPeakHours.forEach((peakHour) {
+      for (var peakHour in selectedPeakHours) {
         peakHourAdditionalInfo[peakHour] = newAdditionalInfo;
-      });
+      }
     });
     _updateAttributeValues();
   }
@@ -165,9 +166,9 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       if (selectedVehicles.contains(vehicle)) {
         selectedVehicles.remove(vehicle);
         selectedVehicleCalculations.remove(vehicle);
-        calculationOptions.forEach((calc) {
+        for (var calc in calculationOptions) {
           vehicleCalculationAmounts.remove('${vehicle}_$calc');
-        });
+        }
       } else {
         selectedVehicles.add(vehicle);
         selectedVehicleCalculations[vehicle] = [];
@@ -205,9 +206,9 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       String newAdditionalInfo = _generatePeakHourAdditionalInfo(
         selectedPeakHours,
       );
-      selectedPeakHours.forEach((peakHour) {
+      for (var peakHour in selectedPeakHours) {
         peakHourAdditionalInfo[peakHour] = newAdditionalInfo;
-      });
+      }
     });
     _updateAttributeValues();
   }
@@ -217,9 +218,9 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       customVehicles.remove(option);
       selectedVehicles.remove(option);
       selectedVehicleCalculations.remove(option);
-      calculationOptions.forEach((calc) {
+      for (var calc in calculationOptions) {
         vehicleCalculationAmounts.remove('${option}_$calc');
-      });
+      }
     });
     _updateAttributeValues();
   }
@@ -231,9 +232,9 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       String newAdditionalInfo = _generatePeakHourAdditionalInfo(
         selectedPeakHours,
       );
-      selectedPeakHours.forEach((peakHour) {
+      for (var peakHour in selectedPeakHours) {
         peakHourAdditionalInfo[peakHour] = newAdditionalInfo;
-      });
+      }
     });
     _updateAttributeValues();
   }
@@ -324,7 +325,7 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
     });
 
     // Xử lý peakHours (giữ nguyên logic hiện tại)
-    selectedPeakHours.forEach((peakHour) {
+    for (var peakHour in selectedPeakHours) {
       String additionalInfo = _generatePeakHourAdditionalInfo(
         selectedPeakHours,
       );
@@ -386,7 +387,7 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
           attributeValues.add(newValue);
         }
       }
-    });
+    }
 
     // Cập nhật reportData
     widget.setState(() {
@@ -447,7 +448,7 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
         children: [
           Text(
             'I. Lưu Lượng Khách Hàng',
-            style: widget.theme.textTheme.headlineLarge?.copyWith(
+            style: widget.theme.textTheme.titleLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
@@ -530,11 +531,11 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
                           });
                         },
                       );
-                    }).toList(),
+                    }),
                     const SizedBox(height: 12),
                   ],
                 );
-              }).toList(),
+              }),
             ],
           ),
           AnimatedExpansionCard(

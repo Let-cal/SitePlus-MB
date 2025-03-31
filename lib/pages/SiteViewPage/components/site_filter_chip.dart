@@ -12,13 +12,13 @@ class SiteFilterChipPanel extends StatefulWidget {
   final int? initialSelectedStatus;
 
   const SiteFilterChipPanel({
-    Key? key,
+    super.key,
     required this.categories,
     required this.statuses,
     required this.onFilterChanged,
     this.initialSelectedCategoryId,
     this.initialSelectedStatus,
-  }) : super(key: key);
+  });
 
   @override
   State<SiteFilterChipPanel> createState() => _SiteFilterChipPanelState();
@@ -26,7 +26,7 @@ class SiteFilterChipPanel extends StatefulWidget {
 
 class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
   late List<FilterSection> _filterSections;
-  List<ActiveFilter> _activeFilters = [];
+  final List<ActiveFilter> _activeFilters = [];
   @override
   void didUpdateWidget(SiteFilterChipPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -38,7 +38,12 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
   @override
   void initState() {
     super.initState();
-    _initializeFilterSections();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initializeFilterSections(); // Move it here
   }
 
   void _initializeFilterSections() {
@@ -73,46 +78,61 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
     // Prepare status filter options với 5 trạng thái
     final statusOptions = [
       FilterOption(
+        label: getVietnameseStatus(8),
+        icon: getStatusIcon(8),
+        color: getStatusColor(context, 8),
+        isSelected: 8 == widget.initialSelectedStatus,
+        onTap: () => _handleStatusSelection(8),
+      ),
+      FilterOption(
         label: getVietnameseStatus(1),
-        color: Colors.green,
+        color: getStatusColor(context, 1),
         icon: getStatusIcon(1),
         isSelected: 1 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(1),
       ),
       FilterOption(
         label: getVietnameseStatus(2),
-        color: Colors.orange,
+        color: getStatusColor(context, 2),
         icon: getStatusIcon(2),
         isSelected: 2 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(2),
       ),
       FilterOption(
         label: getVietnameseStatus(3),
-        color: Colors.blue,
+        color: getStatusColor(context, 3),
         icon: getStatusIcon(3),
         isSelected: 3 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(3),
       ),
       FilterOption(
         label: getVietnameseStatus(4),
-        color: Colors.red,
+        color: getStatusColor(context, 4),
         icon: getStatusIcon(4),
         isSelected: 4 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(4),
       ),
+
       FilterOption(
-        label: getVietnameseStatus(5),
-        color: Colors.grey,
-        icon: getStatusIcon(5),
-        isSelected: 5 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(5),
+        label: getVietnameseStatus(7),
+        icon: getStatusIcon(7),
+        color: getStatusColor(context, 7),
+        isSelected: 7 == widget.initialSelectedStatus,
+        onTap: () => _handleStatusSelection(7),
       ),
       FilterOption(
         label: getVietnameseStatus(6),
         icon: getStatusIcon(6),
-        color: Colors.grey,
+        color: getStatusColor(context, 6),
         isSelected: 6 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(6),
+      ),
+      FilterOption(
+        label: getVietnameseStatus(5),
+        color: getStatusColor(context, 5),
+        icon: getStatusIcon(5),
+        isSelected: 5 == widget.initialSelectedStatus,
+        onTap: () => _handleStatusSelection(5),
       ),
     ];
 
@@ -161,30 +181,13 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
       for (var section in _filterSections) {
         if (section.title == 'Trạng thái') {
           for (var option in section.options) {
-            option.isSelected = option.label == _getStatusLabel(status);
+            option.isSelected = option.label == getVietnameseStatus(status);
           }
         }
       }
       _updateActiveFilters();
     });
     widget.onFilterChanged(_getCurrentCategory(), status);
-  }
-
-  String _getStatusLabel(int status) {
-    switch (status) {
-      case 1:
-        return 'Có sẵn';
-      case 2:
-        return 'Đang tiến hành';
-      case 3:
-        return 'Chờ phê duyệt';
-      case 4:
-        return 'Bị từ chối';
-      case 5:
-        return 'Đã đóng';
-      default:
-        return 'Không xác định';
-    }
   }
 
   int? _getCurrentCategory() {
@@ -225,6 +228,12 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
             return 4;
           case 'Đã đóng':
             return 5;
+          case 'Đã kết nối':
+            return 6;
+          case 'Đang thương lượng':
+            return 7;
+          case 'Đã hoàn thành':
+            return 8;
         }
       }
     }

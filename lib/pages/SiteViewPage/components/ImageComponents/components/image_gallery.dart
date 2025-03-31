@@ -9,11 +9,11 @@ class ImageGallery extends StatelessWidget {
   final Function(int) onRemoveImage;
 
   const ImageGallery({
-    Key? key,
+    super.key,
     required this.controller,
     required this.onPickImage,
     required this.onRemoveImage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class ImageGallery extends StatelessWidget {
     return Container(
       margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withOpacity(0.5),
@@ -53,29 +53,31 @@ class ImageGallery extends StatelessWidget {
             ),
           ),
           Container(
-            height: 100,
-            padding: EdgeInsets.only(bottom: 12, left: 12, right: 12),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                ...controller.images.asMap().entries.map((entry) {
-                  return _buildImageThumbnail(
-                    context,
-                    entry.value,
-                    entry.key,
-                    entry.key == controller.selectedImageIndex,
-                  );
-                }).toList(),
-                if (controller.images.length < controller.maxImages &&
-                    !controller.isUploading)
-                  _buildAddButton(context),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          height: 100,
+          padding: const EdgeInsets.only(bottom: 12, left: 12, right: 12),
+          child: controller.images.isEmpty && !controller.isUploading
+              ? const Center(child: Text('Chưa có ảnh nào'))
+              : ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    ...controller.images.asMap().entries.map((entry) {
+                      return _buildImageThumbnail(
+                        context,
+                        entry.value,
+                        entry.key,
+                        entry.key == controller.selectedImageIndex,
+                      );
+                    }),
+                    if (controller.images.length < controller.maxImages &&
+                        !controller.isUploading)
+                      _buildAddButton(context),
+                  ],
+                ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildImageThumbnail(
     BuildContext context,
@@ -242,7 +244,7 @@ class ImageGallery extends StatelessWidget {
         height: 80,
         margin: EdgeInsets.only(right: 8, top: 4),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceVariant,
+          color: theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: theme.colorScheme.primary.withOpacity(0.3),

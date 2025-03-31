@@ -62,7 +62,9 @@ class Site {
     );
   }
 
-  Object? toJson() {}
+  Object? toJson() {
+    return null;
+  }
 }
 
 class Task {

@@ -10,13 +10,8 @@ import 'login_button.dart';
 
 class LoginForm extends StatefulWidget {
   final GlobalKey<FormState> formKey;
-  final Function onLoginSuccess;
 
-  const LoginForm({
-    super.key,
-    required this.formKey,
-    required this.onLoginSuccess,
-  });
+  const LoginForm({super.key, required this.formKey});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -89,15 +84,12 @@ class _LoginFormState extends State<LoginForm> {
             backgroundColor: Colors.green,
           ),
         );
-
         // Chuyển hướng đến MainScaffold
         Navigator.pushReplacement(
           // ignore: use_build_context_synchronously
           context,
           MaterialPageRoute(builder: (context) => const MainScaffold()),
         );
-
-        widget.onLoginSuccess();
       } else {
         // Hiển thị thông báo lỗi
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,12 +123,12 @@ class _LoginFormState extends State<LoginForm> {
         children: [
           CustomTextField(
             controller: _usernameController,
-            labelText: 'Username or Email',
-            hintText: 'Enter your username or email',
+            labelText: 'Tên người dùng',
+            hintText: 'Nhập tên người dùng của bạn',
             prefixIcon: Icons.person_outline,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your username or email';
+                return 'Vui lòng nhập tên người dùng';
               }
               return null;
             },
@@ -147,8 +139,8 @@ class _LoginFormState extends State<LoginForm> {
 
           CustomTextField(
             controller: _passwordController,
-            labelText: 'Password',
-            hintText: 'Enter your password',
+            labelText: 'Mật khẩu',
+            hintText: 'Nhập mật khẩu của bạn',
             prefixIcon: Icons.lock_outline,
             obscureText: _obscurePassword,
             suffixIcon: IconButton(
@@ -166,7 +158,7 @@ class _LoginFormState extends State<LoginForm> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your password';
+                return 'Vui lòng nhập mật khẩu';
               }
               return null;
             },

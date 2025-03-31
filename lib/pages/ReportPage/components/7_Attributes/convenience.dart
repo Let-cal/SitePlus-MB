@@ -393,7 +393,7 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
         children: [
           Text(
             'VII. Tiện ích',
-            style: widget.theme.textTheme.headlineLarge?.copyWith(
+            style: widget.theme.textTheme.titleLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),

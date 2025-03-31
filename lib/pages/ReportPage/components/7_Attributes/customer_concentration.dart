@@ -420,9 +420,9 @@ class _CustomerConcentrationSectionState
       if (selectedCustomerCategories.contains(category)) {
         selectedCustomerCategories.remove(category);
         selectedCustomerCalculations.remove(category);
-        calculationOptions.forEach((calc) {
+        for (var calc in calculationOptions) {
           customerCalculationAmounts.remove('${category}_$calc');
-        });
+        }
       } else {
         selectedCustomerCategories.add(category);
         selectedCustomerCalculations[category] = [];
@@ -457,7 +457,7 @@ class _CustomerConcentrationSectionState
         children: [
           Text(
             'II. Mật độ khách hàng',
-            style: widget.theme.textTheme.headlineLarge?.copyWith(
+            style: widget.theme.textTheme.titleLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
@@ -523,7 +523,7 @@ class _CustomerConcentrationSectionState
                     });
                   },
                 );
-              }).toList(),
+              }),
             ],
           ),
           AnimatedExpansionCard(
@@ -592,11 +592,11 @@ class _CustomerConcentrationSectionState
                           });
                         },
                       );
-                    }).toList(),
+                    }),
                     const SizedBox(height: 12),
                   ],
                 );
-              }).toList(),
+              }),
             ],
           ),
         ],

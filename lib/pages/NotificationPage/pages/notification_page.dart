@@ -168,7 +168,7 @@ class _NotificationPageState extends State<NotificationPage> {
                 Text(
                   'Không thể tải thông báo',
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.error,
+                    color: theme.colorScheme.onSurface, // Primary text color
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -178,7 +178,10 @@ class _NotificationPageState extends State<NotificationPage> {
                     notificationProvider.error!,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error.withOpacity(0.8),
+                      color:
+                          theme
+                              .colorScheme
+                              .onSurfaceVariant, // Secondary text color
                     ),
                   ),
                 ),
@@ -230,6 +233,10 @@ class _NotificationPageState extends State<NotificationPage> {
                           'Có $unreadCount thông báo chưa đọc',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
+                            color:
+                                theme
+                                    .colorScheme
+                                    .onSurface, // Primary text color
                           ),
                         )
                         .animate()
@@ -243,8 +250,17 @@ class _NotificationPageState extends State<NotificationPage> {
 
                     TextButton.icon(
                           onPressed: unreadCount > 0 ? _markAllAsRead : null,
-                          icon: const Icon(LucideIcons.check),
-                          label: const Text('Đánh dấu tất cả là đã đọc'),
+                          icon: Icon(
+                            LucideIcons.check,
+                            color: theme.colorScheme.primary,
+                          ),
+                          label: Text(
+                            'Đánh dấu tất cả là đã đọc',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color:
+                                  theme.colorScheme.primary, // Emphasized text
+                            ),
+                          ),
                         )
                         .animate()
                         .slideX(
@@ -271,9 +287,10 @@ class _NotificationPageState extends State<NotificationPage> {
                                   ? LucideIcons.circleAlert
                                   : LucideIcons.bellOff,
                               size: 64,
-                              color: theme.colorScheme.secondary.withOpacity(
-                                0.5,
-                              ),
+                              color:
+                                  theme
+                                      .colorScheme
+                                      .onSurfaceVariant, // Adjusted for dark theme
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -281,7 +298,10 @@ class _NotificationPageState extends State<NotificationPage> {
                                   ? 'Không có thông báo mới'
                                   : 'Không có thông báo nào',
                               style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.secondary,
+                                color:
+                                    theme
+                                        .colorScheme
+                                        .onSurface, // Primary text color
                               ),
                             ),
                           ],
@@ -350,11 +370,12 @@ class CompactNotificationDialog extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Thông báo mới',
-                        style: TextStyle(
-                          fontSize: 18,
+                        style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color:
+                              theme.colorScheme.onSurface, // Primary text color
                         ),
                       ),
                       if (unreadCount > 0)
@@ -370,17 +391,22 @@ class CompactNotificationDialog extends StatelessWidget {
                           ),
                           child: Text(
                             '$unreadCount',
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: theme.textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color:
+                                  theme
+                                      .colorScheme
+                                      .onPrimary, // Text on primary background
                             ),
                           ),
                         ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(LucideIcons.x),
+                    icon: Icon(
+                      LucideIcons.x,
+                      color: theme.colorScheme.onSurface,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -410,14 +436,21 @@ class CompactNotificationDialog extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6F61EF),
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.colorScheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Xem tất cả thông báo'),
+                  child: Text(
+                    'Xem tất cả thông báo',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color:
+                          theme
+                              .colorScheme
+                              .onPrimary, // Text on primary background
+                    ),
+                  ),
                 ),
               ),
             ),

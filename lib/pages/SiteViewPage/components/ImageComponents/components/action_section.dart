@@ -6,10 +6,10 @@ class ActionSection extends StatelessWidget {
   final VoidCallback onCancel;
 
   const ActionSection({
-    Key? key,
+    super.key,
     required this.controller,
     required this.onCancel,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

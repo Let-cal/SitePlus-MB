@@ -1,6 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// Formatter để thêm dấu phẩy khi nhập
+class ThousandsSeparatorInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Loại bỏ các ký tự không phải số
+    String newText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (newText.isEmpty) {
+      return const TextEditingValue(text: '');
+    }
+
+    // Định dạng số với dấu phẩy
+    final number = int.parse(newText);
+    final formatted = _formatNumber(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
+  String _formatNumber(int number) {
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+  }
+}
+
 class CustomInputField extends StatefulWidget {
   final String label;
   final String hintText;
@@ -14,9 +49,11 @@ class CustomInputField extends StatefulWidget {
   final int? maxLength;
   final bool numbersOnly;
   final bool isDescription; // Thêm prop mới
+  final bool formatThousands;
+  final TextEditingController? controller;
 
   const CustomInputField({
-    Key? key,
+    super.key,
     required this.label,
     required this.hintText,
     required this.icon,
@@ -28,26 +65,53 @@ class CustomInputField extends StatefulWidget {
     this.suffixText,
     this.maxLength,
     this.numbersOnly = false,
-    this.isDescription = false, // Mặc định là false
-  }) : super(key: key);
+    this.isDescription = false,
+    this.formatThousands = false,
+    this.controller,
+  });
 
   @override
   State<CustomInputField> createState() => _CustomInputFieldState();
 }
 
 class _CustomInputFieldState extends State<CustomInputField> {
-  late TextEditingController _controller;
+  late TextEditingController _internalController;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
+    // Sử dụng controller từ widget nếu được cung cấp, nếu không thì tạo mới
+    if (widget.controller != null) {
+      _internalController = widget.controller!;
+    } else {
+      if (widget.formatThousands &&
+          widget.initialValue != null &&
+          widget.initialValue!.isNotEmpty) {
+        final number =
+            int.tryParse(widget.initialValue!.replaceAll(',', '')) ?? 0;
+        _internalController = TextEditingController(
+          text: _formatNumber(number),
+        );
+      } else {
+        _internalController = TextEditingController(text: widget.initialValue);
+      }
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    // Chỉ dispose controller nội bộ nếu không dùng controller từ ngoài
+    if (widget.controller == null) {
+      _internalController.dispose();
+    }
     super.dispose();
+  }
+
+  String _formatNumber(int number) {
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
 
   @override
@@ -56,6 +120,9 @@ class _CustomInputFieldState extends State<CustomInputField> {
 
     if (widget.numbersOnly) {
       formatters.add(FilteringTextInputFormatter.digitsOnly);
+    }
+    if (widget.formatThousands) {
+      formatters.add(ThousandsSeparatorInputFormatter());
     }
     if (widget.maxLength != null) {
       formatters.add(LengthLimitingTextInputFormatter(widget.maxLength));
@@ -67,7 +134,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
-        controller: _controller,
+        controller: _internalController,
         decoration: InputDecoration(
           labelText: widget.label,
           hintText: widget.hintText,
@@ -80,9 +147,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
           // Tùy chỉnh giao diện khi là description
           filled: widget.isDescription,
           fillColor:
-              widget.isDescription
-                  ? widget.theme.colorScheme.surfaceVariant
-                  : null,
+              widget.isDescription ? widget.theme.colorScheme.surface : null,
           contentPadding:
               widget.isDescription
                   ? const EdgeInsets.all(16.0)

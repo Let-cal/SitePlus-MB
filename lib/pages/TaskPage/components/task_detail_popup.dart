@@ -16,12 +16,13 @@ class ViewDetailTask extends StatelessWidget {
   final Task task;
   final BuildContext parentContext;
   final VoidCallback? onUpdateSuccess;
-
+  final void Function(int? filterSiteId)? onNavigateToSiteTab;
   const ViewDetailTask({
     super.key,
     required this.task,
     required this.parentContext,
     this.onUpdateSuccess,
+    this.onNavigateToSiteTab,
   });
 
   // Method to show the bottom sheet
@@ -29,6 +30,7 @@ class ViewDetailTask extends StatelessWidget {
     BuildContext context,
     Task task, {
     VoidCallback? onUpdateSuccess, // Thêm callback vào show
+    void Function(int? filterSiteId)? onNavigateToSiteTab,
   }) async {
     return await showModalBottomSheet<bool>(
       context: context,
@@ -39,15 +41,14 @@ class ViewDetailTask extends StatelessWidget {
             task: task,
             parentContext: context,
             onUpdateSuccess: onUpdateSuccess,
+            onNavigateToSiteTab: onNavigateToSiteTab,
           ),
     );
   }
 
   void _showReportSelection(BuildContext context) async {
-    // Store the context at the root level
     final rootContext = Navigator.of(context).context;
 
-    // Get token from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token') ?? '';
 
@@ -68,7 +69,6 @@ class ViewDetailTask extends StatelessWidget {
               int categoryId,
               String categoryName,
             ) {
-              // Return the selection data
               Navigator.of(dialogContext).pop({
                 'reportType': reportType,
                 'categoryId': categoryId,
@@ -78,45 +78,25 @@ class ViewDetailTask extends StatelessWidget {
           ),
     );
 
-    // Debug the result to see what's being returned
-    print('Dialog result: $result');
-
-    // Check if result exists and then handle navigation
     if (result != null) {
-      // First close the bottom sheet
-      Navigator.of(context).pop();
-
-      // Add a debug print before navigation
-      print(
-        'Navigating with: ${result['reportType']}, ${result['categoryId']}, ${result['categoryName']}',
-      );
-
-      // Get the LocationsProvider before the context is deactivated
-      final locationsProvider = Provider.of<LocationsProvider>(
+      final siteBuildingResult = await NavigationComponent.navigateToSiteReport(
         rootContext,
-        listen: false,
+        result['reportType'],
+        result['categoryId'],
+        result['categoryName'],
+        task.id,
+        task.areaId,
+        task.status,
+        task.site?.id,
+        Provider.of<LocationsProvider>(rootContext, listen: false),
+        onUpdateSuccess: () {
+          onUpdateSuccess?.call(); // Gọi callback để reload TasksPage
+        },
       );
 
-      // Then navigate after the bottom sheet is closed
-      Future.delayed(Duration(milliseconds: 300), () {
-        // Use a navigation method that doesn't rely on the deactivated context
-        NavigationComponent.navigateToSiteReport(
-          rootContext,
-          result['reportType'],
-          result['categoryId'],
-          result['categoryName'],
-          task.id,
-          task.areaId,
-          task.status,
-          task.site?.id,
-          locationsProvider,
-        ).then((siteBuildingResult) {
-          print('SiteBuildingDialog result: $siteBuildingResult');
-          if (siteBuildingResult == true) {
-            Navigator.of(rootContext).pop(true); // Truyền true về TasksPage
-          }
-        });
-      });
+      if (siteBuildingResult == true) {
+        Navigator.of(context).pop(true); // Chỉ pop bottom sheet
+      }
     }
   }
 
@@ -614,6 +594,14 @@ class ViewDetailTask extends StatelessWidget {
 
   Widget _buildActionButtons(BuildContext context) {
     final theme = Theme.of(context);
+    void navigateToSiteDetail() async {
+      Navigator.of(context).pop(); // Đóng bottom sheet
+      if (onNavigateToSiteTab != null) {
+        onNavigateToSiteTab!(task.site?.id); // Gọi callback để chuyển tab
+      } else {
+        print('Callback onNavigateToSiteTab không được cung cấp');
+      }
+    }
 
     return Column(
       children: [
@@ -642,17 +630,25 @@ class ViewDetailTask extends StatelessWidget {
                     _showEditReport(context);
                   } else if (task.status == STATUS_CHUA_NHAN) {
                     _showReportSelection(context);
+                  } else if (task.status == STATUS_CHO_PHE_DUYET ||
+                      task.status == STATUS_HOAN_THANH) {
+                    navigateToSiteDetail();
                   } else {
                     Navigator.of(context).pop();
                   }
                 },
-                icon: const Icon(Icons.edit),
+                icon: Icon(
+                  task.status == STATUS_DA_NHAN ||
+                          task.status == STATUS_CHUA_NHAN
+                      ? Icons.edit
+                      : Icons.visibility,
+                ),
                 label: Text(
                   task.status == STATUS_DA_NHAN
                       ? 'Sửa Báo Cáo'
                       : task.status == STATUS_CHUA_NHAN
                       ? 'Tạo Báo Cáo'
-                      : 'Đồng ý',
+                      : 'Xem Mặt Bằng',
                 ),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),

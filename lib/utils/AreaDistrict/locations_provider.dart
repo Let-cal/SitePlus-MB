@@ -26,11 +26,11 @@ class LocationsProvider extends ChangeNotifier {
 
   // Data storage
   List<District> _districts = [];
-  Map<int, List<Area>> _areasByDistrict = {};
+  final Map<int, List<Area>> _areasByDistrict = {};
 
   // Loading states
   bool _isLoadingDistricts = false;
-  Map<int, bool> _isLoadingAreas = {};
+  final Map<int, bool> _isLoadingAreas = {};
 
   // Getters
   List<District> get districts => _districts;

@@ -7,6 +7,9 @@ class ApiEndpoints {
   static const String getSiteById = '/Site';
   static const String updateSite = '/Site';
   static const String getAllSites = '/Site/staff';
+  static const String createSiteDeal = '/SiteDeal';
+  static const String getSiteDealBySiteId = '/SiteDeal/site';
+  static const String updateSiteDeal = '/SiteDeal';
 
   ///building service
   static const String getAllBuilding = '/Building/area';
@@ -29,6 +32,7 @@ class ApiEndpoints {
   /// image service
   static const String imageUpload = '/Image/upload';
   static const String getImageSite = '/Image/site';
+  static const String deleteImage = '/Image';
 
   /// attribute service
   static const String getAttribute = '/Attribute';

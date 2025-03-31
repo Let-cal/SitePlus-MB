@@ -11,7 +11,8 @@ class MainScaffold extends StatefulWidget {
   final int initialIndex;
 
   const MainScaffold({super.key, this.initialIndex = 0});
-
+  static final GlobalKey<_MainScaffoldState> scaffoldKey =
+      GlobalKey<_MainScaffoldState>();
   @override
   State<MainScaffold> createState() => _MainScaffoldState();
 }
@@ -19,6 +20,25 @@ class MainScaffold extends StatefulWidget {
 class _MainScaffoldState extends State<MainScaffold> {
   int _selectedIndex = 0;
   int _unreadNotifications = 0;
+  int? _filterSiteId;
+  int? _filterTaskId;
+
+  void navigateToSiteTab(int? filterSiteId) {
+    setState(() {
+      _selectedIndex = 2; // Chuyển sang tab "Mặt Bằng"
+      _filterSiteId = filterSiteId; // Cập nhật filterSiteId
+      _filterTaskId = null;
+    });
+  }
+
+  void navigateToTaskTab(int? filterTaskId) {
+    setState(() {
+      _selectedIndex = 1; // Chuyển sang tab "Nhiệm Vụ"
+      _filterTaskId = filterTaskId;
+      _filterSiteId = null; // Reset filterSiteId khi chuyển sang tab khác
+    });
+  }
+
   // Tải số lượng thông báo chưa đọc từ SharedPreferences
   Future<void> _loadUnreadNotificationCount() async {
     final prefs = await SharedPreferences.getInstance();
@@ -38,20 +58,26 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   // Titles và descriptions cho từng tab
   final List<Map<String, String>> _pageInfo = [
-    {'title': 'Dashboard', 'description': 'Tổng quan hoạt động của dự án'},
-    {'title': 'Tasks', 'description': 'Quản lý công việc của bạn'},
+    {'title': 'Thống kê', 'description': 'Tổng quan hoạt động của dự án'},
+    {'title': 'Nhiệm Vụ', 'description': 'Quản lý công việc của bạn'},
     {
-      'title': 'Sites',
+      'title': 'Mặt Bằng',
       'description': 'Quản lý mặt bằng và tạo bản báo cáo chi tiết',
     },
-    {'title': 'Notifications', 'description': 'Thông báo và cập nhật mới nhất'},
+    {'title': 'Thông Báo', 'description': 'Thông báo và cập nhật mới nhất'},
   ];
 
-  final List<Widget> _pages = [
+  List<Widget> _getPages() => [
     const HomePageWidget(),
-    const TasksPage(),
-    const SiteViewPage(), // NotificationPage ở chế độ đầy đủ
-    const NotificationPage(), // NotificationPage ở chế độ đầy đủ
+    TasksPage(
+      onNavigateToSiteTab: navigateToSiteTab, // Truyền callback vào TasksPage
+      filterTaskId: _filterTaskId,
+    ),
+    SiteViewPage(
+      onNavigateToTaskTab: navigateToTaskTab,
+      filterSiteId: _filterSiteId,
+    ),
+    const NotificationPage(),
   ];
 
   @override
@@ -59,31 +85,22 @@ class _MainScaffoldState extends State<MainScaffold> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      key: MainScaffold.scaffoldKey,
       appBar: CustomAppBar(
         title: _pageInfo[_selectedIndex]['title'] ?? 'SitePlus',
         description: _pageInfo[_selectedIndex]['description'],
         notificationCount:
             _unreadNotifications, // Truyền số lượng thông báo chưa đọc
-        // Thêm các action buttons khác tùy theo màn hình
-        // additionalActions:
-        //     _selectedIndex == 0
-        //         ? [
-        //           IconButton(
-        //             icon: const Icon(LucideIcons.user),
-        //             onPressed: () {
-        //               // Xử lý khi nhấn vào profile
-        //             },
-        //           ),
-        //         ]
-        //         : null,
       ),
-      body: _pages[_selectedIndex],
+      body: _getPages()[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         backgroundColor: theme.colorScheme.surfaceContainerLow,
         onDestinationSelected: (index) async {
           setState(() {
             _selectedIndex = index;
+            _filterSiteId = null;
+            _filterTaskId = null;
           });
 
           if (index == 3) {
@@ -94,21 +111,22 @@ class _MainScaffoldState extends State<MainScaffold> {
             await prefs.setInt('unread_notification_count', 0);
           }
         },
+
         destinations: [
           const NavigationDestination(
             icon: Icon(LucideIcons.house),
             selectedIcon: Icon(LucideIcons.house, fill: 1),
-            label: 'Home',
+            label: 'Trang Chủ',
           ),
           const NavigationDestination(
             icon: Icon(LucideIcons.clipboardList),
             selectedIcon: Icon(LucideIcons.clipboardList, fill: 1),
-            label: 'Tasks',
+            label: 'Nhiệm Vụ',
           ),
           const NavigationDestination(
             icon: Icon(LucideIcons.building),
             selectedIcon: Icon(LucideIcons.building, fill: 1),
-            label: 'Sites',
+            label: 'Mặt Bằng',
           ),
           // Badge cho tab Notifications
           NavigationDestination(
@@ -121,7 +139,7 @@ class _MainScaffoldState extends State<MainScaffold> {
               child: const Icon(LucideIcons.bell),
             ),
             selectedIcon: const Icon(LucideIcons.bell, fill: 1),
-            label: 'Notifications',
+            label: 'Thông Báo',
           ),
         ],
       ),

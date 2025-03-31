@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:siteplus_mb/components/help_dialog.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/location_section.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/section_header.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/site_info_section.dart';
@@ -80,6 +81,9 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
   }
 
   Future<void> _initializeData() async {
+    setState(() {
+      _isLoading = true;
+    });
     reportData = _createInitialReportData();
 
     _addressController = TextEditingController(text: '');
@@ -88,11 +92,12 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     _totalFloorNumberController = TextEditingController(text: '');
 
     _isInBuilding = widget.reportType == 'Building';
-    await _getUserAreaInfo();
-
-    await _loadDistricts();
+    await Future.wait([_getUserAreaInfo(), _loadDistricts()]);
     if (_districts.isEmpty) {
       debugPrint('Districts chưa được tải, không thể chọn district/area');
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
 
@@ -100,14 +105,15 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     if (widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null) {
       await _loadSiteData(widget.siteId!);
     } else if (widget.areaId != null) {
-      // Trường hợp tạo mới với areaId từ task
       await _autoSelectDistrictAndArea(widget.areaId!);
     }
 
-    if (_isInBuilding) {
+    if (_isInBuilding && widget.taskStatus != STATUS_DA_NHAN) {
       _loadAllBuildings();
     }
-
+    setState(() {
+      _isLoading = false;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeProviders();
     });
@@ -115,16 +121,45 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
   Future<void> _loadSiteData(int siteId) async {
     try {
+      debugPrint('site id lấy được từ task là: ${siteId.toString()}');
       final siteResponse = await _apiService.getSiteById(siteId);
       final siteData = siteResponse['data'];
+      // Lấy tất cả areas để tìm areaId từ areaName
+      final allAreas = await _apiService.getAllAreas();
+      final selectedArea = allAreas.firstWhere(
+        (area) => area.name == siteData['areaName'],
+        orElse: () => Area(id: -1, name: '', districtId: -1),
+      );
 
+      int? areaId = selectedArea.id != -1 ? selectedArea.id : null;
+      int? districtId = selectedArea.id != -1 ? selectedArea.districtId : null;
       setState(() {
         // Điền dữ liệu vào controllers
         _addressController.text = siteData['address'] ?? '';
         _sizeController.text = siteData['size'].toString();
         _floorNumberController.text = siteData['floor'].toString();
         _totalFloorNumberController.text = siteData['totalFloor'].toString();
+        // Tạo BuildingCreateRequest từ dữ liệu API
+        if (siteData['buildingId'] != null) {
+          final BuildingCreateRequest initialBuilding = BuildingCreateRequest(
+            id: siteData['buildingId'],
+            name: siteData['buildingName'] ?? '',
+            areaId: siteData['areaId'] ?? -1,
+            areaName: siteData['areaName'] ?? '',
+            status: 1,
+            statusName: 'Active',
+          );
+          // Kiểm tra xem building đã tồn tại trong danh sách chưa
+          bool buildingExists = _buildings.any(
+            (b) => b.id == initialBuilding.id,
+          );
+          if (!buildingExists) {
+            _buildings.add(initialBuilding);
+          }
 
+          // Đặt building được chọn
+          _selectedBuilding = initialBuilding;
+        }
         // Cập nhật reportData
         reportData['siteInfo'] = {
           'siteName': '',
@@ -132,7 +167,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           'siteCategoryId': siteData['siteCategoryId'],
           'address': siteData['address'],
           'size': siteData['size'].toString(),
-          'areaId': siteData['areaId'],
+          'areaId': areaId,
           'status': siteData['status'],
           'floor': siteData['floor'].toString(),
           'buildingId': siteData['buildingId'],
@@ -140,14 +175,18 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           'totalFloor': siteData['totalFloor'].toString(),
           'taskId': widget.taskId,
         };
-
+        debugPrint('building id: ${siteData['buildingId']}');
+        debugPrint('building name: ${siteData['buildingName']}');
         // Cập nhật selection cho area và district
-        _selectedAreaId = siteData['areaId'];
         _selectedAreaName = siteData['areaName'];
+        _selectedAreaId = areaId;
       });
 
-      // Tự động chọn district dựa trên areaId
-      await _autoSelectDistrictFromArea(siteData['areaId']);
+      // Tự động chọn district nếu tìm được districtId
+      if (districtId != null) {
+        await _autoSelectDistrictFromArea(areaId);
+      }
+      await _loadAllBuildings();
     } catch (e) {
       debugPrint('Error loading site data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -159,23 +198,45 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     }
   }
 
-  Future<void> _autoSelectDistrictFromArea(int areaId) async {
-    final allAreas = await _apiService.getAllAreas();
-    final selectedArea = allAreas.firstWhere((area) => area.id == areaId);
-    final district = _districts.firstWhere(
-      (d) => d.id == selectedArea.districtId,
-    );
+  Future<void> _autoSelectDistrictFromArea(int? areaId) async {
+    if (areaId == null) return;
 
-    setState(() {
-      _selectedDistrictId = district.id;
-      _selectedDistrictName = district.name;
-    });
+    try {
+      final allAreas = await _apiService.getAllAreas();
+      final selectedArea = allAreas.firstWhere(
+        (area) => area.id == areaId,
+        orElse: () => Area(id: -1, name: '', districtId: -1),
+      );
 
-    await _loadAreas(district.id);
-    setState(() {
-      _selectedAreaId = areaId;
-      _selectedAreaName = selectedArea.name;
-    });
+      if (selectedArea.id == -1) {
+        debugPrint('Không tìm thấy area với id: $areaId');
+        return;
+      }
+
+      final district = _districts.firstWhere(
+        (d) => d.id == selectedArea.districtId,
+        orElse: () => District(id: -1, name: '', cityId: -1),
+      );
+
+      if (district.id != -1) {
+        setState(() {
+          _selectedDistrictId = district.id;
+          _selectedDistrictName = district.name;
+        });
+
+        await _loadAreas(district.id);
+        setState(() {
+          _selectedAreaId = areaId;
+          _selectedAreaName = selectedArea.name;
+        });
+      } else {
+        debugPrint(
+          'Không tìm thấy district với id: ${selectedArea.districtId}',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error in auto selecting district: $e');
+    }
   }
 
   Future<void> _createOrUpdateSite() async {
@@ -209,7 +270,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           } else {
             throw Exception('Failed to update site: ${response['message']}');
           }
-        } else {
+        } else if (widget.taskStatus == STATUS_CHUA_NHAN) {
           // Tạo mới site
           final response = await _apiService.createSite(
             SiteCreateRequest.fromReportData(reportData),
@@ -222,6 +283,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
             if (statusTaskUpdated) {
               debugPrint('Task status updated to "Đã nhận" (2)');
             }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Tạo mặt bằng thành công!'),
@@ -229,7 +291,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
               ),
             );
             await Future.delayed(Duration(milliseconds: 500));
-            widget.onUpdateSuccess?.call();
+            widget.onUpdateSuccess?.call(); // Gọi callback
             Navigator.of(context).pop(true);
           } else {
             throw Exception('Failed to create site: ${response['message']}');
@@ -283,9 +345,9 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         setState(() {
           _districts = _locationsProvider.districts;
           debugPrint('Districts loaded: ${_districts.length}');
-          _districts.forEach((district) {
+          for (var district in _districts) {
             debugPrint('District: ${district.id} - ${district.name}');
-          });
+          }
         });
       }
     } catch (e) {
@@ -366,38 +428,41 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
   Future<void> _loadAllBuildings() async {
     setState(() {
       _isLoadingBuildings = true;
-      _buildings = [];
-      _selectedBuilding = null;
     });
 
     try {
-      if (_userAreaId != null) {
-        // Get the actual buildings list from the API
-        final buildings = await _apiService.getBuildingsByAreaId(_userAreaId!);
-
-        setState(() {
-          _buildings =
-              buildings; // Now buildings should be a List<BuildingCreateRequest>
-          _isLoadingBuildings = false;
-        });
+      List<BuildingCreateRequest> buildings = [];
+      int? areaIdToUse = _userAreaId ?? _selectedAreaId;
+      if (areaIdToUse != null) {
+        buildings = await _apiService.getBuildingsByAreaId(areaIdToUse);
       } else {
-        // Handle case when area ID is null
+        debugPrint('No areaId available to load buildings');
         setState(() {
           _isLoadingBuildings = false;
         });
+        return;
       }
+
+      setState(() {
+        _buildings = buildings; // Gán trực tiếp danh sách mới
+        // Kiểm tra xem _selectedBuilding có còn hợp lệ không
+        if (_selectedBuilding != null &&
+            !_buildings.any((b) => b.id == _selectedBuilding!.id)) {
+          _selectedBuilding = null; // Reset nếu không tìm thấy
+        }
+        _isLoadingBuildings = false;
+      });
+      debugPrint('Buildings loaded: ${_buildings.map((b) => b.name).toList()}');
     } catch (e) {
       setState(() {
         _isLoadingBuildings = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Không thể tải danh sách tòa nhà: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải danh sách tòa nhà: ${e.toString()}'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
@@ -555,12 +620,15 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.info_outline),
-              onPressed: () => _showHelpDialog(context),
+              icon: const Icon(Icons.info_outline),
+              onPressed:
+                  () => HelpDialog.show(
+                    context,
+                    content:
+                        'Điền đầy đủ thông tin mặt bằng và thêm ghi chú để tiến hành khảo sát đầy đủ. Nếu bạn điền xong và chỉ muốn đăng tải thông tin của mặt bằng lên trước thì bạn hãy tạo thông tin cho mặt trước rồi sau đó tiếp tục viết báo cáo chi tiết sau!!!',
+                  ),
             ),
           ],
-          elevation: 0,
-          backgroundColor: theme.scaffoldBackgroundColor,
         ),
         body: Form(
           key: _formKey,
@@ -613,15 +681,12 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                     // Site Info Section - in a card
                     _buildElevatedCard(
                       child: SiteInfoSection(
-                        addressController: _addressController,
                         sizeController: _sizeController,
                         floorNumberController: _floorNumberController,
                         siteCategory: widget.siteCategory ?? 'Commercial',
                         siteCategoryId: widget.siteCategoryId,
                         onSiteNameSaved:
                             (value) => _updateReportData('siteName', value),
-                        onAddressSaved:
-                            (value) => _updateReportData('address', value),
                         onSizeSaved:
                             (value) => _updateReportData('size', value),
                         onFloorSaved: (value) {
@@ -637,37 +702,8 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
               ),
 
               SizedBox(height: 32),
-
-              // Location Section
-              _buildSectionWithAnimation(
-                delay: Duration(milliseconds: 150),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SectionHeader(title: 'Vị trí', icon: Icons.location_on),
-                    SizedBox(height: 20),
-
-                    // Location fields in a card
-                    _buildElevatedCard(
-                      child: LocationSection(
-                        districts: _districts,
-                        areas: _areas,
-                        selectedDistrictName: _selectedDistrictName,
-                        selectedAreaName: _selectedAreaName,
-                        isLoadingAreas: _isLoadingAreas,
-                        onDistrictChanged: _handleDistrictChanged,
-                        onAreaChanged: _handleAreaChanged,
-                        isAreaSelectionEnabled:
-                            _selectedDistrictId != null && _areas.isNotEmpty,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
               // Building Section (conditional)
               if (_isInBuilding) ...[
-                SizedBox(height: 32),
                 _buildSectionWithAnimation(
                   delay: Duration(milliseconds: 300),
                   child: Column(
@@ -697,7 +733,35 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                     ],
                   ),
                 ),
+                SizedBox(height: 32),
               ],
+              // Location Section
+              _buildSectionWithAnimation(
+                delay: Duration(milliseconds: 300),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionHeader(title: 'Vị trí', icon: Icons.location_on),
+                    SizedBox(height: 20),
+                    _buildElevatedCard(
+                      child: LocationSection(
+                        districts: _districts,
+                        areas: _areas,
+                        selectedDistrictName: _selectedDistrictName,
+                        selectedAreaName: _selectedAreaName,
+                        isLoadingAreas: _isLoadingAreas,
+                        onDistrictChanged: _handleDistrictChanged,
+                        onAreaChanged: _handleAreaChanged,
+                        isAreaSelectionEnabled:
+                            _selectedDistrictId != null && _areas.isNotEmpty,
+                        addressController: _addressController,
+                        onAddressSaved:
+                            (value) => _updateReportData('address', value),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               SizedBox(height: 32),
 
@@ -735,14 +799,14 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
   Widget _buildProgressIndicator(ThemeData theme) {
     // Calculate progress based on form completion
-    double progress = 0.25; // Minimum progress
+    double progress = 0; // Minimum progress
 
-    if (_selectedDistrictId != null) progress += 0.25;
+    if (_addressController.text.isNotEmpty) progress += 0.25;
     if (_selectedAreaId != null) progress += 0.25;
-    if (_addressController.text.isNotEmpty &&
-        _sizeController.text.isNotEmpty &&
-        _floorNumberController.text.isNotEmpty)
+    if (_sizeController.text.isNotEmpty &&
+        _floorNumberController.text.isNotEmpty) {
       progress += 0.25;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -921,25 +985,6 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                   ],
                 ),
       ),
-    );
-  }
-
-  void _showHelpDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Hướng dẫn'),
-            content: Text(
-              'Điền đầy đủ thông tin mặt bằng và thêm ghi chú để tiến hành khảo sát đầy đủ. Nếu bạn điền xong và chỉ muốn đăng tải thông tin của mặt bằng lên trước thì bạn hãy tạo thông tin cho mặt trước rồi sau đó tiếp tục viết báo cáo chi tiết sau !!!',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Đã hiểu'),
-              ),
-            ],
-          ),
     );
   }
 }

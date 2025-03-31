@@ -22,12 +22,19 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     super.initState();
     // Kiểm tra nếu dữ liệu chưa được tải, thì tải lên
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = Provider.of<TaskStatisticsProvider>(
+      final taskProvider = Provider.of<TaskStatisticsProvider>(
         context,
         listen: false,
       );
-      if (!provider.hasLoadedOnce) {
-        provider.fetchTaskStatistics();
+      final siteProvider = Provider.of<SiteReportProvider>(
+        context,
+        listen: false,
+      );
+      if (!taskProvider.hasLoadedOnce) {
+        taskProvider.fetchTaskStatistics();
+      }
+      if (!siteProvider.hasLoadedOnce) {
+        siteProvider.fetchSiteReportStatistics();
       }
     });
   }
@@ -40,10 +47,16 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         return Scaffold(
           body: SafeArea(
             child: RefreshIndicator(
-              onRefresh:
-                  () =>
-                      taskStatsProvider
-                          .refreshTaskStatistics(), // Sử dụng refreshTaskStatistics
+              onRefresh: () async {
+                final siteReportProvider = Provider.of<SiteReportProvider>(
+                  context,
+                  listen: false,
+                );
+                await Future.wait([
+                  taskStatsProvider.refreshTaskStatistics(),
+                  siteReportProvider.refreshSiteReportStatistics(),
+                ]);
+              },
               child: CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(
@@ -147,6 +160,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   Widget _buildReportStats() {
     return Consumer<SiteReportProvider>(
       builder: (context, siteReportProvider, child) {
+        final theme = Theme.of(context);
         if (siteReportProvider.isLoading) {
           return const Center(child: CircularProgressIndicator());
         } else if (siteReportProvider.errorMessage != null) {
@@ -163,7 +177,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -245,7 +259,16 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     List<double> data,
     String subtitle,
   ) {
+    final theme = Theme.of(context);
     final isPositive = !percentage.startsWith('-');
+
+    // Use theme colors for better contrast and consistency
+    final cardTextColor = theme.colorScheme.onSurface;
+    final cardSubtitleColor = theme.colorScheme.onSurface.withOpacity(0.6);
+    final percentageBackgroundColor = color.withOpacity(
+      theme.brightness == Brightness.light ? 0.1 : 0.2,
+    );
+
     return Row(
       children: [
         Expanded(
@@ -255,16 +278,17 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             children: [
               Text(
                 title,
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
+                style: TextStyle(color: cardSubtitleColor, fontSize: 14),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
+                      color: cardTextColor,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -274,7 +298,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: percentageBackgroundColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -304,7 +328,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                style: TextStyle(color: cardSubtitleColor, fontSize: 12),
               ),
             ],
           ),
@@ -339,7 +363,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                     dotData: FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: color.withOpacity(0.1),
+                      color: color.withOpacity(
+                        theme.brightness == Brightness.light ? 0.1 : 0.2,
+                      ),
                     ),
                   ),
                 ],

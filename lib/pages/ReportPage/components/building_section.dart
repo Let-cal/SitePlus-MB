@@ -15,7 +15,7 @@ class BuildingSection extends StatefulWidget {
   final Function() onReloadBuildings;
 
   const BuildingSection({
-    Key? key,
+    super.key,
     required this.areaId,
     required this.buildings,
     this.isLoadingBuildings = false,
@@ -25,7 +25,7 @@ class BuildingSection extends StatefulWidget {
     this.totalFloorNumber,
     required this.onFloorNumberChanged,
     required this.onReloadBuildings,
-  }) : super(key: key);
+  });
 
   @override
   State<BuildingSection> createState() => _BuildingSectionState();
@@ -69,7 +69,7 @@ class _BuildingSectionState extends State<BuildingSection> {
   void _showCreateBuildingDialog() {
     final TextEditingController buildingNameController =
         TextEditingController();
-    final _dialogFormKey = GlobalKey<FormState>();
+    final dialogFormKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
@@ -79,7 +79,7 @@ class _BuildingSectionState extends State<BuildingSection> {
             return AlertDialog(
               title: Text('Tạo Tòa Nhà Mới'),
               content: Form(
-                key: _dialogFormKey,
+                key: dialogFormKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -91,11 +91,6 @@ class _BuildingSectionState extends State<BuildingSection> {
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                       ),
-                      keyboardType: TextInputType.text,
-                      enableSuggestions: true,
-                      enableIMEPersonalizedLearning: true,
-                      autocorrect: false,
-                      textInputAction: TextInputAction.done,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Vui lòng nhập tên tòa nhà';
@@ -124,8 +119,7 @@ class _BuildingSectionState extends State<BuildingSection> {
                       widget.areaId == null
                           ? null
                           : () async {
-                            if (_dialogFormKey.currentState!.validate()) {
-                              // Set loading state
+                            if (dialogFormKey.currentState!.validate()) {
                               setDialogState(() {});
 
                               try {
@@ -135,6 +129,21 @@ class _BuildingSectionState extends State<BuildingSection> {
                                       widget.areaId!,
                                     );
                                 Navigator.of(context).pop();
+
+                                // Cập nhật danh sách buildings trước khi chọn
+                                await widget
+                                    .onReloadBuildings(); // Đảm bảo danh sách được tải lại
+
+                                setState(() {
+                                  _selectedBuilding = newBuilding;
+                                });
+
+                                widget.onBuildingSelected(newBuilding);
+                                widget.onBuildingDataChanged(
+                                  newBuilding.id,
+                                  newBuilding.name,
+                                );
+
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Tạo tòa nhà thành công!'),
@@ -142,20 +151,7 @@ class _BuildingSectionState extends State<BuildingSection> {
                                         Theme.of(context).colorScheme.primary,
                                   ),
                                 );
-                                setState(() {
-                                  _selectedBuilding = newBuilding;
-                                });
-                                widget.onBuildingSelected(newBuilding);
-                                widget.onBuildingDataChanged(
-                                  newBuilding.id,
-                                  newBuilding.name,
-                                );
-
-                                if (widget.areaId != null) {
-                                  widget.onReloadBuildings.call();
-                                }
                               } catch (e) {
-                                // Hiển thị thông báo lỗi
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Lỗi: ${e.toString()}'),
@@ -187,7 +183,9 @@ class _BuildingSectionState extends State<BuildingSection> {
     bool isEnabled = true,
   }) {
     final theme = Theme.of(context);
-
+    debugPrint('Dropdown value: $value');
+    debugPrint('Dropdown items: $items');
+    String? validValue = items.contains(value) ? value : null;
     return Theme(
       data: Theme.of(context).copyWith(),
       child: AnimatedOpacity(
@@ -208,7 +206,7 @@ class _BuildingSectionState extends State<BuildingSection> {
                     ],
           ),
           child: DropdownButtonFormField<String>(
-            value: value,
+            value: validValue,
             decoration: InputDecoration(
               labelText: label,
               prefixIcon: Icon(icon, color: theme.colorScheme.primary),

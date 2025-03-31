@@ -8,12 +8,12 @@ class ActionButtons extends StatelessWidget {
   final VoidCallback onProceedToFullReport;
 
   const ActionButtons({
-    Key? key,
+    super.key,
     required this.isLoading,
     required this.onCreateSite,
     required this.onCancel,
     required this.onProceedToFullReport,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

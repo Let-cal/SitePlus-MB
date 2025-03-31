@@ -42,7 +42,7 @@ class UnifiedCardFooter extends StatelessWidget {
   final String detailButtonText;
 
   const UnifiedCardFooter({
-    Key? key,
+    super.key,
     this.onDetailTap,
     this.onPrimaryActionTap,
     this.primaryActionLabel,
@@ -56,7 +56,7 @@ class UnifiedCardFooter extends StatelessWidget {
     this.padding = const EdgeInsets.all(16),
     this.usePrimaryButtonStyle = true,
     this.detailButtonText = 'Xem chi tiết',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

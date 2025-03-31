@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class DialogHeader extends StatelessWidget {
   final VoidCallback onClose;
   
-  const DialogHeader({Key? key, required this.onClose}) : super(key: key);
+  const DialogHeader({super.key, required this.onClose});
   
   @override
   Widget build(BuildContext context) {
@@ -50,7 +50,7 @@ class DialogHeader extends StatelessWidget {
             icon: Icon(Icons.close),
             onPressed: onClose,
             style: IconButton.styleFrom(
-              backgroundColor: theme.colorScheme.surfaceVariant,
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
               foregroundColor: theme.colorScheme.onSurfaceVariant,
             ),
           ),

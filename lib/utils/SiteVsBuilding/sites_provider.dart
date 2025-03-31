@@ -25,11 +25,14 @@ class SitesProvider with ChangeNotifier {
     notifyListeners(); // Thông báo giao diện rằng đang tải dữ liệu
 
     try {
-      _sites = await _apiService.getSites(
+      final response = await _apiService.getSites(
         pageNumber: pageNumber,
         pageSize: pageSize,
         search: search,
         status: status,
+      );
+      _sites = List<Site>.from(
+        response['listData'].map((item) => Site.fromJson(item)),
       );
     } catch (e) {
       _errorMessage = e.toString();

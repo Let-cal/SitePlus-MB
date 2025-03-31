@@ -16,6 +16,10 @@ String getVietnameseStatus(int status) {
       return 'Đã đóng';
     case 6:
       return 'Đã kết nối';
+    case 7:
+      return 'Đang đàm phán';
+    case 8:
+      return 'Bản nháp';
     default:
       return 'Không xác định';
   }
@@ -37,6 +41,10 @@ Color getStatusColor(BuildContext context, int status) {
       return Colors.grey;
     case 6:
       return Colors.cyan;
+    case 7:
+      return Colors.amber;
+    case 8:
+      return Colors.blueGrey;
     default:
       return theme.colorScheme.secondary;
   }
@@ -57,6 +65,10 @@ IconData getStatusIcon(int status) {
       return Icons.archive;
     case 6:
       return Icons.map;
+    case 7:
+      return Icons.forum;
+    case 8:
+      return Icons.note;
     default:
       return Icons.help;
   }

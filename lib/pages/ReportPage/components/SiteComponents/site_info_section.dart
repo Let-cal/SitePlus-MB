@@ -2,30 +2,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:siteplus_mb/components/custom_input_field.dart';
+import 'package:siteplus_mb/components/read_only_field.dart'; // Import component mới
 
 class SiteInfoSection extends StatelessWidget {
-  final TextEditingController addressController;
   final TextEditingController sizeController;
   final TextEditingController floorNumberController;
   final String siteCategory;
   final int? siteCategoryId;
   final Function(String?) onSiteNameSaved;
-  final Function(String?) onAddressSaved;
   final Function(String?) onSizeSaved;
   final Function(String?) onFloorSaved;
 
   const SiteInfoSection({
-    Key? key,
-    required this.addressController,
+    super.key,
     required this.sizeController,
     required this.floorNumberController,
     required this.siteCategory,
     required this.siteCategoryId,
     required this.onSiteNameSaved,
-    required this.onAddressSaved,
     required this.onSizeSaved,
     required this.onFloorSaved,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,22 +31,10 @@ class SiteInfoSection extends StatelessWidget {
     return Column(
       children: [
         // Loại mặt bằng (read-only)
-        _buildReadOnlyField(
-          context: context,
+        ReadOnlyField(
           label: 'Loại mặt bằng',
           value: siteCategory,
           icon: Icons.category,
-        ),
-        const SizedBox(height: 16),
-
-        // Địa chỉ (cho phép nhập chữ)
-        CustomInputField(
-          label: 'Địa chỉ',
-          hintText: 'Ví dụ: phường 14/200 đường D3...',
-          icon: Icons.location_on,
-          onSaved: onAddressSaved,
-          theme: theme,
-          initialValue: addressController.text,
         ),
         const SizedBox(height: 16),
 
@@ -66,12 +51,14 @@ class SiteInfoSection extends StatelessWidget {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
         const SizedBox(height: 16),
+
+        // Tầng
         CustomInputField(
-          label: 'Tầng',
+          label: siteCategoryId == 1 ? 'Tầng' : 'Tổng số tầng',
           hintText:
               siteCategoryId == 1
-                  ? 'Ví dụ: tầng 2'
-                  : 'Ví dụ: tổng cộng có 2 tầng',
+                  ? 'Ví dụ: tầng 2'
+                  : 'Gợi ý: tổng cộng có 2 tầng',
           icon: Icons.stairs,
           onSaved: onFloorSaved,
           theme: theme,
@@ -79,30 +66,15 @@ class SiteInfoSection extends StatelessWidget {
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
-      ],
-    );
-  }
+        const SizedBox(height: 16),
 
-  Widget _buildReadOnlyField({
-    required BuildContext context,
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return TextFormField(
-      initialValue: value,
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16.0,
-          horizontal: 16.0,
+        // Trạng thái (read-only) - chuyển từ location_section
+        ReadOnlyField(
+          label: 'Trạng thái',
+          value: 'Đang hoạt động',
+          icon: Icons.check_circle,
         ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
-      ),
+      ],
     );
   }
 }

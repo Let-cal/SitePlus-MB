@@ -14,8 +14,9 @@ class NavigationComponent {
     int? areaId,
     String taskStatus,
     int? siteId,
-    LocationsProvider locationsProvider,
-  ) async {
+    LocationsProvider locationsProvider, {
+    VoidCallback? onUpdateSuccess,
+  }) async {
     String reportTypeValue;
     if (categoryId == 2) {
       // Mặt bằng độc lập (ID = 2 dựa vào API response)
@@ -36,6 +37,7 @@ class NavigationComponent {
         areaId: areaId,
         taskStatus: taskStatus,
         siteId: siteId,
+        onUpdateSuccess: onUpdateSuccess,
       ),
     );
 

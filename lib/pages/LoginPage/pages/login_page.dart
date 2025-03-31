@@ -51,19 +51,6 @@ class _LoginPageState extends State<LoginPage> {
                     // Login form
                     LoginForm(
                       formKey: _formKey,
-                      onLoginSuccess: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Login successful!'),
-                            backgroundColor: colorScheme.primary,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            margin: EdgeInsets.all(16),
-                          ),
-                        );
-                      },
                     ),
                   ],
                 ),

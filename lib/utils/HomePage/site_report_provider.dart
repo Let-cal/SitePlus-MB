@@ -26,25 +26,15 @@ class SiteReportProvider extends ChangeNotifier {
 
   // Phương thức tải dữ liệu báo cáo site
   Future<void> fetchSiteReportStatistics() async {
-    // Nếu đã tải dữ liệu rồi, không tải lại
-    if (_hasLoadedOnce && _siteReportStatistics != null) {
-      return;
-    }
-
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Lấy token từ ApiService
       final token = await _apiService.getToken();
-
-      // Gọi API để lấy thống kê báo cáo site
       final statistics = await _apiService.getWeeklySiteReportStatistics(
         token!,
       );
-
-      // Chuyển đổi dữ liệu thống kê sang định dạng biểu đồ
       final reportData = _apiService.convertToSiteReportData(statistics);
 
       _siteReportStatistics = statistics;
@@ -94,6 +84,6 @@ class SiteReportProvider extends ChangeNotifier {
     if (previous == 0) return '+0.0%';
 
     double change = ((current - previous) / previous) * 100;
-    return (change >= 0 ? '+' : '') + change.toStringAsFixed(1) + '%';
+    return '${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}%';
   }
 }

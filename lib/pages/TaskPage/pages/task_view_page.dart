@@ -11,8 +11,15 @@ import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 class TasksPage extends StatefulWidget {
-  const TasksPage({super.key});
-
+  final void Function(int? filterSiteId)? onNavigateToSiteTab;
+  final void Function(int? filterTaskId)? onNavigateToTaskTab;
+  final int? filterTaskId;
+  const TasksPage({
+    super.key,
+    this.onNavigateToSiteTab,
+    this.onNavigateToTaskTab,
+    this.filterTaskId,
+  });
   @override
   State<TasksPage> createState() => _TasksPageState();
 }
@@ -27,12 +34,13 @@ class _TasksPageState extends State<TasksPage>
   // Filter state
   String selectedStatus = 'Tất Cả';
   String selectedPriority = 'Tất Cả';
-
+  String taskTypeFilter = 'Tất cả';
   // Pagination state
   int currentPage = 1;
   int totalPages = 1;
   int pageSize = 5;
   int totalRecords = 0;
+  bool isCompanyTaskOnly = false;
   //load status of task from api
   Future<void> _loadTaskStatuses() async {
     try {
@@ -92,6 +100,7 @@ class _TasksPageState extends State<TasksPage>
   @override
   void initState() {
     super.initState();
+    print('TasksPage initState');
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -106,8 +115,27 @@ class _TasksPageState extends State<TasksPage>
     });
   }
 
+  @override
+  void didUpdateWidget(TasksPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterTaskId != oldWidget.filterTaskId) {
+      print('filterTaskId changed to: ${widget.filterTaskId}, reloading tasks');
+      _loadTasks(); // Reload dữ liệu khi filterTaskId thay đổi
+    }
+  }
+
+  @override
+  void dispose() {
+    print('TasksPage disposed');
+    _animationController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadTasks() async {
-    if (!mounted) return;
+    if (!mounted) {
+      print('TasksPage not mounted, skipping _loadTasks');
+      return;
+    }
 
     setState(() {
       isLoading = true;
@@ -120,30 +148,44 @@ class _TasksPageState extends State<TasksPage>
           selectedPriority != 'Tất Cả'
               ? PRIORITY_API_MAP[selectedPriority]
               : null;
-
+      bool? isCompanyTaskOnly;
+      switch (taskTypeFilter) {
+        case 'Chỉ công ty':
+          isCompanyTaskOnly = true;
+          break;
+        case 'Từ yêu cầu':
+          isCompanyTaskOnly = false;
+          break;
+        case 'Tất cả':
+          isCompanyTaskOnly = null;
+          break;
+      }
       final result = await _apiService.getTasks(
         status: statusValue,
         priority: priorityValue,
-        page: currentPage,
-        pageSize: pageSize,
+        page: widget.filterTaskId != null ? 1 : currentPage,
+        pageSize: widget.filterTaskId != null ? 1 : pageSize,
+        isCompanyTaskOnly: isCompanyTaskOnly,
+        search: widget.filterTaskId?.toString(),
       );
 
       if (result['success'] == true) {
         final TaskResponse response = TaskResponse.fromJson(result);
-        print('Số lượng tasks từ API: ${response.listData.length}');
-
-        setState(() {
-          // Giới hạn số lượng tasks hiển thị theo pageSize
-          tasks = response.listData.take(pageSize).toList();
-          totalPages = (response.totalRecords / pageSize).ceil();
-          totalRecords = response.totalRecords;
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            tasks = response.listData.take(pageSize).toList();
+            totalPages = (response.totalRecords / pageSize).ceil();
+            totalRecords = response.totalRecords;
+            isLoading = false;
+          });
+        }
       } else {
-        setState(() {
-          isLoading = false;
-          tasks = [];
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+            tasks = [];
+          });
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result['message'] ?? 'Không thể tải nhiệm vụ'),
@@ -152,14 +194,24 @@ class _TasksPageState extends State<TasksPage>
       }
     } catch (e) {
       print("Error loading tasks: $e");
-      if (!mounted) return;
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Đã xảy ra lỗi: ${e.toString()}')));
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đã xảy ra lỗi: ${e.toString()}')),
+        );
+      }
     }
+  }
+
+  void _onTaskTypeFilterChanged(String value) {
+    if (value == taskTypeFilter) return;
+    setState(() {
+      taskTypeFilter = value;
+      currentPage = 1; // Reset về trang 1 khi thay đổi filter
+    });
+    _loadTasks();
   }
 
   void _onStatusSelected(String status) {
@@ -184,6 +236,14 @@ class _TasksPageState extends State<TasksPage>
     if (page < 1 || page > totalPages || page == currentPage) return;
     setState(() {
       currentPage = page;
+    });
+    _loadTasks();
+  }
+
+  void _onCompanyTaskOnlyChanged(bool value) {
+    setState(() {
+      isCompanyTaskOnly = value;
+      currentPage = 1; // Reset về trang 1 khi thay đổi filter
     });
     _loadTasks();
   }
@@ -239,6 +299,8 @@ class _TasksPageState extends State<TasksPage>
                         selectedPriority: selectedPriority,
                         onStatusSelected: _onStatusSelected,
                         onPrioritySelected: _onPrioritySelected,
+                        taskTypeFilter: taskTypeFilter,
+                        onTaskTypeFilterChanged: _onTaskTypeFilterChanged,
                         availableStatuses: apiStatusMap,
                       )
                       .animate()
@@ -359,18 +421,23 @@ class _TasksPageState extends State<TasksPage>
               child: EnhancedTaskCard(
                     key: ValueKey('task-${task.id.toString()}'),
                     task: task,
+                    onNavigateToSiteTab: widget.onNavigateToSiteTab,
                     onTap: () async {
                       final result = await ViewDetailTask.show(
                         context,
                         task,
+                        onNavigateToSiteTab: widget.onNavigateToSiteTab,
                         onUpdateSuccess: () async {
                           if (mounted) {
                             print('Update success callback triggered');
-                            await _loadTasks();
+                            await _loadTasks(); // Reload danh sách task
                           }
                         },
                       );
-                      print('Task detail result: $result');
+                      if (result == true && mounted) {
+                        print('Reloading tasks after successful update');
+                        await _loadTasks(); // Reload lại danh sách task
+                      }
                     },
                   )
                   .animate()

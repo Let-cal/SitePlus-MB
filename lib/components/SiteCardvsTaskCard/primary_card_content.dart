@@ -7,12 +7,12 @@ class PrimaryCardContent extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   const PrimaryCardContent({
-    Key? key,
+    super.key,
     required this.featuredItems,
     this.description,
     this.additionalInfo,
     this.padding = const EdgeInsets.all(20),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,22 +51,17 @@ class PrimaryCardContent extends StatelessWidget {
   }
 
   Widget _buildFeaturedItemsRow() {
-    // Display up to 2 featured items in a row
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: List.generate(
         featuredItems.length > 2 ? 2 : featuredItems.length,
         (index) {
           final item = featuredItems[index];
-          final isFirst = index == 0;
-          final isLast = index == featuredItems.length - 1 || index == 1;
-
           return Expanded(
-            flex: item.flex ?? (isFirst ? 1 : 2),
             child: Padding(
               padding: EdgeInsets.only(
-                left: isFirst ? 0 : 10,
-                right: isLast ? 0 : 10,
+                left: index > 0 ? 10 : 0,
+                right: index < featuredItems.length - 1 ? 10 : 0,
               ),
               child: item,
             ),
@@ -85,13 +80,13 @@ class FeaturedItem extends StatelessWidget {
   final bool preventLineBreak;
 
   const FeaturedItem({
-    Key? key,
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
     this.flex,
     this.preventLineBreak = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -107,10 +102,10 @@ class FeaturedItem extends StatelessWidget {
             color: colorScheme.secondary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 14, color: colorScheme.secondary),
+          child: Icon(icon, size: 16, color: colorScheme.secondary),
         ),
         const SizedBox(width: 12),
-        Expanded(
+        Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -120,26 +115,14 @@ class FeaturedItem extends StatelessWidget {
                   color: colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
-              preventLineBreak
-                  ? SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      value,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  )
-                  : Text(
-                    value,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+              Text(
+                value,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),

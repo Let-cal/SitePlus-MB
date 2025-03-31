@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/animated_expansion_card.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/custom_chip_group.dart';
-import 'package:siteplus_mb/components/custom_input_field.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/info_card.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
 
 class VisibilityObstructionSection extends StatefulWidget {
   final Map<String, dynamic> reportData;
@@ -529,7 +529,7 @@ class VisibilityObstructionSectionState
         children: [
           Text(
             'VI. Tầm nhìn và Chướng ngại',
-            style: widget.theme.textTheme.headlineLarge?.copyWith(
+            style: widget.theme.textTheme.titleLarge?.copyWith(
               color: widget.theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
@@ -627,7 +627,11 @@ class VisibilityObstructionSectionState
                           Container(
                             padding: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              color: widget.theme.colorScheme.surfaceVariant,
+                              color:
+                                  widget
+                                      .theme
+                                      .colorScheme
+                                      .surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Column(
@@ -701,7 +705,7 @@ class VisibilityObstructionSectionState
                           ),
                         ],
                       );
-                    }).toList(),
+                    }),
                     const SizedBox(height: 16),
                     CustomInputField(
                       label: 'Thông tin bổ sung',
