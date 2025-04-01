@@ -99,6 +99,13 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
         onTap: () => _handleStatusSelection(2),
       ),
       FilterOption(
+        label: getVietnameseStatus(7),
+        icon: getStatusIcon(7),
+        color: getStatusColor(context, 7),
+        isSelected: 7 == widget.initialSelectedStatus,
+        onTap: () => _handleStatusSelection(7),
+      ),
+      FilterOption(
         label: getVietnameseStatus(3),
         color: getStatusColor(context, 3),
         icon: getStatusIcon(3),
@@ -111,14 +118,6 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
         icon: getStatusIcon(4),
         isSelected: 4 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(4),
-      ),
-
-      FilterOption(
-        label: getVietnameseStatus(7),
-        icon: getStatusIcon(7),
-        color: getStatusColor(context, 7),
-        isSelected: 7 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(7),
       ),
       FilterOption(
         label: getVietnameseStatus(6),

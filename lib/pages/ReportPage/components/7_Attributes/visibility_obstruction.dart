@@ -627,11 +627,7 @@ class VisibilityObstructionSectionState
                           Container(
                             padding: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              color:
-                                  widget
-                                      .theme
-                                      .colorScheme
-                                      .surfaceContainerHighest,
+                              color: widget.theme.colorScheme.surface,
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Column(

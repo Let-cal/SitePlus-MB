@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:siteplus_mb/pages/ReportPage/pages/ReportViewDialog.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/report_create_dialog.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/ImageComponents/image_upload_dialog_ui.dart';
+import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_status.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
@@ -475,6 +477,7 @@ class ViewDetailSite extends StatelessWidget {
                         taskId: site.task?.id,
                         isEditMode: isEditMode,
                         initialReportData: {'siteStatus': site.status},
+                        siteSize: site.size,
                       ),
               transitionsBuilder: (
                 context,
@@ -528,6 +531,34 @@ class ViewDetailSite extends StatelessWidget {
       }
     }
 
+    Future<void> _showReportDialog() async {
+      final apiService = ApiService();
+      final siteDeal = await apiService.getSiteDealBySiteId(site.id);
+      final attributeValues = await apiService.getAttributeValuesBySiteId(
+        site.id,
+      );
+
+      if (siteDeal != null && attributeValues.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => ReportViewDialog(
+                siteDeal: siteDeal,
+                attributeValues: attributeValues,
+                siteCategoryId: site.siteCategoryId,
+                siteId: site.id,
+              ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không tìm thấy dữ liệu báo cáo'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
     // Xác định nút dựa trên status
     Widget primaryButton() {
       switch (site.status) {
@@ -573,18 +604,51 @@ class ViewDetailSite extends StatelessWidget {
         case 5: // Đã đóng
         case 6: // Đã kết nối
         case 1: // Có sẵn
-        case 3: // Chờ phê duyệt
-          return FilledButton.icon(
-            onPressed: navigateToTaskPage,
-            icon: const Icon(Icons.visibility),
-            label: const Text('Xem nhiệm vụ'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              backgroundColor: theme.colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        // return FilledButton.icon(
+        //   onPressed: navigateToTaskPage,
+        //   icon: const Icon(Icons.visibility),
+        //   label: const Text('Xem nhiệm vụ'),
+        //   style: FilledButton.styleFrom(
+        //     padding: const EdgeInsets.symmetric(vertical: 12),
+        //     backgroundColor: theme.colorScheme.primary,
+        //     shape: RoundedRectangleBorder(
+        //       borderRadius: BorderRadius.circular(12),
+        //     ),
+        //   ),
+        // );
+        case 3: // Chờ phê duyệt
+          return Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: navigateToTaskPage,
+                  icon: const Icon(Icons.visibility),
+                  label: const Text('Xem nhiệm vụ'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: theme.colorScheme.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _showReportDialog,
+                  icon: const Icon(Icons.report),
+                  label: const Text('Xem báo cáo'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: theme.colorScheme.secondary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         case 7: // Đang thương lượng
           return FilledButton.icon(
@@ -617,27 +681,33 @@ class ViewDetailSite extends StatelessWidget {
 
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
-                label: const Text('Đóng'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: theme.colorScheme.outline),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+        if (site.status != 3 &&
+            site.status != 5 &&
+            site.status != 6 &&
+            site.status != 1)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Đóng'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(color: theme.colorScheme.outline),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    minimumSize: Size(double.infinity, 48),
                   ),
-                  minimumSize: Size(double.infinity, 48),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: primaryButton()),
-          ],
-        ),
+              const SizedBox(width: 16),
+              Expanded(child: primaryButton()),
+            ],
+          )
+        else
+          primaryButton(),
         const SizedBox(height: 12),
         Row(
           children: [

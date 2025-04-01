@@ -522,23 +522,149 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     });
   }
 
-  void _proceedToFullReport() {
+  Future<bool> _showConfirmationDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Xác nhận'),
+              content: Text(
+                'Nếu bạn tiếp tục báo cáo thì thông tin mặt bằng bạn vừa điền vào sẽ được lưu. Bạn có chắc không?',
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Hủy'),
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+                TextButton(
+                  child: Text('Đồng ý'),
+                  onPressed: () => Navigator.of(context).pop(true),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false; // Trả về false nếu người dùng thoát dialog mà không chọn
+  }
+
+  Future<void> _proceedToFullReport() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => ReportCreateDialog(
-                reportType: widget.reportType,
-                siteCategory: widget.siteCategory,
-                siteCategoryId: widget.siteCategoryId,
-                taskId: widget.taskId,
-                initialReportData: reportData,
+      // Hiển thị dialog xác nhận
+      final bool confirmed = await _showConfirmationDialog();
+      if (!confirmed) {
+        return; // Người dùng không đồng ý, thoát hàm
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        if (widget.taskStatus == STATUS_CHUA_NHAN) {
+          // Tạo site mới
+          final siteRequest = SiteCreateRequest.fromReportData(reportData);
+          final createResponse = await _apiService.createSite(siteRequest);
+
+          if (createResponse['success'] == true) {
+            final statusTaskUpdated = await _apiService.updateTaskStatus(
+              widget.taskId,
+              2,
+            );
+            if (statusTaskUpdated) {
+              debugPrint('Task status updated to "Đã nhận" (2)');
+            }
+          }
+          if (createResponse['siteId'] != null) {
+            final siteId =
+                createResponse['siteId']['data']; // Lấy siteId từ response
+            const siteStatus = 2; // Giả định status mặc định cho site mới
+
+            // Thay thế SiteBuildingDialog bằng ReportCreateDialog
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => ReportCreateDialog(
+                      reportType: widget.reportType,
+                      siteCategory: widget.siteCategory,
+                      siteCategoryId: widget.siteCategoryId,
+                      taskId: widget.taskId,
+                      initialReportData: {
+                        ...reportData,
+                        'siteId': siteId,
+                        'siteStatus': siteStatus,
+                      },
+                    ),
               ),
-        ),
-      );
+            );
+          } else {
+            throw Exception(
+              'Failed to create site: ${createResponse['message']}',
+            );
+          }
+        } else if (widget.taskStatus == STATUS_DA_NHAN) {
+          // Cập nhật site
+          final siteRequest =
+              SiteCreateRequest.fromReportData(reportData).toJson();
+          final updateResponse = await _apiService.updateSite(
+            widget.siteId!,
+            siteRequest,
+          );
+
+          if (updateResponse['success'] == true) {
+            final siteStatus =
+                updateResponse['data']['status']; // Lấy status từ response
+            debugPrint(
+              "site status truyền về report create dialog là : ${siteStatus}",
+            );
+
+            bool isEditMode = [4, 7, 8].contains(siteStatus);
+            debugPrint(
+              "isEditMode truyền về report create dialog là : ${isEditMode}",
+            );
+            debugPrint(
+              "siteId truyền về report create dialog là : ${widget.siteId}",
+            );
+
+            // Mở ReportCreateDialog, giữ SiteBuildingDialog trong stack
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => ReportCreateDialog(
+                      reportType: widget.reportType,
+                      siteCategory: widget.siteCategory,
+                      siteCategoryId: widget.siteCategoryId,
+                      taskId: widget.taskId,
+                      siteId: widget.siteId,
+                      initialReportData: {
+                        ...reportData,
+                        'siteStatus': siteStatus,
+                      },
+                      isEditMode: isEditMode,
+                    ),
+              ),
+            );
+          } else {
+            throw Exception(
+              'Failed to update site: ${updateResponse['message']}',
+            );
+          }
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

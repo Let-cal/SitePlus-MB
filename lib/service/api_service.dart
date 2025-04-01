@@ -230,6 +230,36 @@ class ApiService {
     }
   }
 
+  // API lấy tất cả attributes
+  Future<List<Map<String, dynamic>>> getAllAttributes() async {
+    final token = await getToken();
+    final url =
+        '${ApiLink.baseUrl}${ApiEndpoints.getAttributes}?page=0&pageSize=0';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Authorization': 'Bearer $token', 'Accept': '*/*'},
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        final List<dynamic> attributesData = jsonResponse['data'];
+        final attributes =
+            attributesData.map((attr) => attr as Map<String, dynamic>).toList();
+        debugPrint('Attributes data: $attributes'); // Debug logging
+        return attributes;
+      } else {
+        debugPrint('Lỗi lấy attributes: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        throw Exception('Lỗi lấy attributes: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Exception when fetching attributes: $e');
+      throw Exception('Lỗi khi lấy attributes: $e');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getAttributeValuesBySiteId(
     int siteId,
   ) async {
@@ -247,7 +277,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-
+        print('response của Attribute values từ api service: $jsonResponse');
         if (jsonResponse['data'] != null) {
           return List<Map<String, dynamic>>.from(jsonResponse['data']);
         } else {

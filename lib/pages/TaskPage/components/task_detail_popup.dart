@@ -457,6 +457,13 @@ class ViewDetailTask extends StatelessWidget {
       children: [
         _buildInfoRow(
           context,
+          label: 'ID#:',
+          value: site.id.toString(),
+          icon: Icons.map,
+        ),
+        const SizedBox(height: 12),
+        _buildInfoRow(
+          context,
           label: 'Địa Chỉ Chi Tiết',
           value: addressParts['specificAddress']!,
           icon: Icons.map,

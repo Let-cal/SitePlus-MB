@@ -39,6 +39,7 @@ class ApiEndpoints {
   static const String createReport = '/report';
   static const String updateReport = '/report';
   static const String getAttributeValues = '/attribute-values';
+  static const String getAttributes = '/Attribute';
 
   /// customer segment
   static const String getCustomerSegments = '/CustomerSegment';

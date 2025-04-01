@@ -91,7 +91,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       _updateDebugInfo();
     });
   }
-  
 
   void _initializeData() {
     localCustomerFlow = Map<String, dynamic>.from(
@@ -135,6 +134,41 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
     newAttributeValues = List<Map<String, dynamic>>.from(
       widget.reportData['newAttributeValues'] ?? [],
     );
+
+    // Xử lý dữ liệu peakHours từ originalAttributeValues
+    final peakHourAttrs =
+        originalAttributeValues
+            .where((attr) => attr['attributeId'] == attributeIds['peakHour'])
+            .toList();
+    if (peakHourAttrs.isNotEmpty) {
+      selectedPeakHours.clear();
+      String combinedValue = '';
+      String additionalInfo = '';
+      for (var attr in peakHourAttrs) {
+        final value = attr['value'] as String;
+        additionalInfo = attr['additionalInfo'] ?? '';
+        if (value.contains(' và ')) {
+          // Dữ liệu đã gộp
+          combinedValue = value;
+          selectedPeakHours = value.split(' và ').toList();
+        } else {
+          // Dữ liệu cũ chưa gộp
+          if (!selectedPeakHours.contains(value)) {
+            selectedPeakHours.add(value);
+          }
+        }
+        if (additionalInfo.isNotEmpty) {
+          peakHourAdditionalInfo[value] = additionalInfo;
+        }
+      }
+      if (combinedValue.isNotEmpty) {
+        // Nếu có dữ liệu gộp, cập nhật selectedPeakHours từ combinedValue
+        selectedPeakHours = combinedValue.split(' và ').toList();
+      }
+      // Cập nhật customPeakHours
+      customPeakHours =
+          selectedPeakHours.where((p) => !peakHourOptions.contains(p)).toList();
+    }
   }
 
   String _generatePeakHourAdditionalInfo(List<String> selectedPeakHours) {
@@ -259,17 +293,15 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
                   : 'chiếc/tuần';
           String additionalInfo = '$amount $unit';
 
-          // Tìm attribute value đã tồn tại trong originalAttributeValues
           final existingAttr = originalAttributeValues.firstWhere(
             (attr) =>
                 attr['attributeId'] == attributeIds['vehicle'] &&
                 attr['value'] == vehicle &&
-                attr['additionalInfo'].endsWith(unit), // Kiểm tra đơn vị
+                attr['additionalInfo'].endsWith(unit),
             orElse: () => {},
           );
 
           if (existingAttr['id'] != null) {
-            // Nếu đã tồn tại (có id), cập nhật changedAttributeValues
             final changeIndex = changedAttributeValues.indexWhere(
               (attr) => attr['id'] == existingAttr['id'],
             );
@@ -284,12 +316,11 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
               changedAttributeValues.add(updatedValue);
             }
           } else {
-            // Nếu là mới, tìm và cập nhật trong newAttributeValues
             final newIndex = newAttributeValues.indexWhere(
               (attr) =>
                   attr['attributeId'] == attributeIds['vehicle'] &&
                   attr['value'] == vehicle &&
-                  attr['additionalInfo'].endsWith(unit), // Kiểm tra đơn vị
+                  attr['additionalInfo'].endsWith(unit),
             );
             final newValue = {
               'attributeId': attributeIds['vehicle'],
@@ -298,13 +329,12 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
               'additionalInfo': additionalInfo,
             };
             if (newIndex != -1) {
-              newAttributeValues[newIndex] = newValue; // Cập nhật bản ghi cũ
+              newAttributeValues[newIndex] = newValue;
             } else {
-              newAttributeValues.add(newValue); // Thêm mới nếu chưa tồn tại
+              newAttributeValues.add(newValue);
             }
           }
 
-          // Cập nhật attributeValues để hiển thị UI
           final index = attributeValues.indexWhere(
             (attr) => attr['id'] == existingAttr['id'],
           );
@@ -324,69 +354,94 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       }
     });
 
-    // Xử lý peakHours (giữ nguyên logic hiện tại)
-    for (var peakHour in selectedPeakHours) {
+    // Xử lý peakHours (gộp thành một bản ghi duy nhất)
+    if (selectedPeakHours.isNotEmpty) {
+      String combinedValue = selectedPeakHours.join(' và ');
       String additionalInfo = _generatePeakHourAdditionalInfo(
         selectedPeakHours,
       );
-      if (additionalInfo.isNotEmpty) {
-        final existingAttr = originalAttributeValues.firstWhere(
-          (attr) =>
-              attr['attributeId'] == attributeIds['peakHour'] &&
-              attr['value'] == peakHour,
-          orElse: () => {},
-        );
 
-        if (existingAttr['id'] != null) {
+      // Tìm bản ghi peakHour cũ trong originalAttributeValues
+      final existingPeakHourAttrs =
+          originalAttributeValues
+              .where((attr) => attr['attributeId'] == attributeIds['peakHour'])
+              .toList();
+
+      if (existingPeakHourAttrs.isNotEmpty) {
+        // Nếu đã có dữ liệu cũ, cập nhật tất cả thành một bản ghi gộp
+        for (var existingAttr in existingPeakHourAttrs) {
           final changeIndex = changedAttributeValues.indexWhere(
             (attr) => attr['id'] == existingAttr['id'],
           );
+          final updatedValue = {
+            'id': existingAttr['id'],
+            'value': combinedValue,
+            'additionalInfo': additionalInfo,
+          };
           if (changeIndex != -1) {
-            changedAttributeValues[changeIndex] = {
-              'id': existingAttr['id'],
-              'value': peakHour,
-              'additionalInfo': additionalInfo,
-            };
+            changedAttributeValues[changeIndex] = updatedValue;
           } else {
-            changedAttributeValues.add({
-              'id': existingAttr['id'],
-              'value': peakHour,
-              'additionalInfo': additionalInfo,
-            });
+            changedAttributeValues.add(updatedValue);
           }
-        } else {
-          final newIndex = newAttributeValues.indexWhere(
-            (attr) =>
-                attr['attributeId'] == attributeIds['peakHour'] &&
-                attr['value'] == peakHour &&
-                attr['additionalInfo'] == additionalInfo,
+
+          final attrIndex = attributeValues.indexWhere(
+            (attr) => attr['id'] == existingAttr['id'],
           );
-          if (newIndex == -1) {
-            newAttributeValues.add({
+          if (attrIndex != -1) {
+            attributeValues[attrIndex] = {
               'attributeId': attributeIds['peakHour'],
               'siteId': widget.siteId,
-              'value': peakHour,
+              'value': combinedValue,
               'additionalInfo': additionalInfo,
-            });
+              'id': existingAttr['id'],
+            };
           }
         }
-
-        final index = attributeValues.indexWhere(
-          (attr) => attr['id'] == existingAttr['id'],
+        // Xóa các bản ghi thừa trong attributeValues nếu có nhiều hơn 1
+        final peakHourIds = existingPeakHourAttrs.map((e) => e['id']).toList();
+        attributeValues.removeWhere(
+          (attr) =>
+              attr['attributeId'] == attributeIds['peakHour'] &&
+              !peakHourIds.contains(attr['id']),
+        );
+      } else {
+        // Nếu không có dữ liệu cũ, thêm một bản ghi mới vào newAttributeValues
+        final newIndex = newAttributeValues.indexWhere(
+          (attr) => attr['attributeId'] == attributeIds['peakHour'],
         );
         final newValue = {
           'attributeId': attributeIds['peakHour'],
           'siteId': widget.siteId,
-          'value': peakHour,
+          'value': combinedValue,
           'additionalInfo': additionalInfo,
-          if (existingAttr['id'] != null) 'id': existingAttr['id'],
         };
-        if (index != -1) {
-          attributeValues[index] = newValue;
+        if (newIndex != -1) {
+          newAttributeValues[newIndex] = newValue;
+        } else {
+          newAttributeValues.add(newValue);
+        }
+
+        // Cập nhật attributeValues để hiển thị UI
+        final attrIndex = attributeValues.indexWhere(
+          (attr) => attr['attributeId'] == attributeIds['peakHour'],
+        );
+        if (attrIndex != -1) {
+          attributeValues[attrIndex] = newValue;
         } else {
           attributeValues.add(newValue);
         }
       }
+    } else {
+      // Nếu không có peakHours nào được chọn, xóa khỏi attributeValues và newAttributeValues
+      attributeValues.removeWhere(
+        (attr) => attr['attributeId'] == attributeIds['peakHour'],
+      );
+      newAttributeValues.removeWhere(
+        (attr) => attr['attributeId'] == attributeIds['peakHour'],
+      );
+      changedAttributeValues.removeWhere(
+        (attr) => attr['attributeId'] == attributeIds['peakHour'],
+      );
     }
 
     // Cập nhật reportData

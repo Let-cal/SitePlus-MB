@@ -23,6 +23,7 @@ class ReportCreateDialog extends StatefulWidget {
   final int? taskId;
   final Map<String, dynamic>? initialReportData;
   final bool isEditMode;
+  final double? siteSize;
 
   const ReportCreateDialog({
     super.key,
@@ -33,6 +34,7 @@ class ReportCreateDialog extends StatefulWidget {
     required this.taskId,
     this.initialReportData,
     this.isEditMode = false,
+    this.siteSize,
   });
 
   @override
@@ -90,7 +92,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
         'income': null,
       },
       'siteArea': {
-        'totalArea': '',
+        'totalArea': widget.isEditMode ? '' : (widget.siteSize?.toInt() ?? ''),
         'frontageWidth': '',
         'roadDistance': '',
         'shapes': null,
@@ -141,6 +143,8 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
       'deposit': '',
       'additionalTerms': '',
     };
+
+    _fetchCustomerSegments();
     if (_isEditMode && widget.siteId != null) {
       _fetchData();
     } else {
@@ -167,10 +171,6 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      await initCustomerSegments();
-      final provider = CustomerSegmentProvider();
-      customerSegments = await provider.getCustomerSegments();
-
       if (_isEditMode && widget.siteId != null) {
         await _fetchAttributeValues();
         if (widget.initialReportData?['siteStatus'] == 4) {
@@ -183,6 +183,16 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
       setState(
         () => _isLoading = false,
       ); // Chỉ tắt loading khi tất cả hoàn thành
+    }
+  }
+
+  Future<void> _fetchCustomerSegments() async {
+    try {
+      await initCustomerSegments();
+      final provider = CustomerSegmentProvider();
+      customerSegments = await provider.getCustomerSegments();
+    } catch (e) {
+      debugPrint('Error fetching customer segments: $e');
     }
   }
 
@@ -210,6 +220,9 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
 
   Future<void> _fetchAttributeValues() async {
     try {
+      debugPrint(
+        'Bắt đầu gọi API getAttributeValuesBySiteId với siteId: ${widget.siteId}',
+      );
       final attributeValues = await _reportApiService
           .getAttributeValuesBySiteId(widget.siteId!);
       debugPrint(
@@ -221,6 +234,9 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
           reportData['changedAttributeValues'] = [];
           _isEditMode = true;
           _updateSectionsFromAttributeValues(attributeValues);
+          debugPrint(
+            'Updated reportData[attributeValues]: ${reportData['attributeValues']}',
+          );
         });
       }
     } catch (e) {
@@ -391,7 +407,6 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     final Map<String, List<String>> selectedVehicleCalculations = {};
     final Map<String, String> vehicleCalculationAmounts = {};
 
-    // Danh sách các tùy chọn mặc định cho vehicle
     const List<String> defaultVehicleOptions = [
       TRANSPORTATION_MOTORCYCLE,
       TRANSPORTATION_CAR,
@@ -399,7 +414,6 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
       TRANSPORTATION_PEDESTRIAN,
     ];
 
-    // Danh sách các tùy chọn mặc định cho peakHour
     const List<String> defaultPeakHourOptions = [
       PEAK_HOUR_MORNING,
       PEAK_HOUR_NOON,
@@ -442,16 +456,32 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     final List<String> peakHours = [];
     final Map<String, String> peakHourAdditionalInfo = {};
 
-    for (var attr in peakHourAttrs) {
-      final String peakHour = attr['value'];
-      final String additionalInfo = attr['additionalInfo'] ?? '';
+    if (peakHourAttrs.isNotEmpty) {
+      // Xử lý dữ liệu peakHours (có thể gộp hoặc chưa gộp)
+      final firstAttr = peakHourAttrs.first;
+      final String value = firstAttr['value'] ?? '';
+      final String additionalInfo = firstAttr['additionalInfo'] ?? '';
 
-      if (!peakHours.contains(peakHour)) {
-        peakHours.add(peakHour);
+      if (value.contains(' và ')) {
+        // Dữ liệu đã gộp
+        peakHours.addAll(value.split(' và '));
+      } else {
+        // Dữ liệu chưa gộp
+        for (var attr in peakHourAttrs) {
+          final String peakHour = attr['value'];
+          if (!peakHours.contains(peakHour)) {
+            peakHours.add(peakHour);
+          }
+          if (additionalInfo.isNotEmpty) {
+            peakHourAdditionalInfo[peakHour] = additionalInfo;
+          }
+        }
       }
 
       if (additionalInfo.isNotEmpty) {
-        peakHourAdditionalInfo[peakHour] = additionalInfo;
+        for (var peakHour in peakHours) {
+          peakHourAdditionalInfo[peakHour] = additionalInfo;
+        }
       }
     }
 
@@ -461,7 +491,6 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     customerFlow['vehicleCalculationAmounts'] = vehicleCalculationAmounts;
     customerFlow['peakHourAdditionalInfo'] = peakHourAdditionalInfo;
 
-    // Chỉ thêm vào customVehicles nếu không thuộc defaultVehicleOptions
     final customVehicles =
         vehicles.where((v) => !defaultVehicleOptions.contains(v)).toList();
     final customPeakHours =
@@ -481,6 +510,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     final Map<String, dynamic> customerModel =
         reportData['customerModel'] ?? {};
 
+    // Gender
     if (genderAttrs.isNotEmpty) {
       final genderAttr = genderAttrs.first;
       final String value = genderAttr['value'] ?? '';
@@ -495,35 +525,71 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
       customerModel['genderInfo'] = additionalInfo;
     }
 
+    // Age groups
     if (ageAttrs.isNotEmpty) {
-      final ageAttr = ageAttrs.first;
-      final String additionalInfo = ageAttr['additionalInfo'] ?? '';
       final Map<String, int> ageGroups = {
         'under18': 0,
         '18to30': 0,
         '31to45': 0,
         'over45': 0,
       };
-      final RegExp percentageRegex = RegExp(
-        r'(\d+)% nhóm khách hàng có độ tuổi ([\w\s\-]+)',
-      );
-      final matches = percentageRegex.allMatches(additionalInfo);
-      for (var match in matches) {
-        final String percentage = match.group(1) ?? '0';
-        final String ageRange = match.group(2) ?? '';
-        if (ageRange.contains('dưới 18')) {
-          ageGroups['under18'] = int.tryParse(percentage) ?? 0;
-        } else if (ageRange.contains('18-30')) {
-          ageGroups['18to30'] = int.tryParse(percentage) ?? 0;
-        } else if (ageRange.contains('31-45')) {
-          ageGroups['31to45'] = int.tryParse(percentage) ?? 0;
-        } else if (ageRange.contains('trên 45')) {
-          ageGroups['over45'] = int.tryParse(percentage) ?? 0;
+      for (var attr in ageAttrs) {
+        String additionalInfo = attr['additionalInfo'] ?? '';
+        final RegExp percentageRegex = RegExp(
+          r'(\d+)% nhóm khách hàng có độ tuổi (.+)',
+        );
+        final match = percentageRegex.firstMatch(additionalInfo);
+        if (match != null) {
+          final String percentage = match.group(1) ?? '0';
+          final String ageRange = match.group(2) ?? '';
+          int percentValue = int.tryParse(percentage) ?? 0;
+          switch (ageRange) {
+            case 'dưới 18 tuổi':
+              ageGroups['under18'] = percentValue;
+              break;
+            case '18-30 tuổi':
+              ageGroups['18to30'] = percentValue;
+              break;
+            case '31-45 tuổi':
+              ageGroups['31to45'] = percentValue;
+              break;
+            case 'trên 45 tuổi':
+              ageGroups['over45'] = percentValue;
+              break;
+          }
+        } else {
+          // Dữ liệu cũ
+          RegExp oldFormatRegex = RegExp(
+            r'(\d+)% nhóm khách hàng có độ tuổi (dưới 18|18-30|31-45|trên 45)',
+          );
+          Iterable<RegExpMatch> matches = oldFormatRegex.allMatches(
+            additionalInfo,
+          );
+          for (var match in matches) {
+            String percentage = match.group(1) ?? '0';
+            String ageRange = match.group(2) ?? '';
+            int percentValue = int.tryParse(percentage) ?? 0;
+            switch (ageRange) {
+              case 'dưới 18':
+                ageGroups['under18'] = percentValue;
+                break;
+              case '18-30':
+                ageGroups['18to30'] = percentValue;
+                break;
+              case '31-45':
+                ageGroups['31to45'] = percentValue;
+                break;
+              case 'trên 45':
+                ageGroups['over45'] = percentValue;
+                break;
+            }
+          }
         }
       }
       customerModel['ageGroups'] = ageGroups;
     }
 
+    // Income
     if (incomeAttrs.isNotEmpty) {
       final incomeAttr = incomeAttrs.first;
       final String additionalInfo = incomeAttr['additionalInfo'] ?? '';
@@ -766,11 +832,6 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     });
 
     try {
-      final List<Map<String, dynamic>> attributeValues =
-          List<Map<String, dynamic>>.from(
-            reportData['attributeValues'] as List? ?? [],
-          );
-
       final List<Map<String, dynamic>> changedAttributeValues =
           List<Map<String, dynamic>>.from(
             reportData['changedAttributeValues'] ?? [],
@@ -808,10 +869,12 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
         }
       } else {
         // For new report, create all values
-        final apiData = [
-          {'attributeValues': attributeValues},
-        ];
-        success = await _reportApiService.createReport(apiData);
+        if (newAttributeValues.isNotEmpty) {
+          final List<Map<String, dynamic>> apiData = [
+            {'attributeValues': newAttributeValues},
+          ];
+          success = success && await _reportApiService.createReport(apiData);
+        }
       }
 
       // Always update site status to 8 (Bản nháp) when saving draft
@@ -880,18 +943,6 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
               content: Text(
                 'Không có thay đổi hoặc giá trị mới nào để cập nhật.',
               ),
-            ),
-          );
-        }
-        return;
-      }
-
-      if (reportData['attributeValues'] == null ||
-          (reportData['attributeValues'] as List).isEmpty) {
-        if (mounted) {
-          _scaffoldMessenger.showSnackBar(
-            const SnackBar(
-              content: Text('Vui lòng nhập ít nhất một giá trị thuộc tính'),
             ),
           );
         }
@@ -1042,14 +1093,12 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
           }
         } else {
           // Tạo mới báo cáo (từ site.status == 2)
-          final List<Map<String, dynamic>> apiData = [
-            {
-              'attributeValues': List<Map<String, dynamic>>.from(
-                reportData['attributeValues'] as List,
-              ),
-            },
-          ];
-          success = await _reportApiService.createReport(apiData);
+          if (newAttributeValues.isNotEmpty) {
+            final List<Map<String, dynamic>> apiData = [
+              {'attributeValues': newAttributeValues},
+            ];
+            success = success && await _reportApiService.createReport(apiData);
+          }
           newSiteStatus = 7; // Đang thương lượng
           newTaskStatus = null;
         }

@@ -25,24 +25,22 @@ class CustomerModelSectionState extends State<CustomerModelSection>
   late Map<String, dynamic> localCustomerModelData;
   late AnimationController _animationController;
   late Animation<double> _animation;
-  List<Map<String, dynamic>> newAttributeValues = []; // Thêm để lưu giá trị mới
-  List<Map<String, dynamic>> changedAttributeValues =
-      []; // Thêm để lưu giá trị cập nhật
-  late List<Map<String, dynamic>> originalAttributeValues; // Lưu giá trị gốc
+  List<Map<String, dynamic>> newAttributeValues = [];
+  List<Map<String, dynamic>> changedAttributeValues = [];
+  late List<Map<String, dynamic>> originalAttributeValues;
   String _debugAttributeValues = '';
   final Map<String, int> attributeIds = {
     'gender': 6,
     'ageGroups': 7,
     'income': 8,
   };
-  // Gender icons
+
   final Map<String, IconData> genderIcons = {
     'Nam': Icons.male,
     'Nữ': Icons.female,
     'Khác': Icons.people_alt,
   };
 
-  // Age group controllers
   final Map<String, TextEditingController> _ageGroupControllers = {
     'under18': TextEditingController(),
     '18to30': TextEditingController(),
@@ -50,7 +48,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
     'over45': TextEditingController(),
   };
 
-  // Income options with icons
   final Map<String, IconData> incomeIcons = {
     '<5 triệu/tháng': Icons.money_off,
     '5-10 triệu/tháng': Icons.monetization_on,
@@ -71,10 +68,11 @@ class CustomerModelSectionState extends State<CustomerModelSection>
     );
     _animationController.forward();
 
-    // Initialize data after animation controller
     _initializeData();
-    // Cập nhật sau khi build hoàn tất
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint(
+        'Initial reportData[attributeValues] in CustomerModelSection: ${widget.reportData['attributeValues']}',
+      );
       _updateAttributeValues();
       _updateDebugInfo();
     });
@@ -83,7 +81,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
   @override
   void dispose() {
     _animationController.dispose();
-    _ageGroupControllers.forEach((key, controller) => controller.dispose());
+    _ageGroupControllers.forEach((_, controller) => controller.dispose());
     super.dispose();
   }
 
@@ -109,17 +107,14 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       localCustomerModelData.putIfAbsent(key, () => value);
     });
 
-    // Populate from attribute values
     _populateFromAttributeValues();
-
-    // Initialize age group controllers
     _initializeAgeGroupControllers();
   }
 
   void _initializeAgeGroupControllers() {
     _ageGroupControllers.forEach((key, controller) {
-      controller.text =
-          (localCustomerModelData['ageGroups'][key] ?? 0).toString();
+      int value = localCustomerModelData['ageGroups'][key] ?? 0;
+      controller.text = value > 0 ? value.toString() : '';
       controller.addListener(() {
         _updateAgeGroup(key, controller.text);
       });
@@ -133,12 +128,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
         );
     final customerModelAttributes =
         attributeValues
-            .where(
-              (item) =>
-                  item['attributeId'] == 6 ||
-                  item['attributeId'] == 7 ||
-                  item['attributeId'] == 8,
-            )
+            .where((item) => attributeIds.values.contains(item['attributeId']))
             .toList();
 
     _debugAttributeValues =
@@ -158,20 +148,20 @@ class CustomerModelSectionState extends State<CustomerModelSection>
   }
 
   void _populateFromAttributeValues() {
-    if (widget.reportData['attributeValues'] == null) return;
+    if (widget.reportData['attributeValues'] == null ||
+        widget.reportData['attributeValues'].isEmpty)
+      return;
 
     List<dynamic> attributeValues = widget.reportData['attributeValues'];
 
-    // Find gender attribute (attributeId: 6)
+    // Gender (attributeId: 6)
     final genderAttribute = attributeValues.firstWhere(
       (attr) => attr['attributeId'] == 6,
       orElse: () => <String, dynamic>{},
     );
-
-    // Chỉ xử lý nếu genderAttribute có giá trị 'value' không null
-    if (genderAttribute != null && genderAttribute['value'] != null) {
+    if (genderAttribute.isNotEmpty && genderAttribute['value'] != null) {
       String genderValue = genderAttribute['value'];
-      String genderSelection = 'Nam'; // Giá trị mặc định
+      String genderSelection = 'Nam';
       if (genderValue.contains('nam')) {
         genderSelection = 'Nam';
       } else if (genderValue.contains('nữ')) {
@@ -189,53 +179,88 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       }
     }
 
-    // Find age group attribute (attributeId: 7)
-    final ageAttribute = attributeValues.firstWhere(
-      (attr) => attr['attributeId'] == 7,
-      orElse: () => <String, dynamic>{},
-    );
-
-    if (ageAttribute != null) {
-      String additionalInfo = ageAttribute['additionalInfo'] ?? '';
+    // Age groups (attributeId: 7)
+    final ageAttributes =
+        attributeValues.where((attr) => attr['attributeId'] == 7).toList();
+    if (ageAttributes.isNotEmpty) {
       Map<String, int> ageGroups = {
         'under18': 0,
         '18to30': 0,
         '31to45': 0,
         'over45': 0,
       };
-      RegExp regex = RegExp(
-        r'(\d+)% nhóm khách hàng có độ tuổi (dưới 18|18-30|31-45|trên 45)',
-      );
-      Iterable<RegExpMatch> matches = regex.allMatches(additionalInfo);
-      for (var match in matches) {
-        String percentage = match.group(1) ?? '0';
-        String ageRange = match.group(2) ?? '';
-        int percentValue = int.tryParse(percentage) ?? 0;
-        switch (ageRange) {
-          case 'dưới 18':
-            ageGroups['under18'] = percentValue;
-            break;
-          case '18-30':
-            ageGroups['18to30'] = percentValue;
-            break;
-          case '31-45':
-            ageGroups['31to45'] = percentValue;
-            break;
-          case 'trên 45':
-            ageGroups['over45'] = percentValue;
-            break;
+
+      for (var attr in ageAttributes) {
+        String additionalInfo = attr['additionalInfo'] ?? '';
+        debugPrint('Processing age attribute: $additionalInfo');
+
+        // Định dạng mới: "45% nhóm khách hàng có độ tuổi dưới 18 tuổi"
+        RegExp newFormatRegex = RegExp(
+          r'(\d+)% nhóm khách hàng có độ tuổi (.+?)(?:,|$)',
+        );
+        var newMatches = newFormatRegex.allMatches(additionalInfo);
+
+        if (newMatches.isNotEmpty && ageAttributes.length > 1) {
+          // Nhiều bản ghi riêng lẻ
+          for (var match in newMatches) {
+            String percentage = match.group(1) ?? '0';
+            String ageRange = match.group(2) ?? '';
+            int percentValue = int.tryParse(percentage) ?? 0;
+            debugPrint('New format matched: $percentage% - $ageRange');
+            switch (ageRange.trim()) {
+              case 'dưới 18 tuổi':
+                ageGroups['under18'] = percentValue;
+                break;
+              case '18-30 tuổi':
+                ageGroups['18to30'] = percentValue;
+                break;
+              case '31-45 tuổi':
+                ageGroups['31to45'] = percentValue;
+                break;
+              case 'trên 45 tuổi':
+                ageGroups['over45'] = percentValue;
+                break;
+            }
+          }
+        } else {
+          // Định dạng cũ: Chuỗi gộp
+          RegExp oldFormatRegex = RegExp(
+            r'(\d+)% nhóm khách hàng có độ tuổi (dưới 18|18-30|31-45|trên 45)',
+          );
+          var oldMatches = oldFormatRegex.allMatches(additionalInfo);
+
+          for (var match in oldMatches) {
+            String percentage = match.group(1) ?? '0';
+            String ageRange = match.group(2) ?? '';
+            int percentValue = int.tryParse(percentage) ?? 0;
+            debugPrint('Old format matched: $percentage% - $ageRange');
+            switch (ageRange) {
+              case 'dưới 18':
+                ageGroups['under18'] = percentValue;
+                break;
+              case '18-30':
+                ageGroups['18to30'] = percentValue;
+                break;
+              case '31-45':
+                ageGroups['31to45'] = percentValue;
+                break;
+              case 'trên 45':
+                ageGroups['over45'] = percentValue;
+                break;
+            }
+          }
         }
       }
       localCustomerModelData['ageGroups'] = ageGroups;
+      debugPrint('Populated ageGroups: ${localCustomerModelData['ageGroups']}');
     }
 
-    // Find income attribute (attributeId: 8)
+    // Income (attributeId: 8)
     final incomeAttribute = attributeValues.firstWhere(
       (attr) => attr['attributeId'] == 8,
       orElse: () => <String, dynamic>{},
     );
-
-    if (incomeAttribute != null) {
+    if (incomeAttribute.isNotEmpty) {
       String additionalInfo = incomeAttribute['additionalInfo'] ?? '';
       String incomeSelection = '';
       if (additionalInfo.contains('<5 triệu/tháng')) {
@@ -268,7 +293,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           widget.reportData['attributeValues'] ?? [],
         );
 
-    // Xử lý gender (attributeId: 6)
+    // Gender (attributeId: 6)
     if (localCustomerModelData['gender'] != null) {
       String genderValue = "";
       switch (localCustomerModelData['gender']) {
@@ -283,7 +308,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           break;
       }
       String rawAdditionalInfo = localCustomerModelData['genderInfo'] ?? '';
-      // Thêm % vào additionalInfo nếu có giá trị
       String additionalInfo =
           rawAdditionalInfo.isNotEmpty ? "$rawAdditionalInfo %" : "";
 
@@ -301,7 +325,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       };
 
       if (existingAttr['id'] != null) {
-        // Nếu đã tồn tại (có id), cập nhật changedAttributeValues
         final changeIndex = changedAttributeValues.indexWhere(
           (attr) => attr['id'] == existingAttr['id'],
         );
@@ -316,7 +339,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           changedAttributeValues.add(updatedValue);
         }
       } else if (genderValue.isNotEmpty) {
-        // Nếu là mới, thay thế hoặc thêm vào newAttributeValues
         final newIndex = newAttributeValues.indexWhere(
           (attr) => attr['attributeId'] == attributeIds['gender'],
         );
@@ -327,7 +349,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
         }
       }
 
-      // Cập nhật attributeValues
       final index = attributeValues.indexWhere(
         (attr) => attr['id'] == existingAttr['id'],
       );
@@ -338,106 +359,84 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       }
     }
 
-    // Xử lý ageGroups (attributeId: 7)
+    // Age groups (attributeId: 7)
     Map<String, int> ageGroups = Map<String, int>.from(
       localCustomerModelData['ageGroups'],
     );
-    bool hasAgeData = ageGroups.values.any((value) => value > 0);
-    if (hasAgeData) {
-      String dominantAgeGroup = "";
-      int highestPercentage = 0;
-      ageGroups.forEach((key, value) {
-        if (value > highestPercentage) {
-          highestPercentage = value;
-          switch (key) {
-            case 'under18':
-              dominantAgeGroup = "dưới 18 tuổi";
-              break;
-            case '18to30':
-              dominantAgeGroup = "18-30 tuổi";
-              break;
-            case '31to45':
-              dominantAgeGroup = "31-45 tuổi";
-              break;
-            case 'over45':
-              dominantAgeGroup = "trên 45 tuổi";
-              break;
-          }
-        }
-      });
+    final existingAgeAttrs =
+        originalAttributeValues
+            .where((attr) => attr['attributeId'] == attributeIds['ageGroups'])
+            .toList();
+    List<Map<String, dynamic>> ageGroupAttrs = [];
 
-      List<String> ageDetails = [];
+    // Nếu không có thay đổi từ UI, giữ nguyên dữ liệu gốc
+    if (ageGroups.values.every((value) => value == 0) &&
+        existingAgeAttrs.isNotEmpty) {
+      ageGroupAttrs.addAll(existingAgeAttrs);
+    } else {
       ageGroups.forEach((key, value) {
         if (value > 0) {
           String ageName = "";
           switch (key) {
             case 'under18':
-              ageName = "dưới 18";
+              ageName = "dưới 18 tuổi";
               break;
             case '18to30':
-              ageName = "18-30";
+              ageName = "18-30 tuổi";
               break;
             case '31to45':
-              ageName = "31-45";
+              ageName = "31-45 tuổi";
               break;
             case 'over45':
-              ageName = "trên 45";
+              ageName = "trên 45 tuổi";
               break;
           }
-          ageDetails.add("$value% nhóm khách hàng có độ tuổi $ageName");
+          final existingAttr = existingAgeAttrs.firstWhere(
+            (attr) => attr['value'] == ageName,
+            orElse: () => {},
+          );
+          ageGroupAttrs.add({
+            'attributeId': attributeIds['ageGroups'],
+            'siteId': widget.reportData['siteId'] ?? 0,
+            'value': ageName,
+            'additionalInfo': "$value% nhóm khách hàng có độ tuổi $ageName",
+            if (existingAttr['id'] != null) 'id': existingAttr['id'],
+          });
         }
       });
-      String additionalInfo = ageDetails.join(", ");
+    }
 
-      final existingAttr = originalAttributeValues.firstWhere(
-        (attr) => attr['attributeId'] == attributeIds['ageGroups'],
-        orElse: () => {},
-      );
-
-      final newValue = {
-        'attributeId': attributeIds['ageGroups'],
-        'siteId': widget.reportData['siteId'] ?? 0,
-        'value': dominantAgeGroup,
-        'additionalInfo': additionalInfo,
-        if (existingAttr['id'] != null) 'id': existingAttr['id'],
-      };
-
-      if (existingAttr['id'] != null) {
+    for (var attr in ageGroupAttrs) {
+      if (attr['id'] != null) {
         final changeIndex = changedAttributeValues.indexWhere(
-          (attr) => attr['id'] == existingAttr['id'],
+          (item) => item['id'] == attr['id'],
         );
         final updatedValue = {
-          'id': existingAttr['id'],
-          'value': dominantAgeGroup,
-          'additionalInfo': additionalInfo,
+          'id': attr['id'],
+          'value': attr['value'],
+          'additionalInfo': attr['additionalInfo'],
         };
         if (changeIndex != -1) {
           changedAttributeValues[changeIndex] = updatedValue;
         } else {
           changedAttributeValues.add(updatedValue);
         }
-      } else {
-        final newIndex = newAttributeValues.indexWhere(
-          (attr) => attr['attributeId'] == attributeIds['ageGroups'],
-        );
-        if (newIndex != -1) {
-          newAttributeValues[newIndex] = newValue;
-        } else {
-          newAttributeValues.add(newValue);
-        }
-      }
-
-      final index = attributeValues.indexWhere(
-        (attr) => attr['id'] == existingAttr['id'],
-      );
-      if (index != -1) {
-        attributeValues[index] = newValue;
-      } else {
-        attributeValues.add(newValue);
       }
     }
 
-    // Xử lý income (attributeId: 8)
+    newAttributeValues.removeWhere(
+      (attr) => attr['attributeId'] == attributeIds['ageGroups'],
+    );
+    newAttributeValues.addAll(
+      ageGroupAttrs.where((attr) => attr['id'] == null).toList(),
+    );
+
+    attributeValues.removeWhere(
+      (attr) => attr['attributeId'] == attributeIds['ageGroups'],
+    );
+    attributeValues.addAll(ageGroupAttrs);
+
+    // Income (attributeId: 8)
     if (localCustomerModelData['income'] != null &&
         localCustomerModelData['income'].isNotEmpty) {
       String incomeValue = "";
@@ -503,7 +502,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       }
     }
 
-    // Cập nhật reportData
     widget.setState(() {
       widget.reportData['customerModel'] = localCustomerModelData;
       widget.reportData['attributeValues'] = attributeValues;
@@ -525,22 +523,15 @@ class CustomerModelSectionState extends State<CustomerModelSection>
     Map<String, int> ageGroups = Map<String, int>.from(
       localCustomerModelData['ageGroups'],
     );
-
     List<String> filledGroups = [];
-
-    if ((ageGroups['under18'] ?? 0) > 0) {
+    if ((ageGroups['under18'] ?? 0) > 0)
       filledGroups.add("Dưới 18: ${ageGroups['under18']}%");
-    }
-    if ((ageGroups['18to30'] ?? 0) > 0) {
+    if ((ageGroups['18to30'] ?? 0) > 0)
       filledGroups.add("18-30: ${ageGroups['18to30']}%");
-    }
-    if ((ageGroups['31to45'] ?? 0) > 0) {
+    if ((ageGroups['31to45'] ?? 0) > 0)
       filledGroups.add("31-45: ${ageGroups['31to45']}%");
-    }
-    if ((ageGroups['over45'] ?? 0) > 0) {
+    if ((ageGroups['over45'] ?? 0) > 0)
       filledGroups.add("Trên 45: ${ageGroups['over45']}%");
-    }
-
     return filledGroups.isEmpty
         ? 'Chưa điền thông tin'
         : filledGroups.join(', ');
@@ -556,7 +547,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
     return FadeTransition(
       opacity: _animation,
       child: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -567,21 +558,17 @@ class CustomerModelSectionState extends State<CustomerModelSection>
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 16),
-
+            const SizedBox(height: 16),
             InfoCard(
               icon: Icons.lightbulb_outline,
               content:
                   'Ghi chú giới tính, độ tuổi và mức thu nhập của khách hàng.',
-              backgroundColor: Theme.of(context).colorScheme.tertiaryFixed,
-              iconColor: Theme.of(context).colorScheme.secondary,
+              backgroundColor: widget.theme.colorScheme.tertiaryFixed,
+              iconColor: widget.theme.colorScheme.secondary,
               borderRadius: 20.0,
-              padding: EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(20.0),
             ),
-
-            SizedBox(height: 20.0),
-
-            // Gender Section
+            const SizedBox(height: 20.0),
             AnimatedExpansionCard(
               icon: Icons.people,
               title: 'Giới tính khách hàng chính',
@@ -589,8 +576,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
               theme: widget.theme,
               children: [
                 _buildGenderSelectionWidget(),
-                SizedBox(height: 16),
-                // Additional info for gender if selected
+                const SizedBox(height: 16),
                 if (localCustomerModelData['gender'] != null)
                   CustomInputField(
                     label: 'Thông tin chi tiết về tỷ lệ giới tính',
@@ -607,8 +593,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
                   ),
               ],
             ),
-
-            // Age Group Section
             AnimatedExpansionCard(
               icon: Icons.group,
               title: 'Nhóm độ tuổi',
@@ -616,8 +600,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
               theme: widget.theme,
               children: [_buildAgeGroupSelectionWidget()],
             ),
-
-            // Income Section
             AnimatedExpansionCard(
               icon: Icons.monetization_on,
               title: 'Thu nhập trung bình của khách hàng',
@@ -637,7 +619,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           genderIcons.entries.map((entry) {
             String gender = entry.key;
             IconData icon = entry.value;
-
             return SelectableOptionButton(
               value: gender,
               icon: icon,
@@ -656,76 +637,46 @@ class CustomerModelSectionState extends State<CustomerModelSection>
 
   Widget _buildAgeGroupSelectionWidget() {
     return Column(
-      children: [
-        CustomInputField(
-          label: 'Dưới 18 tuổi',
-          hintText: 'Nhập phần trăm khách hàng',
-          icon: Icons.child_care,
-          theme: widget.theme,
-          initialValue:
-              localCustomerModelData['ageGroups']['under18'].toString() != "0"
-                  ? localCustomerModelData['ageGroups']['under18'].toString()
-                  : '',
-          keyboardType: TextInputType.number,
-          numbersOnly: true,
-          maxLength: 3,
-          suffixText: '%',
-          onSaved: (value) {
-            _updateAgeGroup('under18', value);
-          },
-        ),
-        CustomInputField(
-          label: '18-30 tuổi',
-          hintText: 'Nhập phần trăm khách hàng',
-          icon: Icons.person,
-          theme: widget.theme,
-          initialValue:
-              localCustomerModelData['ageGroups']['18to30'].toString() != "0"
-                  ? localCustomerModelData['ageGroups']['18to30'].toString()
-                  : '',
-          keyboardType: TextInputType.number,
-          numbersOnly: true,
-          maxLength: 3,
-          suffixText: '%',
-          onSaved: (value) {
-            _updateAgeGroup('18to30', value);
-          },
-        ),
-        CustomInputField(
-          label: '31-45 tuổi',
-          hintText: 'Nhập phần trăm khách hàng',
-          icon: Icons.person,
-          theme: widget.theme,
-          initialValue:
-              localCustomerModelData['ageGroups']['31to45'].toString() != "0"
-                  ? localCustomerModelData['ageGroups']['31to45'].toString()
-                  : '',
-          keyboardType: TextInputType.number,
-          numbersOnly: true,
-          maxLength: 3,
-          suffixText: '%',
-          onSaved: (value) {
-            _updateAgeGroup('31to45', value);
-          },
-        ),
-        CustomInputField(
-          label: 'Trên 45 tuổi',
-          hintText: 'Nhập phần trăm khách hàng',
-          icon: Icons.elderly,
-          theme: widget.theme,
-          initialValue:
-              localCustomerModelData['ageGroups']['over45'].toString() != "0"
-                  ? localCustomerModelData['ageGroups']['over45'].toString()
-                  : '',
-          keyboardType: TextInputType.number,
-          numbersOnly: true,
-          maxLength: 3,
-          suffixText: '%',
-          onSaved: (value) {
-            _updateAgeGroup('over45', value);
-          },
-        ),
-      ],
+      children:
+          _ageGroupControllers.entries.map((entry) {
+            String key = entry.key;
+            TextEditingController controller = entry.value;
+            String label;
+            IconData icon;
+            switch (key) {
+              case 'under18':
+                label = 'Dưới 18 tuổi';
+                icon = Icons.child_care;
+                break;
+              case '18to30':
+                label = '18-30 tuổi';
+                icon = Icons.person;
+                break;
+              case '31to45':
+                label = '31-45 tuổi';
+                icon = Icons.person;
+                break;
+              case 'over45':
+                label = 'Trên 45 tuổi';
+                icon = Icons.elderly;
+                break;
+              default:
+                label = '';
+                icon = Icons.person;
+            }
+            return CustomInputField(
+              label: label,
+              hintText: 'Nhập phần trăm khách hàng',
+              icon: icon,
+              theme: widget.theme,
+              controller: controller,
+              keyboardType: TextInputType.number,
+              numbersOnly: true,
+              maxLength: 3,
+              suffixText: '%',
+              onSaved: (value) => _updateAgeGroup(key, value ?? ''),
+            );
+          }).toList(),
     );
   }
 
@@ -735,7 +686,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           incomeIcons.entries.map((entry) {
             String income = entry.key;
             IconData icon = entry.value;
-
             return SelectableOptionButton(
               value: income,
               icon: icon,

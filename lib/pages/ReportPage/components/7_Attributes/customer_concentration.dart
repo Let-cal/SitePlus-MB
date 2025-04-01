@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:siteplus_mb/utils/ReportPage/CustomerSegmentModel/customer_segment.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/animated_expansion_card.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/custom_chip_group.dart';
-import 'package:siteplus_mb/components/custom_input_field.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/info_card.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
+import 'package:siteplus_mb/utils/ReportPage/CustomerSegmentModel/customer_segment.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 class CustomerConcentrationSection extends StatefulWidget {

@@ -180,7 +180,7 @@ class EnhancedTaskCard extends StatelessWidget {
           icon: LucideIcons.landmark,
           iconColor: theme.colorScheme.primary,
           iconBackgroundColor: theme.colorScheme.primary.withOpacity(0.2),
-          label: 'Mặt bằng',
+          label: 'Mặt bằng #${task.site?.id}',
           value: task.site!.address,
         ),
       );
