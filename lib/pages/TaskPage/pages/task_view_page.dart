@@ -5,10 +5,12 @@ import 'package:siteplus_mb/components/SectionHeader.dart';
 import 'package:siteplus_mb/components/pagination_component.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
-import 'package:siteplus_mb/pages/TaskPage/components/task_filter_chips.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_filter_tab.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/constants.dart';
+
+enum FilterUIType { chip, tab }
 
 class TasksPage extends StatefulWidget {
   final void Function(int? filterSiteId)? onNavigateToSiteTab;
@@ -28,34 +30,65 @@ class _TasksPageState extends State<TasksPage>
     with SingleTickerProviderStateMixin {
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final ApiService _apiService = ApiService();
-  // Thêm biến động cho status maps
+
   Map<String, int> statusApiMap = Map.from(STATUS_API_MAP);
   Map<int, String> apiStatusMap = Map.from(API_STATUS_MAP);
-  // Filter state
+
   String selectedStatus = 'Tất Cả';
   String selectedPriority = 'Tất Cả';
   String taskTypeFilter = 'Tất cả';
-  // Pagination state
+  int? selectedStatusId;
+  int? selectedPriorityId;
+  FilterUIType currentFilterUI = FilterUIType.chip;
+
   int currentPage = 1;
   int totalPages = 1;
   int pageSize = 5;
   int totalRecords = 0;
-  bool isCompanyTaskOnly = false;
-  //load status of task from api
+
+  List<Task> tasks = [];
+  bool isLoading = true;
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedStatusId = null;
+    selectedPriorityId = null;
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _loadTaskStatuses().then((_) => _loadTasks());
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) _animationController.forward();
+    });
+  }
+
+  @override
+  void didUpdateWidget(TasksPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterTaskId != oldWidget.filterTaskId) {
+      _loadTasks();
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadTaskStatuses() async {
     try {
       final result = await _apiService.getTaskStatuses();
       if (result['success'] == true) {
         final statusData = result['data']['statuses'] as List<dynamic>;
-
         Map<String, int> newStatusMap = {};
         Map<int, String> newStatusIdToNameMap = {};
-
         for (var status in statusData) {
           final int id = status['id'];
           final String name = status['name'];
-
-          // Ánh xạ tên từ API sang UI constants
           String uiName;
           switch (name) {
             case 'Chưa nhận':
@@ -71,17 +104,14 @@ class _TasksPageState extends State<TasksPage>
               uiName = STATUS_HOAN_THANH;
               break;
             default:
-              uiName = name; // Giữ nguyên nếu có status mới
+              uiName = name;
           }
-
           newStatusMap[uiName] = id;
           newStatusIdToNameMap[id] = uiName;
         }
-
         setState(() {
           STATUS_API_MAP = newStatusMap;
           API_STATUS_MAP = newStatusIdToNameMap;
-          // Cập nhật biến cục bộ
           statusApiMap = Map.from(STATUS_API_MAP);
           apiStatusMap = Map.from(API_STATUS_MAP);
         });
@@ -91,84 +121,20 @@ class _TasksPageState extends State<TasksPage>
     }
   }
 
-  // Task data
-  List<Task> tasks = [];
-  bool isLoading = true;
-  bool isLoadingMore = false;
-  late AnimationController _animationController;
-
-  @override
-  void initState() {
-    super.initState();
-    print('TasksPage initState');
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-    _loadTaskStatuses().then((_) => _loadTasks());
-
-    // Start the animation after a brief delay
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        _animationController.forward();
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(TasksPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.filterTaskId != oldWidget.filterTaskId) {
-      print('filterTaskId changed to: ${widget.filterTaskId}, reloading tasks');
-      _loadTasks(); // Reload dữ liệu khi filterTaskId thay đổi
-    }
-  }
-
-  @override
-  void dispose() {
-    print('TasksPage disposed');
-    _animationController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadTasks() async {
-    if (!mounted) {
-      print('TasksPage not mounted, skipping _loadTasks');
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
+    if (!mounted) return;
+    setState(() => isLoading = true);
     try {
-      int? statusValue =
-          selectedStatus != 'Tất Cả' ? STATUS_API_MAP[selectedStatus] : null;
-      int? priorityValue =
-          selectedPriority != 'Tất Cả'
-              ? PRIORITY_API_MAP[selectedPriority]
-              : null;
-      bool? isCompanyTaskOnly;
-      switch (taskTypeFilter) {
-        case 'Chỉ công ty':
-          isCompanyTaskOnly = true;
-          break;
-        case 'Từ yêu cầu':
-          isCompanyTaskOnly = false;
-          break;
-        case 'Tất cả':
-          isCompanyTaskOnly = null;
-          break;
-      }
       final result = await _apiService.getTasks(
-        status: statusValue,
-        priority: priorityValue,
-        page: widget.filterTaskId != null ? 1 : currentPage,
+        status: selectedStatusId,
+        priority: selectedPriorityId,
+        page:
+            widget.filterTaskId != null
+                ? 1
+                : currentPage, // Đảm bảo page luôn có giá trị
         pageSize: widget.filterTaskId != null ? 1 : pageSize,
-        isCompanyTaskOnly: isCompanyTaskOnly,
         search: widget.filterTaskId?.toString(),
       );
-
       if (result['success'] == true) {
         final TaskResponse response = TaskResponse.fromJson(result);
         if (mounted) {
@@ -185,19 +151,17 @@ class _TasksPageState extends State<TasksPage>
             isLoading = false;
             tasks = [];
           });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Không thể tải nhiệm vụ'),
+            ),
+          );
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Không thể tải nhiệm vụ'),
-          ),
-        );
       }
     } catch (e) {
       print("Error loading tasks: $e");
       if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Đã xảy ra lỗi: ${e.toString()}')),
         );
@@ -205,45 +169,10 @@ class _TasksPageState extends State<TasksPage>
     }
   }
 
-  void _onTaskTypeFilterChanged(String value) {
-    if (value == taskTypeFilter) return;
-    setState(() {
-      taskTypeFilter = value;
-      currentPage = 1; // Reset về trang 1 khi thay đổi filter
-    });
-    _loadTasks();
-  }
-
-  void _onStatusSelected(String status) {
-    if (status == selectedStatus) return;
-    setState(() {
-      selectedStatus = status;
-      currentPage = 1;
-    });
-    _loadTasks();
-  }
-
-  void _onPrioritySelected(String priority) {
-    if (priority == selectedPriority) return;
-    setState(() {
-      selectedPriority = priority;
-      currentPage = 1;
-    });
-    _loadTasks();
-  }
-
   void _changePage(int page) {
     if (page < 1 || page > totalPages || page == currentPage) return;
     setState(() {
       currentPage = page;
-    });
-    _loadTasks();
-  }
-
-  void _onCompanyTaskOnlyChanged(bool value) {
-    setState(() {
-      isCompanyTaskOnly = value;
-      currentPage = 1; // Reset về trang 1 khi thay đổi filter
     });
     _loadTasks();
   }
@@ -273,14 +202,11 @@ class _TasksPageState extends State<TasksPage>
     final theme = Theme.of(context);
     return RefreshIndicator(
       onRefresh: () async {
-        setState(() {
-          currentPage = 1;
-        });
+        setState(() => currentPage = 1);
         await _loadTasks();
       },
       child: CustomScrollView(
         slivers: [
-          // Header và bộ lọc
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -293,15 +219,18 @@ class _TasksPageState extends State<TasksPage>
                     icon: LucideIcons.fileCheck,
                   ),
                   const SizedBox(height: 24),
-                  // Task filters
-                  TaskFilterChips(
-                        selectedStatus: selectedStatus,
-                        selectedPriority: selectedPriority,
-                        onStatusSelected: _onStatusSelected,
-                        onPrioritySelected: _onPrioritySelected,
-                        taskTypeFilter: taskTypeFilter,
-                        onTaskTypeFilterChanged: _onTaskTypeFilterChanged,
+                  TaskFilterTab(
                         availableStatuses: apiStatusMap,
+                        selectedStatusId: selectedStatusId,
+                        selectedPriorityId: selectedPriorityId,
+                        onFilterChanged: (selections) {
+                          setState(() {
+                            selectedStatusId = selections['status'];
+                            selectedPriorityId = selections['priority'];
+                            currentPage = 1;
+                          });
+                          _loadTasks();
+                        },
                       )
                       .animate()
                       .slideY(
@@ -352,11 +281,9 @@ class _TasksPageState extends State<TasksPage>
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               sliver: _buildTaskList(),
             ),
-
-          // Phần phân trang
           if (!isLoading && tasks.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
@@ -406,38 +333,28 @@ class _TasksPageState extends State<TasksPage>
         ),
       );
     }
-
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final task = tasks[index];
         final delayMs = 100 + (index * 100);
-
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Hero(
             tag: 'task-card-${task.id.toString()}',
             child: Material(
               color: Colors.transparent,
-              child: EnhancedTaskCard(
-                    key: ValueKey('task-${task.id.toString()}'),
+              child: TaskCard(
                     task: task,
-                    onNavigateToSiteTab: widget.onNavigateToSiteTab,
                     onTap: () async {
                       final result = await ViewDetailTask.show(
                         context,
                         task,
                         onNavigateToSiteTab: widget.onNavigateToSiteTab,
                         onUpdateSuccess: () async {
-                          if (mounted) {
-                            print('Update success callback triggered');
-                            await _loadTasks(); // Reload danh sách task
-                          }
+                          if (mounted) await _loadTasks();
                         },
                       );
-                      if (result == true && mounted) {
-                        print('Reloading tasks after successful update');
-                        await _loadTasks(); // Reload lại danh sách task
-                      }
+                      if (result == true && mounted) await _loadTasks();
                     },
                   )
                   .animate()
@@ -465,46 +382,5 @@ class _TasksPageState extends State<TasksPage>
         );
       }, childCount: tasks.length),
     );
-  }
-}
-
-class AnimatedTaskCard extends StatelessWidget {
-  final Task task;
-  final int index;
-  final int delay;
-
-  const AnimatedTaskCard({
-    super.key,
-    required this.task,
-    required this.index,
-    required this.delay,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return EnhancedTaskCard(
-          key: ValueKey('task-${task.id.toString()}'),
-          task: task,
-        )
-        .animate()
-        .fadeIn(
-          duration: 600.ms,
-          delay: Duration(milliseconds: delay),
-          curve: Curves.easeOutQuad,
-        )
-        .slideY(
-          begin: 0.2,
-          end: 0,
-          duration: 600.ms,
-          delay: Duration(milliseconds: delay),
-          curve: Curves.easeOutQuad,
-        )
-        .scale(
-          begin: const Offset(0.95, 0.95),
-          end: const Offset(1, 1),
-          duration: 600.ms,
-          delay: Duration(milliseconds: delay),
-          curve: Curves.easeOutQuad,
-        );
   }
 }

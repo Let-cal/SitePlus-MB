@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/components/SectionHeader.dart';
+import 'package:siteplus_mb/components/multi_tab_filter_panel.dart';
 import 'package:siteplus_mb/components/pagination_component.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/site_card.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/site_detail_popup.dart';
-import 'package:siteplus_mb/pages/SiteViewPage/components/site_filter_chip.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_status.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
+
+enum FilterUIType { chip, tab }
 
 class SiteViewPage extends StatefulWidget {
   final int? filterSiteId;
@@ -24,13 +27,13 @@ class _SiteViewPageState extends State<SiteViewPage>
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   // Site filter state
-  int selectedCategoryId = 0; // 0 means "All Categories"
-  int? selectedStatusId; // 0 means "All Categories"
-
+  int? selectedCategoryId; // null nghĩa là "Tất cả"
+  int? selectedStatusId; // null nghĩa là "Tất cả"
+  FilterUIType currentFilterUI = FilterUIType.tab;
   // Pagination state
   int currentPage = 1;
   int totalPages = 1;
-  int pageSize = 5;
+  int pageSize = 6;
   int totalRecords = 0;
 
   // Site data
@@ -41,6 +44,7 @@ class _SiteViewPageState extends State<SiteViewPage>
   List<Area> _areas = [];
   Map<int, String> siteCategoryMap = {};
   Map<int, String> areaMap = {};
+  final List<int> statuses = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   // Danh sách tất cả site khi cần duyệt qua các trang
   List<Site> allSites = [];
   // In _SiteViewPageState._loadData() add these debug prints:
@@ -70,14 +74,16 @@ class _SiteViewPageState extends State<SiteViewPage>
         // Make sure siteCategoryMap is created correctly
         debugPrint('Creating maps...');
         siteCategoryMap = {
+          // ignore: unnecessary_null_comparison
           for (var cat in _siteCategories.where((cat) => cat != null))
-            cat!.id: cat!.name,
+            cat.id: cat.name,
         };
         debugPrint('siteCategoryMap size: ${siteCategoryMap.length}');
 
         areaMap = {
+          // ignore: unnecessary_null_comparison
           for (var area in _areas.where((area) => area != null))
-            area!.id: area!.name,
+            area.id: area.name,
         };
       });
       debugPrint('areaMap size: ${areaMap.length}');
@@ -133,7 +139,7 @@ class _SiteViewPageState extends State<SiteViewPage>
         );
 
         List<Site> filteredSites = fetchedSites;
-        if (selectedCategoryId != 0) {
+        if (selectedCategoryId != null) {
           filteredSites =
               fetchedSites
                   .where((site) => site.siteCategoryId == selectedCategoryId)
@@ -160,19 +166,11 @@ class _SiteViewPageState extends State<SiteViewPage>
     }
   }
 
-  void _onFilterChanged(int? categoryId, int? status) {
-    debugPrint('Filter changed - Category: $categoryId, Status: $status');
-    setState(() {
-      selectedCategoryId = categoryId ?? 0;
-      selectedStatusId = status;
-      currentPage = 1;
-    });
-    _loadSites();
-  }
-
   @override
   void initState() {
     super.initState();
+    selectedCategoryId = null;
+    selectedStatusId = null;
     _loadData().then((_) {
       _loadSites();
     });
@@ -196,7 +194,8 @@ class _SiteViewPageState extends State<SiteViewPage>
           onRefresh: () async {
             setState(() {
               currentPage = 1;
-              selectedCategoryId = 0;
+              selectedCategoryId = null;
+              selectedStatusId = null;
             });
             _loadSites();
           },
@@ -211,24 +210,48 @@ class _SiteViewPageState extends State<SiteViewPage>
                       SectionHeader(
                         title: 'Danh sách mặt bằng',
                         subtitle: 'Quản lý và theo dõi các mặt bằng',
-                        icon: LucideIcons.building,
+                        icon: LucideIcons.fileCheck,
                       ),
                       const SizedBox(height: 24),
-                      // Site Category Filter
-                      SiteFilterChipPanel(
-                            categories: [
-                              SiteCategory(
-                                id: 0,
-                                name: 'Tất cả',
-                                createdAt: DateTime.now(),
-                                updatedAt: DateTime.now(),
+                      MultiTabFilterPanel(
+                            groups: [
+                              FilterGroup(
+                                key: 'category',
+                                options: [
+                                  FilterOption(id: null, label: 'Tất cả'),
+                                  ..._siteCategories.map(
+                                    (cat) => FilterOption(
+                                      id: cat.id,
+                                      label: cat.name,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              ..._siteCategories,
+                              FilterGroup(
+                                key: 'status',
+                                options: [
+                                  FilterOption(id: null, label: 'Tất cả'),
+                                  ...statuses.map(
+                                    (status) => FilterOption(
+                                      id: status,
+                                      label: getVietnameseStatus(status),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
-                            statuses: [1, 2, 3, 4, 5],
-                            onFilterChanged: _onFilterChanged,
-                            initialSelectedCategoryId: selectedCategoryId,
-                            initialSelectedStatus: selectedStatusId,
+                            onFilterChanged: (selections) {
+                              setState(() {
+                                selectedCategoryId = selections['category'];
+                                selectedStatusId = selections['status'];
+                                currentPage = 1;
+                              });
+                              _loadSites();
+                            },
+                            initialSelections: {
+                              'category': selectedCategoryId,
+                              'status': selectedStatusId,
+                            },
                           )
                           .animate()
                           .slideY(
@@ -268,7 +291,7 @@ class _SiteViewPageState extends State<SiteViewPage>
                             ),
                         const SizedBox(height: 16),
                         Text(
-                              'Đang tải mặt bằng...',
+                              'Đang tải mặt bằng...',
                               style: Theme.of(context).textTheme.bodyLarge,
                             )
                             .animate(
@@ -286,8 +309,6 @@ class _SiteViewPageState extends State<SiteViewPage>
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   sliver: _buildSiteList(),
                 ),
-
-              // Pagination
               if (!isLoading && sites.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -337,7 +358,6 @@ class _SiteViewPageState extends State<SiteViewPage>
         ),
       );
     }
-
     if (sites.isEmpty) {
       return SliverFillRemaining(
         child: Center(
@@ -361,19 +381,23 @@ class _SiteViewPageState extends State<SiteViewPage>
         ),
       );
     }
-
-    return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final site = sites[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: SiteCard(
+    return SliverPadding(
+      padding: const EdgeInsets.only(bottom: 24),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 0.75,
+        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final site = sites[index];
+          return SiteCard(
             site: site,
             siteCategoryMap: siteCategoryMap,
             areaMap: areaMap,
             onNavigateToTaskTab: widget.onNavigateToTaskTab,
             onTap: () async {
-              print('Navigating to site details for site ${site.id}');
               final result = await ViewDetailSite.show(
                 context,
                 site,
@@ -381,13 +405,11 @@ class _SiteViewPageState extends State<SiteViewPage>
                 areaMap,
                 onNavigateToTaskTab: widget.onNavigateToTaskTab,
               );
-              if (result == true) {
-                await _loadSites();
-              }
+              if (result == true) await _loadSites();
             },
-          ),
-        );
-      }, childCount: sites.length),
+          );
+        }, childCount: sites.length),
+      ),
     );
   }
 }

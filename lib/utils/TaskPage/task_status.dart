@@ -47,3 +47,17 @@ Color getStatusColor(BuildContext context, String status) {
       return theme.colorScheme.secondary;
   }
 }
+
+Color getStatusPriorityColor(BuildContext context, String priority) {
+  final theme = Theme.of(context);
+  switch (priority) {
+    case PRIORITY_CAO:
+      return theme.colorScheme.error;
+    case PRIORITY_TRUNG_BINH:
+      return theme.colorScheme.secondary;
+    case PRIORITY_THAP:
+      return theme.colorScheme.tertiary;
+    default:
+      return theme.colorScheme.secondary;
+  }
+}

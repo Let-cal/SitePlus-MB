@@ -133,6 +133,13 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
         isSelected: 5 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(5),
       ),
+      FilterOption(
+        label: getVietnameseStatus(9),
+        color: getStatusColor(context, 9),
+        icon: getStatusIcon(9),
+        isSelected: 9 == widget.initialSelectedStatus,
+        onTap: () => _handleStatusSelection(9),
+      ),
     ];
 
     _filterSections = [
