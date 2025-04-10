@@ -5,7 +5,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:siteplus_mb/main_scaffold.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_model.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_provider.dart';
 
@@ -342,7 +341,12 @@ class _NotificationPageState extends State<NotificationPage> {
 
 // Compact Notification Dialog triggered from Bell icon
 class CompactNotificationDialog extends StatelessWidget {
-  const CompactNotificationDialog({super.key});
+  final VoidCallback? onNavigateToNotificationsTab;
+
+  const CompactNotificationDialog({
+    super.key,
+    this.onNavigateToNotificationsTab,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -374,8 +378,7 @@ class CompactNotificationDialog extends StatelessWidget {
                         'Thông báo mới',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color:
-                              theme.colorScheme.onSurface, // Primary text color
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                       if (unreadCount > 0)
@@ -393,10 +396,7 @@ class CompactNotificationDialog extends StatelessWidget {
                             '$unreadCount',
                             style: theme.textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color:
-                                  theme
-                                      .colorScheme
-                                      .onPrimary, // Text on primary background
+                              color: theme.colorScheme.onPrimary,
                             ),
                           ),
                         ),
@@ -427,13 +427,14 @@ class CompactNotificationDialog extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    // Navigate to the full notification page
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder:
-                            (context) => const MainScaffold(initialIndex: 3),
-                      ),
-                    );
+                    if (onNavigateToNotificationsTab != null) {
+                      print("Navigating to Notifications tab via callback");
+                      onNavigateToNotificationsTab!();
+                    } else {
+                      print(
+                        "Callback onNavigateToNotificationsTab không được cung cấp",
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
@@ -445,10 +446,7 @@ class CompactNotificationDialog extends StatelessWidget {
                   child: Text(
                     'Xem tất cả thông báo',
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color:
-                          theme
-                              .colorScheme
-                              .onPrimary, // Text on primary background
+                      color: theme.colorScheme.onPrimary,
                     ),
                   ),
                 ),

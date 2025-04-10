@@ -13,7 +13,7 @@ class WelcomeText extends StatelessWidget {
     return Column(
       children: [
         Text(
-              'HÂN HẠNH CHÀO ĐÓN BẠN',
+              'WELCOME TO YOU',
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
                 fontSize: 23,
@@ -36,7 +36,7 @@ class WelcomeText extends StatelessWidget {
         const SizedBox(height: 8),
 
         Text(
-              'Đăng nhập để khám phá tiếp',
+              'Log in to explore more',
               style: textTheme.bodyLarge?.copyWith(
                 color: colorScheme.onSurface.withOpacity(0.7),
               ),

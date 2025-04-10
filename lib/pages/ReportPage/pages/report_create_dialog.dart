@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/components/help_dialog.dart';
 import 'package:siteplus_mb/components/loading_overlay.dart';
+import 'package:siteplus_mb/pages/ReportPage/components/site_deal_confirmation_dialog.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/deal_section.dart';
+import 'package:siteplus_mb/pages/SiteDealPage/pages/create_site_deal_dialog.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/ReportPage/CustomerSegmentModel/customer_segment.dart';
 import 'package:siteplus_mb/utils/ReportPage/CustomerSegmentModel/customer_segment_provider.dart';
@@ -141,7 +143,9 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
       'proposedPrice': '',
       'leaseTerm': '',
       'deposit': '',
+      'depositMonth': '',
       'additionalTerms': '',
+      'status': '',
     };
 
     _fetchCustomerSegments();
@@ -173,7 +177,8 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     try {
       if (_isEditMode && widget.siteId != null) {
         await _fetchAttributeValues();
-        if (widget.initialReportData?['siteStatus'] == 4) {
+        if (widget.initialReportData?['siteStatus'] == 4 ||
+            widget.initialReportData?['siteStatus'] == 7) {
           await _fetchSiteDeal();
         }
       }
@@ -196,22 +201,57 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     }
   }
 
+  Future<Map<String, dynamic>?> _fetchSiteDealBySiteId() async {
+    try {
+      final apiService = ApiService();
+      final siteDeals = await apiService.getSiteDealBySiteId(widget.siteId!);
+
+      // Find the first site deal with status == 0 (Mới tạo)
+      if (siteDeals.isNotEmpty) {
+        final siteDealWithStatus0 = siteDeals.firstWhere(
+          (deal) => deal['status'] == 0,
+          orElse: () => <String, dynamic>{},
+        );
+
+        if (siteDealWithStatus0.isNotEmpty) {
+          return siteDealWithStatus0;
+        }
+      }
+      return null; // Return null if no site deal with status == 0 is found
+    } catch (e) {
+      debugPrint('Error fetching site deal: $e');
+      return null;
+    }
+  }
+
   Future<void> _fetchSiteDeal() async {
     try {
-      final siteDeal = await _reportApiService.getSiteDealBySiteId(
+      final siteDeals = await _reportApiService.getSiteDealBySiteId(
         widget.siteId!,
       );
-      if (siteDeal != null) {
-        setState(() {
-          dealData = {
-            'id': siteDeal['id'],
-            'siteId': widget.siteId,
-            'proposedPrice': siteDeal['proposedPrice'].toString(),
-            'leaseTerm': siteDeal['leaseTerm'],
-            'deposit': siteDeal['deposit'].toString(),
-            'additionalTerms': siteDeal['additionalTerms'],
-          };
-        });
+
+      // Find the first site deal with status == 0 (Mới tạo)
+      if (siteDeals.isNotEmpty) {
+        final siteDealWithStatus0 = siteDeals.firstWhere(
+          (deal) => deal['status'] == 0,
+          orElse: () => siteDeals.first,
+        );
+
+        if (siteDealWithStatus0.isNotEmpty) {
+          setState(() {
+            dealData = {
+              'id': siteDealWithStatus0['id'],
+              'siteId': widget.siteId,
+              'proposedPrice': siteDealWithStatus0['proposedPrice'].toString(),
+              'leaseTerm': siteDealWithStatus0['leaseTerm'],
+              'deposit': siteDealWithStatus0['deposit'].toString(),
+              'depositMonth':
+                  siteDealWithStatus0['depositMonth']?.toString() ?? '',
+              'additionalTerms': siteDealWithStatus0['additionalTerms'],
+              'status': siteDealWithStatus0['status'] ?? 0,
+            };
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching site deal: $e');
@@ -619,9 +659,11 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
           title: Text(
             widget.initialReportData?['siteStatus'] == 7 ||
                     widget.initialReportData?['siteStatus'] == 4
-                ? 'Quản Lý Mặt Bằng'
-                : 'Báo Cáo Mặt Bằng',
-            style: theme.textTheme.titleLarge,
+                ? 'Site Management'
+                : 'Site Report',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           bottom:
               (widget.initialReportData?['siteStatus'] == 7 ||
@@ -632,10 +674,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                     labelColor: theme.colorScheme.primary,
                     unselectedLabelColor: theme.colorScheme.onSurface
                         .withOpacity(0.6),
-                    tabs: const [
-                      Tab(text: 'Thương Lượng'),
-                      Tab(text: 'Báo Cáo'),
-                    ],
+                    tabs: const [Tab(text: 'Negotiate'), Tab(text: 'Report')],
                   )
                   : null,
           actions: [
@@ -646,12 +685,12 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                     context,
                     content:
                         widget.initialReportData?['siteStatus'] == 7
-                            ? 'Điền thông tin thương lượng và báo cáo. Bạn có thể lưu bản nháp để lần sau khảo sát tiếp hoặc nhấn "Gửi Báo Cáo" để gửi tất cả dữ liệu.'
+                            ? 'Fill in the negotiation and report information. You can save the draft for the next survey or click "Send Report" to send all the data.'
                             : widget.initialReportData?['siteStatus'] == 8
-                            ? 'Điền đầy đủ thông tin các bước để tạo báo cáo. Nhấn "Gửi Báo Cáo" để gửi tất cả dữ liệu sang giai đoạn thương lượng mặt bằng.'
+                            ? 'Fill in all the information for the steps to create the report. Click "Send Report" to send all the data to the site negotiation stage.'
                             : widget.initialReportData?['siteStatus'] == 4
-                            ? 'Điền đầy đủ thông tin các bước để tạo báo cáo. Nhấn "Gửi Báo Cáo" để gửi tất cả dữ liệu.'
-                            : 'Điền đầy đủ thông tin các bước để tạo báo cáo. Bạn có thể lưu bản nháp để lần sau khảo sát tiếp.',
+                            ? 'Fill in all the information for the steps to create the report. Click "Send Report" to send all the data.'
+                            : 'Fill in all the information for the steps to create the report. You can save the draft for the next survey.',
                   ),
             ),
           ],
@@ -768,7 +807,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                             curve: Curves.easeInOut,
                           )
                           : null,
-                  child: const Text('Trước'),
+                  child: const Text('Back'),
                 ),
                 Text('${_currentPage + 1}/${_pageNames.length}'),
                 TextButton(
@@ -779,7 +818,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                             curve: Curves.easeInOut,
                           )
                           : null,
-                  child: const Text('Tiếp'),
+                  child: const Text('Next'),
                 ),
               ],
             ),
@@ -791,7 +830,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                   child: OutlinedButton.icon(
                     onPressed: _isSubmitting ? null : _saveDraft,
                     icon: const Icon(Icons.note),
-                    label: const Text('Lưu bản nháp'),
+                    label: const Text('Save Draft'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -806,7 +845,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                 child: ElevatedButton.icon(
                   onPressed: _isSubmitting ? null : _submitForm,
                   icon: Icon(_isEditMode ? Icons.send : Icons.create),
-                  label: Text(_isEditMode ? 'Gửi báo cáo' : 'Tạo báo cáo'),
+                  label: Text(_isEditMode ? 'Send Report' : 'Create Report'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -820,9 +859,122 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
               ),
             ],
           ),
+          // Thêm nút "Continue to Create Site Deal" nếu siteStatus == 2
+          if (widget.initialReportData?['siteStatus'] == 2) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity, // Full width
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _continueToCreateSiteDeal,
+                child: const Text('Continue to Create Site Deal'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  backgroundColor: theme.colorScheme.secondary,
+                  foregroundColor: theme.colorScheme.onSecondary,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  // Hàm xử lý khi nhấn nút "Continue to Create Site Deal"
+  Future<void> _continueToCreateSiteDeal() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      if ((widget.initialReportData?['siteStatus'] == 2) &&
+          !_validateAllSteps()) {
+        return;
+      }
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Confirmation'),
+              content: const Text(
+                'If you continue, you will be redirected to the page to create a site deal for this site with the purpose of sending the report directly to the Area-Manager. Are you sure?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+      );
+
+      if (confirm == true) {
+        setState(() => _isSubmitting = true);
+        try {
+          final List<Map<String, dynamic>> newAttributeValues =
+              List<Map<String, dynamic>>.from(
+                reportData['newAttributeValues'] ?? [],
+              );
+
+          if (newAttributeValues.isNotEmpty) {
+            final List<Map<String, dynamic>> createData = [
+              {'attributeValues': newAttributeValues},
+            ];
+            final success = await _reportApiService.createReport(createData);
+            if (success) {
+              // Cập nhật siteStatus lên 7
+              final siteStatusUpdated = await _reportApiService
+                  .updateSiteStatus(widget.siteId!, 7);
+              if (siteStatusUpdated) {
+                // Đóng dialog hiện tại
+                Navigator.of(context).pop();
+                // Mở dialog CreateSiteDealDialog
+                showDialog(
+                  context: context,
+                  builder:
+                      (context) => CreateSiteDealDialog(
+                        siteId: widget.siteId,
+                        siteStatus: 7,
+                      ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to update site status'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to create report'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No new attribute values to create'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        } finally {
+          setState(() => _isSubmitting = false);
+        }
+      }
+    }
   }
 
   // Hàm xử lý lưu bản nháp
@@ -958,83 +1110,45 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
         int newSiteStatus;
         int? newTaskStatus;
 
-        // Xử lý cho site.status == 7 (Đang thương lượng)
-        if (widget.initialReportData?['siteStatus'] == 7) {
-          success = success && await _reportApiService.createSiteDeal(dealData);
-          newSiteStatus = 3; // Chờ phê duyệt
-          newTaskStatus = 3;
-
-          if (changedAttributeValues.isNotEmpty) {
-            final List<Map<String, dynamic>> updateData =
-                changedAttributeValues.map((attr) {
-                  return {
-                    'id': attr['id'],
-                    'value': attr['value'],
-                    'additionalInfo': attr['additionalInfo'],
-                  };
-                }).toList();
-            success = await _reportApiService.updateReport(
-              widget.siteId!,
-              updateData,
-            );
-          }
-          if (newAttributeValues.isNotEmpty) {
-            final List<Map<String, dynamic>> createData = [
-              {'attributeValues': newAttributeValues},
-            ];
-            success =
-                success && await _reportApiService.createReport(createData);
-          }
-        }
-        // Xử lý cho site.status == 4 (Bị từ chối)
-        else if (widget.initialReportData?['siteStatus'] == 4) {
-          if (dealData['id'] == null) {
-            if (mounted) {
-              _scaffoldMessenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Không tìm thấy site deal để cập nhật'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-            setState(() {
-              _isSubmitting = false;
-            });
-            return;
-          }
-
-          // Chuẩn bị dữ liệu để gửi API updateSiteDeal
+        // Xử lý chung cho siteStatus == 4 và siteStatus == 7
+        if (widget.initialReportData?['siteStatus'] == 4 ||
+            widget.initialReportData?['siteStatus'] == 7) {
+          // Chuẩn bị dữ liệu site deal
           final updateDealData = {
             'proposedPrice': double.tryParse(dealData['proposedPrice']) ?? 0,
             'leaseTerm': dealData['leaseTerm'],
             'deposit': double.tryParse(dealData['deposit']) ?? 0,
+            'depositMonth': dealData['depositMonth'],
             'additionalTerms': dealData['additionalTerms'],
+            'status': dealData['status'] ?? 0,
             'updatedAt': DateTime.now().toUtc().toIso8601String(),
           };
 
-          // Gọi API updateSiteDeal
-          success = await _reportApiService.updateSiteDeal(
-            dealData['id'],
-            updateDealData,
-          );
+          if (dealData['id'] == null) {
+            // Tạo mới site deal nếu chưa có
+            success = await _reportApiService.createSiteDeal(dealData);
+          } else {
+            // Cập nhật site deal nếu đã có
+            success = await _reportApiService.updateSiteDeal(
+              dealData['id'],
+              updateDealData,
+            );
+          }
 
           if (!success) {
             if (mounted) {
               _scaffoldMessenger.showSnackBar(
                 const SnackBar(
-                  content: Text('Cập nhật site deal thất bại'),
+                  content: Text('Thao tác với site deal thất bại'),
                   backgroundColor: Colors.red,
                 ),
               );
             }
-            setState(() {
-              _isSubmitting = false;
-            });
+            setState(() => _isSubmitting = false);
             return;
           }
-          newSiteStatus = 3; // Chờ phê duyệt
-          newTaskStatus = 3;
 
+          // Cập nhật hoặc tạo attribute values
           if (changedAttributeValues.isNotEmpty) {
             final List<Map<String, dynamic>> updateData =
                 changedAttributeValues.map((attr) {
@@ -1049,6 +1163,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
               updateData,
             );
           }
+
           if (newAttributeValues.isNotEmpty) {
             final List<Map<String, dynamic>> createData = [
               {'attributeValues': newAttributeValues},
@@ -1056,6 +1171,9 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
             success =
                 success && await _reportApiService.createReport(createData);
           }
+
+          newSiteStatus = 3; // Chờ phê duyệt
+          newTaskStatus = 3;
         }
         // Giữ nguyên logic cũ cho các status khác
         else if (_isEditMode) {
@@ -1092,24 +1210,49 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                 success && await _reportApiService.createReport(createData);
           }
         } else {
-          // Tạo mới báo cáo (từ site.status == 2)
+          if (widget.initialReportData?['siteStatus'] == 2) {
+            final siteDeal = await _fetchSiteDealBySiteId();
+            if (siteDeal != null) {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder:
+                    (context) => SiteDealConfirmationDialog(
+                      siteDeal: siteDeal,
+                      siteId: widget.siteId!,
+                      siteCategoryId: widget.siteCategoryId!,
+                    ),
+              );
+              if (confirm != true) {
+                setState(() {
+                  _isSubmitting = false;
+                });
+                return; // Không tiếp tục nếu người dùng chọn "Đóng"
+              }
+              newSiteStatus = 3; // Chờ phê duyệt
+            } else {
+              newSiteStatus = 7; // Đang thương lượng
+            }
+          } else {
+            newSiteStatus =
+                7; // Đang thương lượng mặc định cho các trường hợp khác
+          }
+          newTaskStatus = null;
+
           if (newAttributeValues.isNotEmpty) {
-            final List<Map<String, dynamic>> apiData = [
+            final List<Map<String, dynamic>> createData = [
               {'attributeValues': newAttributeValues},
             ];
-            success = success && await _reportApiService.createReport(apiData);
+            success =
+                success && await _reportApiService.createReport(createData);
           }
-          newSiteStatus = 7; // Đang thương lượng
-          newTaskStatus = null;
         }
 
-        // Cập nhật status nếu thành công
+        // Cập nhật site status nếu thành công
         if (success && widget.siteId != null) {
           final siteStatusUpdated = await _reportApiService.updateSiteStatus(
             widget.siteId!,
             newSiteStatus,
           );
-          // Chỉ cập nhật task status nếu newTaskStatus không null và có taskId
           if (newTaskStatus != null && widget.taskId != null) {
             final taskStatusUpdated = await _reportApiService.updateTaskStatus(
               widget.taskId!,

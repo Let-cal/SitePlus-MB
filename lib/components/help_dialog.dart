@@ -8,9 +8,9 @@ class HelpDialog extends StatelessWidget {
 
   const HelpDialog({
     super.key,
-    this.title = 'Hướng dẫn',
+    this.title = 'Guide',
     required this.content,
-    this.buttonText = 'Đã hiểu',
+    this.buttonText = 'Got it',
     this.onButtonPressed,
   });
 
@@ -45,9 +45,9 @@ class HelpDialog extends StatelessWidget {
 
   static void show(
     BuildContext context, {
-    String title = 'Hướng dẫn',
+    String title = 'Guide',
     required String content,
-    String buttonText = 'Đã hiểu',
+    String buttonText = 'Got it',
     VoidCallback? onButtonPressed,
   }) {
     showDialog(

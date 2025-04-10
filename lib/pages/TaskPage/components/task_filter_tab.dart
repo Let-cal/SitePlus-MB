@@ -23,7 +23,7 @@ class TaskFilterTab extends StatelessWidget {
         FilterGroup(
           key: 'status',
           options: [
-            FilterOption(id: null, label: 'Tất Cả'),
+            FilterOption(id: null, label: 'All'),
             ...availableStatuses.entries.map(
               (e) => FilterOption(id: e.key, label: e.value),
             ),
@@ -32,7 +32,7 @@ class TaskFilterTab extends StatelessWidget {
         FilterGroup(
           key: 'priority',
           options: [
-            FilterOption(id: null, label: 'Tất Cả'),
+            FilterOption(id: null, label: 'All'),
             ...PRIORITY_API_MAP.entries.map(
               (e) => FilterOption(id: e.value, label: e.key),
             ),

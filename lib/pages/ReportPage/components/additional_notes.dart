@@ -79,7 +79,7 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Ghi chú thêm',
+            'Additional Notes',
             style: theme.textTheme.titleLarge?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -88,7 +88,7 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
           SizedBox(height: 16),
           _buildInfoCard(
             icon: Icons.lightbulb_outline,
-            content: 'Thêm các chi tiết mô tả về mặt bằng này.',
+            content: 'Add additional details describing the property.',
             backgroundColor: theme.colorScheme.primaryContainer.withOpacity(
               0.3,
             ),
@@ -102,8 +102,9 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
             child: TextFormField(
               controller: _notesController,
               decoration: InputDecoration(
-                labelText: 'Ghi chú bổ sung',
-                hintText: 'Thêm mô tả về đặc điểm mặt bằng, vị trí...',
+                labelText: 'Supplementary Notes',
+                hintText:
+                    'Add a description of the property features, location...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.0),
                 ),

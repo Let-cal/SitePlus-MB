@@ -62,7 +62,7 @@ class TaskCard extends StatelessWidget {
                       children: [
                         // Task ID
                         Text(
-                          'Nhiệm vụ #${task.id}',
+                          'Task #${task.id}',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -72,7 +72,7 @@ class TaskCard extends StatelessWidget {
                         Text(
                           task.description.isNotEmpty
                               ? task.description
-                              : 'Không có thông tin',
+                              : 'No Infomation',
                           style: theme.textTheme.bodyMedium,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -101,7 +101,7 @@ class TaskCard extends StatelessWidget {
                             Text(
                               task.areaName.isNotEmpty
                                   ? task.areaName
-                                  : 'Quận 1, TP. Hồ Chí Minh',
+                                  : 'District 1, Ho Chi Minh City',
                               style: theme.textTheme.bodySmall,
                             ),
                           ],
@@ -138,7 +138,7 @@ class TaskCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        getVietnameseStatus(status),
+        getStatusText(status),
         style: TextStyle(
           color: getStatusColor(context, status),
           fontWeight: FontWeight.bold,

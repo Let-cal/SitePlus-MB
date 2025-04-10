@@ -1,6 +1,7 @@
+// sites_provider.dart
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/service/api_service.dart';
-import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart'; // Giả sử đây là model Site
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 
 class SitesProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -8,21 +9,20 @@ class SitesProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Getter để truy cập từ các widget
   List<Site> get sites => _sites;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Hàm gọi API getSites và cập nhật trạng thái
   Future<void> fetchSites({
-    required int pageNumber,
-    required int pageSize,
+    int? pageNumber,
+    int? pageSize,
     String? search,
     int? status,
+    required Map<int, String> areaMap,
   }) async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners(); // Thông báo giao diện rằng đang tải dữ liệu
+    notifyListeners();
 
     try {
       final response = await _apiService.getSites(
@@ -31,14 +31,30 @@ class SitesProvider with ChangeNotifier {
         search: search,
         status: status,
       );
-      _sites = List<Site>.from(
-        response['listData'].map((item) => Site.fromJson(item)),
-      );
+      print('fetchSites response: $response');
+
+      // Kiểm tra cấu trúc response
+      if (response['data'] == null) {
+        throw Exception('Response không chứa "data": $response');
+      }
+      final listData = response['data']['listData'];
+      if (listData == null) {
+        print('listData is null, setting empty list');
+        _sites = [];
+      } else {
+        _sites = List<Site>.from(
+          listData.map((item) => Site.fromJson(item, areaMap: areaMap)),
+        );
+        print('fetchSites parsed sites: ${_sites.map((s) => s.id).toList()}');
+      }
+      notifyListeners();
     } catch (e) {
       _errorMessage = e.toString();
+      print('fetchSites error: $e');
+      _sites = []; // Đặt danh sách rỗng nếu có lỗi
     } finally {
       _isLoading = false;
-      notifyListeners(); // Thông báo giao diện khi hoàn tất
+      notifyListeners();
     }
   }
 }

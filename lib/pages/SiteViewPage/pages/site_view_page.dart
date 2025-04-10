@@ -4,6 +4,10 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/components/SectionHeader.dart';
 import 'package:siteplus_mb/components/multi_tab_filter_panel.dart';
 import 'package:siteplus_mb/components/pagination_component.dart';
+import 'package:siteplus_mb/components/report_selection_dialog.dart';
+import 'package:siteplus_mb/main_scaffold.dart';
+import 'package:siteplus_mb/pages/ReportPage/pages/site_building_dialog.dart';
+import 'package:siteplus_mb/pages/SiteViewPage/components/floating_button_site.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/site_card.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/site_detail_popup.dart';
 import 'package:siteplus_mb/service/api_service.dart';
@@ -16,8 +20,10 @@ enum FilterUIType { chip, tab }
 
 class SiteViewPage extends StatefulWidget {
   final int? filterSiteId;
-  final void Function(int? filterTaskId)? onNavigateToTaskTab;
+  final void Function(int? filterTaskId, {int? filterTaskStatus})?
+  onNavigateToTaskTab;
   const SiteViewPage({super.key, this.filterSiteId, this.onNavigateToTaskTab});
+
   @override
   State<SiteViewPage> createState() => _SiteViewPageState();
 }
@@ -27,13 +33,15 @@ class _SiteViewPageState extends State<SiteViewPage>
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   // Site filter state
-  int? selectedCategoryId; // null nghĩa là "Tất cả"
-  int? selectedStatusId; // null nghĩa là "Tất cả"
+  int? selectedCategoryId; // null means "All"
+  int? selectedStatusId; // null means "All"
+  int? currentFilterSiteId;
   FilterUIType currentFilterUI = FilterUIType.tab;
   // Pagination state
   int currentPage = 1;
   int totalPages = 1;
   int pageSize = 6;
+  int defaultPageSize = 6;
   int totalRecords = 0;
 
   // Site data
@@ -45,7 +53,7 @@ class _SiteViewPageState extends State<SiteViewPage>
   Map<int, String> siteCategoryMap = {};
   Map<int, String> areaMap = {};
   final List<int> statuses = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  // Danh sách tất cả site khi cần duyệt qua các trang
+  // All sites list for iterating through pages if needed
   List<Site> allSites = [];
   // In _SiteViewPageState._loadData() add these debug prints:
 
@@ -55,7 +63,7 @@ class _SiteViewPageState extends State<SiteViewPage>
       debugPrint('Token: $token');
 
       if (token == null || token.isEmpty) {
-        throw Exception("Không có token xác thực");
+        throw Exception("No authentication token");
       }
 
       final fetchedSiteCategories = await ApiService().getSiteCategories(token);
@@ -71,17 +79,15 @@ class _SiteViewPageState extends State<SiteViewPage>
         _siteCategories = fetchedSiteCategories;
         _areas = fetchedAreas;
 
-        // Make sure siteCategoryMap is created correctly
+        // Create maps from category and area data
         debugPrint('Creating maps...');
         siteCategoryMap = {
-          // ignore: unnecessary_null_comparison
           for (var cat in _siteCategories.where((cat) => cat != null))
-            cat.id: cat.name,
+            cat.id: cat.englishName,
         };
         debugPrint('siteCategoryMap size: ${siteCategoryMap.length}');
 
         areaMap = {
-          // ignore: unnecessary_null_comparison
           for (var area in _areas.where((area) => area != null))
             area.id: area.name,
         };
@@ -91,15 +97,14 @@ class _SiteViewPageState extends State<SiteViewPage>
       setState(() {
         isLoading = false;
       });
-      debugPrint('Lỗi khi load data: $e');
-      // Thêm xử lý lỗi cụ thể
+      debugPrint('Error loading data: $e');
       if (e is Exception) {
         debugPrint('Exception: $e');
       }
     }
   }
 
-  /// Gọi API lấy danh sách Site, áp dụng filter nếu có
+  /// Call API to get the list of Sites, applying filters if any
   Future<void> _loadSites() async {
     setState(() {
       isLoading = true;
@@ -107,35 +112,41 @@ class _SiteViewPageState extends State<SiteViewPage>
     });
 
     try {
-      if (widget.filterSiteId != null) {
-        // Nếu có filterSiteId, tìm site theo site id bằng tham số search
+      if (currentFilterSiteId != null) {
+        // If filterSiteId exists, search by site id with page 1 and one result only.
         final response = await ApiService().getSites(
-          pageNumber: 1, // Chỉ cần trang 1 vì tìm theo id
-          pageSize: 1, // Chỉ cần 1 kết quả
-          search: widget.filterSiteId.toString(), // Tìm theo site id
+          pageNumber: 1,
+          pageSize: 1,
+          search: widget.filterSiteId.toString(),
           status: selectedStatusId,
+          siteCategoryId: selectedCategoryId,
         );
 
         final fetchedSites = List<Site>.from(
-          response['listData'].map((item) => Site.fromJson(item)),
+          response['data']['listData'].map(
+            (item) => Site.fromJson(item, areaMap: areaMap),
+          ),
         );
 
         setState(() {
           sites = fetchedSites;
-          totalRecords = fetchedSites.length; // Số lượng site tìm được
-          totalPages = 1; // Chỉ hiển thị 1 trang khi lọc
+          totalRecords = fetchedSites.length;
+          totalPages = 1;
         });
       } else {
-        // Nếu không có filterSiteId, hiển thị bình thường với phân trang
+        // Normal display with pagination
         final response = await ApiService().getSites(
           pageNumber: currentPage,
           pageSize: pageSize,
           search: null,
           status: selectedStatusId,
+          siteCategoryId: selectedCategoryId,
         );
 
         final fetchedSites = List<Site>.from(
-          response['listData'].map((item) => Site.fromJson(item)),
+          response['data']['listData'].map(
+            (item) => Site.fromJson(item, areaMap: areaMap),
+          ),
         );
 
         List<Site> filteredSites = fetchedSites;
@@ -148,8 +159,8 @@ class _SiteViewPageState extends State<SiteViewPage>
 
         setState(() {
           sites = filteredSites;
-          totalRecords = response['totalRecords']; // Lấy từ API
-          totalPages = response['totalPage']; // Lấy từ API
+          totalRecords = response['data']['totalRecords'];
+          totalPages = response['data']['totalPage'];
         });
       }
     } catch (e) {
@@ -171,17 +182,115 @@ class _SiteViewPageState extends State<SiteViewPage>
     super.initState();
     selectedCategoryId = null;
     selectedStatusId = null;
+    currentFilterSiteId = widget.filterSiteId;
+    pageSize = currentFilterSiteId != null ? 1 : defaultPageSize;
     _loadData().then((_) {
       _loadSites();
     });
+  }
+
+  @override
+  void didUpdateWidget(SiteViewPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterSiteId != oldWidget.filterSiteId) {
+      setState(() {
+        currentFilterSiteId = widget.filterSiteId;
+        pageSize = currentFilterSiteId != null ? 1 : defaultPageSize;
+      });
+      _loadSites();
+    }
   }
 
   void _changePage(int page) {
     if (page < 1 || page > totalPages || page == currentPage) return;
     setState(() {
       currentPage = page;
-      _loadSites();
+      currentFilterSiteId = null;
+      pageSize = defaultPageSize;
     });
+    _loadSites();
+  }
+
+  Future<void> _refreshSites() async {
+    setState(() {
+      currentPage = 1;
+      currentFilterSiteId = null;
+      pageSize = defaultPageSize;
+    });
+    await _loadSites();
+  }
+
+  void _navigateToTaskPage() {
+    if (widget.onNavigateToTaskTab != null) {
+      widget.onNavigateToTaskTab!(null, filterTaskStatus: 1);
+    }
+
+    // Show a SnackBar after switching tabs
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (MainScaffold.scaffoldKey.currentContext != null) {
+        ScaffoldMessenger.of(
+          MainScaffold.scaffoldKey.currentContext!,
+        ).showSnackBar(
+          SnackBar(
+            content: Text('Please select a task to create a site.'),
+            duration: Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            action: SnackBarAction(label: 'OK', onPressed: () {}),
+          ),
+        );
+      }
+    });
+  }
+
+  void _showReportSelectionForPropose() async {
+    final token = await ApiService().getToken();
+    if (token == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Please log in again')));
+      return;
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder:
+          (dialogContext) => ReportSelectionDialog(
+            token: token,
+            onReportSelected: (
+              String reportType,
+              int categoryId,
+              String categoryName,
+            ) {
+              Navigator.of(dialogContext).pop({
+                'reportType': reportType,
+                'categoryId': categoryId,
+                'categoryName': categoryName,
+              });
+            },
+          ),
+    );
+
+    if (result != null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => SiteBuildingDialog(
+                reportType: result['reportType'],
+                siteCategoryId: result['categoryId'],
+                siteCategory: result['categoryName'],
+                taskId: 0, // Default value
+                taskStatus: '',
+                isProposeMode: true,
+              ),
+        ),
+      );
+      _loadSites(); // Reload the site list after proposing a site
+    }
   }
 
   @override
@@ -189,16 +298,13 @@ class _SiteViewPageState extends State<SiteViewPage>
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: Theme.of(context).colorScheme.surface,
+      floatingActionButton: FloatingButtonSite(
+        onProposeSite: _showReportSelectionForPropose,
+        onCreateSiteByTask: _navigateToTaskPage,
+      ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async {
-            setState(() {
-              currentPage = 1;
-              selectedCategoryId = null;
-              selectedStatusId = null;
-            });
-            _loadSites();
-          },
+          onRefresh: _refreshSites,
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
@@ -208,8 +314,8 @@ class _SiteViewPageState extends State<SiteViewPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SectionHeader(
-                        title: 'Danh sách mặt bằng',
-                        subtitle: 'Quản lý và theo dõi các mặt bằng',
+                        title: 'Sites List',
+                        subtitle: 'Manage and track sites',
                         icon: LucideIcons.fileCheck,
                       ),
                       const SizedBox(height: 24),
@@ -218,11 +324,11 @@ class _SiteViewPageState extends State<SiteViewPage>
                               FilterGroup(
                                 key: 'category',
                                 options: [
-                                  FilterOption(id: null, label: 'Tất cả'),
+                                  FilterOption(id: null, label: 'All'),
                                   ..._siteCategories.map(
                                     (cat) => FilterOption(
                                       id: cat.id,
-                                      label: cat.name,
+                                      label: cat.englishName,
                                     ),
                                   ),
                                 ],
@@ -230,11 +336,11 @@ class _SiteViewPageState extends State<SiteViewPage>
                               FilterGroup(
                                 key: 'status',
                                 options: [
-                                  FilterOption(id: null, label: 'Tất cả'),
+                                  FilterOption(id: null, label: 'All'),
                                   ...statuses.map(
                                     (status) => FilterOption(
                                       id: status,
-                                      label: getVietnameseStatus(status),
+                                      label: getStatusText(status),
                                     ),
                                   ),
                                 ],
@@ -245,6 +351,8 @@ class _SiteViewPageState extends State<SiteViewPage>
                                 selectedCategoryId = selections['category'];
                                 selectedStatusId = selections['status'];
                                 currentPage = 1;
+                                currentFilterSiteId = null;
+                                pageSize = defaultPageSize;
                               });
                               _loadSites();
                             },
@@ -291,7 +399,7 @@ class _SiteViewPageState extends State<SiteViewPage>
                             ),
                         const SizedBox(height: 16),
                         Text(
-                              'Đang tải mặt bằng...',
+                              'Loading properties...',
                               style: Theme.of(context).textTheme.bodyLarge,
                             )
                             .animate(
@@ -373,7 +481,7 @@ class _SiteViewPageState extends State<SiteViewPage>
               ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
               const SizedBox(height: 16),
               Text(
-                "Không có mặt bằng nào phù hợp với bộ lọc",
+                "No properties match the selected filters",
                 style: Theme.of(context).textTheme.titleMedium,
               ).animate().fadeIn(duration: 600.ms, delay: 300.ms),
             ],

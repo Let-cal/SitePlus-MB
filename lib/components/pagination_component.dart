@@ -18,7 +18,6 @@ class PaginationComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Nếu chỉ có 1 trang thì không hiển thị phân trang
     if (totalPages <= 1) return const SizedBox.shrink();
 
     return Container(
@@ -33,10 +32,20 @@ class PaginationComponent extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
+            horizontal: 12,
+          ), // Giảm padding
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Nút Previous More (nhảy về trang 1)
+              _buildPaginationButton(
+                context: context,
+                icon: Icons.fast_rewind,
+                onPressed: currentPage > 1 ? () => onPageChanged(1) : null,
+              ),
+              const SizedBox(width: 4), // Giảm khoảng cách
               // Nút Previous
               _buildPaginationButton(
                 context: context,
@@ -46,10 +55,10 @@ class PaginationComponent extends StatelessWidget {
                         ? () => onPageChanged(currentPage - 1)
                         : null,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               // Các số trang
               ..._buildPageNumbers(context),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               // Nút Next
               _buildPaginationButton(
                 context: context,
@@ -57,6 +66,16 @@ class PaginationComponent extends StatelessWidget {
                 onPressed:
                     currentPage < totalPages
                         ? () => onPageChanged(currentPage + 1)
+                        : null,
+              ),
+              const SizedBox(width: 4),
+              // Nút Next More (nhảy về trang cuối)
+              _buildPaginationButton(
+                context: context,
+                icon: Icons.fast_forward,
+                onPressed:
+                    currentPage < totalPages
+                        ? () => onPageChanged(totalPages)
                         : null,
               ),
             ],
@@ -83,10 +102,10 @@ class PaginationComponent extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8), // Giảm padding
           child: Icon(
             icon,
-            size: 18,
+            size: 16, // Giảm kích thước icon
             color:
                 onPressed != null
                     ? theme.colorScheme.onPrimaryContainer
@@ -101,58 +120,30 @@ class PaginationComponent extends StatelessWidget {
     final theme = Theme.of(context);
     List<Widget> pageButtons = [];
 
-    // Xác định khoảng số trang hiển thị (2 trang trước và 2 trang sau trang hiện tại)
-    int startPage = currentPage - 2;
-    int endPage = currentPage + 2;
+    // Giới hạn tối đa số lượng nút số trang hiển thị
+    const int maxVisiblePages = 5;
+
+    // Xác định khoảng số trang hiển thị
+    int startPage = currentPage - (maxVisiblePages ~/ 2);
+    int endPage = currentPage + (maxVisiblePages ~/ 2);
 
     if (startPage < 1) {
-      endPage = math.min(endPage + (1 - startPage), totalPages);
+      endPage = math.min(maxVisiblePages, totalPages);
       startPage = 1;
     }
 
     if (endPage > totalPages) {
-      startPage = math.max(1, startPage - (endPage - totalPages));
+      startPage = math.max(1, totalPages - maxVisiblePages + 1);
       endPage = totalPages;
     }
 
-    // Nếu trang đầu không nằm trong khoảng hiển thị, thêm nút trang đầu và dấu "..."
-    if (startPage > 1) {
-      pageButtons.add(_buildPageButton(context, 1));
-      if (startPage > 2) {
-        pageButtons.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              '...',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ),
-        );
-      }
+    // Đảm bảo chỉ hiển thị tối đa 5 nút số trang
+    if (endPage - startPage + 1 > maxVisiblePages) {
+      endPage = startPage + maxVisiblePages - 1;
     }
 
     for (int i = startPage; i <= endPage; i++) {
       pageButtons.add(_buildPageButton(context, i));
-    }
-
-    // Nếu trang cuối không nằm trong khoảng hiển thị, thêm dấu "..." và nút trang cuối
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        pageButtons.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              '...',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ),
-        );
-      }
-      pageButtons.add(_buildPageButton(context, totalPages));
     }
 
     return pageButtons;
@@ -162,7 +153,7 @@ class PaginationComponent extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isSelected = page == currentPage;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 2), // Giảm khoảng cách
       child: Material(
         color: isSelected ? theme.colorScheme.primary : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
@@ -170,8 +161,8 @@ class PaginationComponent extends StatelessWidget {
           onTap: isSelected ? null : () => onPageChanged(page),
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            width: 36,
-            height: 36,
+            width: 32, // Giảm kích thước nút
+            height: 32,
             alignment: Alignment.center,
             decoration:
                 isSelected
@@ -185,6 +176,7 @@ class PaginationComponent extends StatelessWidget {
             child: Text(
               page.toString(),
               style: TextStyle(
+                fontSize: 12, // Giảm kích thước chữ
                 color:
                     isSelected
                         ? theme.colorScheme.onPrimary

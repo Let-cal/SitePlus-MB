@@ -4,6 +4,7 @@ class Site {
   final int floor;
   final int siteCategoryId;
   final int areaId;
+  final String areaName;
   final String address;
   final double size;
   final int status;
@@ -21,6 +22,7 @@ class Site {
     required this.floor,
     required this.siteCategoryId,
     required this.areaId,
+    required this.areaName,
     required this.address,
     required this.size,
     required this.status,
@@ -33,13 +35,17 @@ class Site {
     this.matchingSites,
   });
 
-  factory Site.fromJson(Map<String, dynamic> json) {
+  factory Site.fromJson(
+    Map<String, dynamic> json, {
+    required Map<int, String> areaMap,
+  }) {
     return Site(
       id: json['id'] ?? 0,
       brandId: json['brandId'] ?? 0,
       floor: json['floor'] ?? 0,
       siteCategoryId: json['siteCategoryId'] ?? 0,
       areaId: json['areaId'] ?? 0,
+      areaName: areaMap[json['areaId']] ?? 'Unknown',
       address: json['address'] ?? '',
       size: json['size'] ?? 0.0,
       status: json['status'] ?? 0,
@@ -48,7 +54,9 @@ class Site {
       updatedAt: DateTime.parse(json['updatedAt'] ?? ''),
       task: json['task'] != null ? Task.fromJson(json['task']) : null,
       building:
-          json['building'] != null ? BuildingViewModel.fromJson(json['building']) : null,
+          json['building'] != null
+              ? BuildingViewModel.fromJson(json['building'])
+              : null,
       images:
           json['images'] != null
               ? List<Image>.from(json['images'].map((x) => Image.fromJson(x)))
@@ -56,7 +64,9 @@ class Site {
       matchingSites:
           json['matchingSites'] != null
               ? List<Site>.from(
-                json['matchingSites'].map((x) => Site.fromJson(x)),
+                json['matchingSites'].map(
+                  (x) => Site.fromJson(x, areaMap: areaMap),
+                ),
               )
               : [],
     );
@@ -102,7 +112,7 @@ class Task {
   }
 }
 
-class BuildingViewModel{
+class BuildingViewModel {
   final int id;
   final String name;
   final int areaId;

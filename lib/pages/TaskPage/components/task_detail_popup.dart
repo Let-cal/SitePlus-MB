@@ -55,7 +55,7 @@ class ViewDetailTask extends StatelessWidget {
     if (token.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Vui lòng đăng nhập lại')));
+      ).showSnackBar(SnackBar(content: Text('Please log in again')));
       return;
     }
 
@@ -136,7 +136,7 @@ class ViewDetailTask extends StatelessWidget {
                       const SizedBox(height: 24),
                       _buildInfoCard(
                         context,
-                        title: 'Thông Tin Nhiệm Vụ',
+                        title: 'Task Information',
                         icon: Icons.assignment,
                         child: _buildTaskInfo(context),
                       ),
@@ -144,7 +144,7 @@ class ViewDetailTask extends StatelessWidget {
                       if (task.request?.brand != null) ...[
                         _buildInfoCard(
                           context,
-                          title: 'Thông Tin Thương Hiệu',
+                          title: 'Brand Information',
                           icon: Icons.business,
                           child: _buildBrandInfo(context),
                         ),
@@ -153,7 +153,7 @@ class ViewDetailTask extends StatelessWidget {
                       if (task.site != null) ...[
                         _buildInfoCard(
                           context,
-                          title: 'Thông Tin Mặt Bằng',
+                          title: 'Site Information',
                           icon: Icons.location_on,
                           child: _buildSiteInfo(context),
                         ),
@@ -161,7 +161,7 @@ class ViewDetailTask extends StatelessWidget {
                       ],
                       _buildInfoCard(
                         context,
-                        title: 'Miêu Tả Nhiệm Vụ',
+                        title: 'Task Description',
                         icon: Icons.description,
                         child: _buildDescription(context),
                       ),
@@ -228,7 +228,7 @@ class ViewDetailTask extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Chi Tiết Nhiệm Vụ',
+                    'Task Details',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -348,7 +348,7 @@ class ViewDetailTask extends StatelessWidget {
       children: [
         _buildInfoRow(
           context,
-          label: 'Mức Độ Ưu Tiên',
+          label: 'Priority',
           value: task.priority,
           valueColor:
               task.priority.toLowerCase() == PRIORITY_CAO
@@ -362,14 +362,14 @@ class ViewDetailTask extends StatelessWidget {
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Thời Hạn',
+          label: 'Deadline',
           value: _formatDate(task.deadline),
           icon: Icons.calendar_today,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Trạng Thái',
+          label: 'Status',
           value: task.status,
           icon: getStatusIcon(task.status),
           valueColor: getStatusColor(context, task.status),
@@ -377,7 +377,7 @@ class ViewDetailTask extends StatelessWidget {
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Địa Chỉ',
+          label: 'Address',
           value: _getLocationText(),
           icon: Icons.location_on,
         ),
@@ -385,7 +385,7 @@ class ViewDetailTask extends StatelessWidget {
           const SizedBox(height: 12),
           _buildInfoRow(
             context,
-            label: 'ID-Yêu Cầu',
+            label: 'Request ID',
             value: task.requestId ?? 'N/A',
             icon: Icons.numbers,
           ),
@@ -404,7 +404,7 @@ class ViewDetailTask extends StatelessWidget {
       children: [
         _buildInfoRow(
           context,
-          label: 'Tên Thương Hiệu',
+          label: 'Brand Name',
           value: brand.name,
           icon: Icons.business,
         ),
@@ -464,21 +464,21 @@ class ViewDetailTask extends StatelessWidget {
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Địa Chỉ Chi Tiết',
+          label: 'Detailed Address',
           value: addressParts['specificAddress']!,
           icon: Icons.map,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Huyện',
+          label: 'District',
           value: addressParts['district']!,
           icon: Icons.location_city,
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
           context,
-          label: 'Tỉnh',
+          label: 'City',
           value: addressParts['city']!,
           icon: Icons.location_on,
         ),
@@ -486,7 +486,7 @@ class ViewDetailTask extends StatelessWidget {
           const SizedBox(height: 12),
           _buildInfoRow(
             context,
-            label: 'Tòa Nhà',
+            label: 'Building',
             value: site.building!.name,
             icon: Icons.business,
           ),
@@ -558,9 +558,9 @@ class ViewDetailTask extends StatelessWidget {
   void _showEditReport(BuildContext context) async {
     try {
       if (task.site == null) {
-        ScaffoldMessenger.of(parentContext).showSnackBar(
-          SnackBar(content: Text('Không có thông tin site để chỉnh sửa')),
-        );
+        ScaffoldMessenger.of(
+          parentContext,
+        ).showSnackBar(SnackBar(content: Text('No site information to edit')));
         return;
       }
 
@@ -576,11 +576,14 @@ class ViewDetailTask extends StatelessWidget {
               (context) => SiteBuildingDialog(
                 reportType:
                     siteResponse['data']['siteCategoryId'] == 1
-                        ? 'Building'
-                        : 'Site',
+                        ? 'Internal Site'
+                        : 'Independent site',
                 siteCategoryId: siteResponse['data']['siteCategoryId'],
                 areaId: siteResponse['data']['areaId'],
-                siteCategory: siteResponse['data']['siteCategoryName'],
+                siteCategory:
+                    siteResponse['data']['siteCategoryId'] == 1
+                        ? 'Internal Site'
+                        : 'Independent site',
                 taskId: task.id,
                 taskStatus: task.status,
                 siteId: siteId,
@@ -593,7 +596,7 @@ class ViewDetailTask extends StatelessWidget {
     } catch (e) {
       ScaffoldMessenger.of(parentContext).showSnackBar(
         SnackBar(
-          content: Text('Không thể tải thông tin site để chỉnh sửa: $e'),
+          content: Text('Unable to load site information for editing: $e'),
         ),
       );
     }
@@ -616,18 +619,34 @@ class ViewDetailTask extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
-                label: const Text('Đóng'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: theme.colorScheme.outline),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
+              child:
+                  task.status == STATUS_DA_NHAN
+                      ? FilledButton.icon(
+                        // Thay OutlinedButton bằng FilledButton cho View Site
+                        onPressed: navigateToSiteDetail,
+                        icon: const Icon(Icons.visibility),
+                        label: const Text('View Site'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: theme.colorScheme.secondary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      )
+                      : OutlinedButton.icon(
+                        // Giữ nguyên cho các status khác
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close),
+                        label: const Text('Đóng'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: theme.colorScheme.outline),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -652,10 +671,10 @@ class ViewDetailTask extends StatelessWidget {
                 ),
                 label: Text(
                   task.status == STATUS_DA_NHAN
-                      ? 'Sửa Báo Cáo'
+                      ? 'Edit Report'
                       : task.status == STATUS_CHUA_NHAN
-                      ? 'Tạo Báo Cáo'
-                      : 'Xem Mặt Bằng',
+                      ? 'Create Report'
+                      : 'View Site',
                 ),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -671,7 +690,7 @@ class ViewDetailTask extends StatelessWidget {
         const SizedBox(height: 12),
         if (task.status != STATUS_HOAN_THANH)
           Text(
-            'Hành động này là điền thông tin mặt bằng. Sau khi điền xong, bạn có thể tạo báo cáo và gửi lên quản lý.',
+            'This action involves filling in site information. Once completed, you can create and submit a report to the manager.',
             textAlign: TextAlign.center,
             style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
           ),

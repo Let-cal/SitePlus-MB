@@ -2,21 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
-String getVietnameseStatus(String status) {
+/// Returns the status text in English based on the provided [status].
+String getStatusText(String status) {
   switch (status) {
     case STATUS_CHUA_NHAN:
-      return 'Chưa nhận';
+      return 'Not Received';
     case STATUS_DA_NHAN:
-      return 'Đã nhận';
+      return 'Received';
     case STATUS_CHO_PHE_DUYET:
-      return 'Đợi duyệt';
+      return 'Pending Approval';
     case STATUS_HOAN_THANH:
-      return 'Hoàn thành';
+      return 'Completed';
     default:
-      return 'Không xác định';
+      return 'Undefined';
   }
 }
 
+/// Returns an IconData corresponding to the provided [status].
 IconData getStatusIcon(String status) {
   switch (status) {
     case STATUS_CHUA_NHAN:
@@ -32,6 +34,7 @@ IconData getStatusIcon(String status) {
   }
 }
 
+/// Returns a Color based on the provided [status].
 Color getStatusColor(BuildContext context, String status) {
   final theme = Theme.of(context);
   switch (status) {
@@ -48,6 +51,7 @@ Color getStatusColor(BuildContext context, String status) {
   }
 }
 
+/// Returns a Color based on the provided priority value.
 Color getStatusPriorityColor(BuildContext context, String priority) {
   final theme = Theme.of(context);
   switch (priority) {

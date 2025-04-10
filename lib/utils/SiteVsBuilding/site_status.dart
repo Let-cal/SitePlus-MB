@@ -2,31 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Trả về trạng thái bằng tiếng Việt dựa vào giá trị [status]
-String getVietnameseStatus(int status) {
+String getStatusText(int status) {
   switch (status) {
     case 1:
-      return 'Có sẵn';
+      return 'Available';
     case 2:
-      return 'Đang tiến hành';
+      return 'In Progress';
     case 3:
-      return 'Chờ phê duyệt';
+      return 'Pending Approval';
     case 4:
-      return 'Bị từ chối';
+      return 'Rejected';
     case 5:
-      return 'Đã đóng';
+      return 'Closed';
     case 6:
-      return 'Đã kết nối';
+      return 'Connected';
     case 7:
-      return 'Đang đàm phán';
+      return 'Negotiating';
     case 8:
-      return 'Bản nháp';
+      return 'Draft';
     case 9:
-      return 'Đề Xuất';
+      return 'Proposed';
     default:
-      return 'Không xác định';
+      return 'Undefined';
   }
 }
-
 /// Trả về Color dựa vào [status]
 Color getStatusColor(BuildContext context, int status) {
   final theme = Theme.of(context);

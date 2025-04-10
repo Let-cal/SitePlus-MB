@@ -41,7 +41,7 @@ class LoginButton extends StatelessWidget {
                       ),
                     )
                     : Text(
-                      'Đăng Nhập',
+                      'Sign In to Continue',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

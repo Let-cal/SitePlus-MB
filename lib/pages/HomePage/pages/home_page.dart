@@ -20,7 +20,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   @override
   void initState() {
     super.initState();
-    // Kiểm tra nếu dữ liệu chưa được tải, thì tải lên
+    // Check if data hasn’t been loaded yet, then load it
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final taskProvider = Provider.of<TaskStatisticsProvider>(
         context,
@@ -41,7 +41,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Sử dụng Consumer để lắng nghe thay đổi từ TaskStatisticsProvider
+    // Use Consumer to listen to changes from TaskStatisticsProvider
     return Consumer<TaskStatisticsProvider>(
       builder: (context, taskStatsProvider, child) {
         return Scaffold(
@@ -67,8 +67,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         children: [
                           const SizedBox(height: 24),
                           SectionHeader(
-                            title: 'Thống kê nhiệm vụ',
-                            subtitle: 'Hiệu suất 7 ngày qua',
+                            title: 'Task Statistics',
+                            subtitle: 'Performance over the past 7 days',
                             icon: LucideIcons.clipboardList,
                           ),
                           const SizedBox(height: 16),
@@ -78,14 +78,14 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             _buildErrorWidgetTask(taskStatsProvider)
                           else
                             TaskStatsGrid(
-                              tasks: [], // Danh sách nhiệm vụ của bạn
+                              tasks: [], // Your task list
                               weeklyData: taskStatsProvider.weeklyData,
                               statistics: taskStatsProvider.taskStatistics,
                             ),
                           const SizedBox(height: 24),
                           SectionHeader(
-                            title: 'Thống kê báo cáo',
-                            subtitle: 'Phân tích hoàn thành báo cáo',
+                            title: 'Report Statistics',
+                            subtitle: 'Report completion analysis',
                             icon: LucideIcons.fileChartLine,
                           ),
                           const SizedBox(height: 16),
@@ -115,15 +115,15 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           const Icon(Icons.error_outline, color: Colors.red, size: 48),
           const SizedBox(height: 8),
           Text(
-            'Không thể tải dữ liệu',
+            'Unable to load data',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          Text(provider.errorMessage ?? 'Đã xảy ra lỗi không xác định'),
+          Text(provider.errorMessage ?? 'An unknown error occurred'),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () => provider.refreshTaskStatistics(),
-            child: const Text('Thử lại'),
+            child: const Text('Try Again'),
           ),
         ],
       ),
@@ -142,15 +142,15 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           const Icon(Icons.error_outline, color: Colors.red, size: 48),
           const SizedBox(height: 8),
           Text(
-            'Không thể tải dữ liệu báo cáo site',
+            'Unable to load site report data',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          Text(provider.errorMessage ?? 'Đã xảy ra lỗi không xác định'),
+          Text(provider.errorMessage ?? 'An unknown error occurred'),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: () => provider.refreshSiteReportStatistics(),
-            child: const Text('Thử lại'),
+            child: const Text('Try Again'),
           ),
         ],
       ),
@@ -169,9 +169,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           final statistics = siteReportProvider.siteReportStatistics;
           final reportData = siteReportProvider.reportData;
 
-          // Nếu chưa có dữ liệu, hiển thị thông báo
+          // If no data is available, display a message
           if (statistics == null) {
-            return const Center(child: Text('Không có dữ liệu báo cáo'));
+            return const Center(child: Text('No report data available'));
           }
 
           return Container(
@@ -190,58 +190,58 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             child: Column(
               children: [
                 _buildReportCard(
-                  'Tổng số báo cáo',
+                  'Total Reports',
                   statistics.totalAllDays.toString(),
                   siteReportProvider.calculatePercentageChange(
                     reportData['total']!,
                   ),
                   Colors.blue,
                   reportData['total']!,
-                  'Báo cáo đã gửi trong tuần',
+                  'Reports submitted this week',
                 ),
                 const Divider(height: 32),
                 _buildReportCard(
-                  'Báo cáo khả dụng',
+                  'Available Reports',
                   (statistics.totalByStatus['Available'] ?? 0).toString(),
                   siteReportProvider.calculatePercentageChange(
                     reportData['available']!,
                   ),
                   Colors.green,
                   reportData['available']!,
-                  'Tỉ lệ: ${statistics.totalByStatus['Available'] != null && statistics.totalAllDays > 0 ? ((statistics.totalByStatus['Available']! / statistics.totalAllDays) * 100).toStringAsFixed(1) : '0.0'}%',
+                  'Ratio: ${statistics.totalByStatus['Available'] != null && statistics.totalAllDays > 0 ? ((statistics.totalByStatus['Available']! / statistics.totalAllDays) * 100).toStringAsFixed(1) : '0.0'}%',
                 ),
                 const Divider(height: 32),
                 _buildReportCard(
-                  'Báo cáo chờ phê duyệt',
+                  'Reports Pending Approval',
                   (statistics.totalByStatus['PendingApproval'] ?? 0).toString(),
                   siteReportProvider.calculatePercentageChange(
                     reportData['pendingApproval']!,
                   ),
                   Colors.orange,
                   reportData['pendingApproval']!,
-                  'Tỉ lệ: ${statistics.totalByStatus['PendingApproval'] != null && statistics.totalAllDays > 0 ? ((statistics.totalByStatus['PendingApproval']! / statistics.totalAllDays) * 100).toStringAsFixed(1) : '0.0'}%',
+                  'Ratio: ${statistics.totalByStatus['PendingApproval'] != null && statistics.totalAllDays > 0 ? ((statistics.totalByStatus['PendingApproval']! / statistics.totalAllDays) * 100).toStringAsFixed(1) : '0.0'}%',
                 ),
                 const Divider(height: 32),
                 _buildReportCard(
-                  'Báo cáo bị từ chối',
+                  'Rejected Reports',
                   (statistics.totalByStatus['Refuse'] ?? 0).toString(),
                   siteReportProvider.calculatePercentageChange(
                     reportData['refuse']!,
                   ),
                   Colors.red,
                   reportData['refuse']!,
-                  'Tỉ lệ: ${statistics.totalByStatus['Refuse'] != null && statistics.totalAllDays > 0 ? ((statistics.totalByStatus['Refuse']! / statistics.totalAllDays) * 100).toStringAsFixed(1) : '0.0'}%',
+                  'Ratio: ${statistics.totalByStatus['Refuse'] != null && statistics.totalAllDays > 0 ? ((statistics.totalByStatus['Refuse']! / statistics.totalAllDays) * 100).toStringAsFixed(1) : '0.0'}%',
                 ),
                 const Divider(height: 32),
                 _buildReportCard(
-                  'Báo cáo đã đóng',
+                  'Closed Reports',
                   (statistics.totalByStatus['Closed'] ?? 0).toString(),
                   siteReportProvider.calculatePercentageChange(
                     reportData['closed']!,
                   ),
                   Colors.grey,
                   reportData['closed']!,
-                  'Tỉ lệ: ${statistics.totalByStatus['Closed'] != null && statistics.totalAllDays > 0 ? ((statistics.totalByStatus['Closed']! / statistics.totalAllDays) * 100).toStringAsFixed(1) : '0.0'}%',
+                  'Ratio: ${statistics.totalByStatus['Closed'] != null && statistics.totalAllDays > 0 ? ((statistics.totalByStatus['Closed']! / statistics.totalAllDays) * 100).toStringAsFixed(1) : '0.0'}%',
                 ),
               ],
             ),

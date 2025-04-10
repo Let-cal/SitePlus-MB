@@ -56,11 +56,58 @@ class ApiService {
     }
   }
 
-  // Lấy Site Deal theo Site ID
-  Future<Map<String, dynamic>?> getSiteDealBySiteId(int siteId) async {
+  Future<Map<String, dynamic>> getSiteDealsByUserId({
+    required int userId,
+    String? search,
+    int? siteId,
+    String? startDate,
+    String? endDate,
+    String? status,
+    int? pageNumber,
+    int? pageSize,
+  }) async {
     final token = await getToken();
-    final url =
-        '${ApiLink.baseUrl}${ApiEndpoints.getSiteDealBySiteId}/$siteId'; // "api/SiteDeal/site/{siteId}"
+
+    final queryParams = <String, String>{};
+    if (pageNumber != null) queryParams['pageNumber'] = pageNumber.toString();
+    if (pageSize != null) queryParams['pageSize'] = pageSize.toString();
+    if (search != null) queryParams['search'] = search;
+    if (siteId != null) queryParams['siteId'] = siteId.toString();
+    if (startDate != null) queryParams['startDate'] = startDate;
+    if (endDate != null) queryParams['endDate'] = endDate;
+    if (status != null) queryParams['status'] = status;
+
+    final url = Uri.parse(
+      '${ApiLink.baseUrl}${ApiEndpoints.getSiteDealByUserId}/$userId',
+    ).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token', 'Accept': '*/*'},
+      );
+      debugPrint('Get Site Deals URL: $url');
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': jsonDecode(response.body)};
+      } else {
+        return {
+          'success': false,
+          'message': 'Failed to fetch site deals: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      debugPrint('Exception when fetching site deals: $e');
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  // Lấy Site Deal theo Site ID
+  Future<List<Map<String, dynamic>>> getSiteDealBySiteId(int siteId) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.getSiteDealBySiteId}/$siteId';
 
     try {
       final response = await http.get(
@@ -74,17 +121,38 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        if (jsonResponse['data'] != null && jsonResponse['data'].isNotEmpty) {
-          return jsonResponse['data'][0]; // Lấy deal đầu tiên (giả sử chỉ có 1 deal mỗi site)
+        if (jsonResponse['data'] != null) {
+          return List<Map<String, dynamic>>.from(jsonResponse['data']);
         }
-        return null;
+        return [];
       } else {
         debugPrint('Failed to fetch site deal: ${response.statusCode}');
-        return null;
+        return [];
       }
     } catch (e) {
       debugPrint('Exception when fetching site deal: $e');
-      return null;
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> getSiteDealById(int siteDealId) async {
+    final token = await getToken();
+    final url = '${ApiLink.baseUrl}${ApiEndpoints.getSiteDealById}/$siteDealId';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Authorization': 'Bearer $token', 'Accept': '*/*'},
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return {'success': true, 'data': jsonResponse['data']};
+      } else {
+        return {'success': false, 'message': 'Không thể tải Site Deal'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Lỗi: $e'};
     }
   }
 
@@ -531,24 +599,21 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getSites({
-    required int pageNumber,
-    required int pageSize,
+    int? pageNumber,
+    int? pageSize,
     String? search,
     int? status,
+    int? siteCategoryId,
   }) async {
     final token = await getToken();
     Uri uri = Uri.parse('${ApiLink.baseUrl}${ApiEndpoints.getAllSites}');
     Map<String, String> params = {
-      'pageNumber': pageNumber.toString(),
-      'pageSize': pageSize.toString(),
+      if (pageNumber != null) 'pageNumber': pageNumber.toString(),
+      if (pageSize != null) 'pageSize': pageSize.toString(),
+      if (search != null && search.isNotEmpty) 'search': search,
+      if (status != null) 'status': status.toString(),
+      if (siteCategoryId != null) 'siteCategoryId': siteCategoryId.toString(),
     };
-
-    if (search != null && search.isNotEmpty) {
-      params['search'] = search;
-    }
-    if (status != null) {
-      params['status'] = status.toString();
-    }
 
     try {
       final response = await http.get(
@@ -558,13 +623,23 @@ class ApiService {
           'Content-Type': 'application/json',
         },
       );
+      print('API getSites URL: $uri');
+      print('API getSites params: $params');
+      print('API getSites response status: ${response.statusCode}');
+      print('API getSites response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
-        print('API get all site Response: ${jsonEncode(jsonData)}');
-        return jsonData; // Trả về toàn bộ response
+        if (jsonData['data'] == null) {
+          throw Exception(
+            'API response không chứa key "data": ${response.body}',
+          );
+        }
+        return jsonData; // Trả về toàn bộ JSON để xử lý tiếp
       } else {
-        throw Exception('Lỗi khi tải dữ liệu: ${response.statusCode}');
+        throw Exception(
+          'Lỗi khi tải dữ liệu: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       print('Error details: $e');

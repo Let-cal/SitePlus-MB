@@ -7,6 +7,7 @@ import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/HomePage/site_report_provider.dart';
 import 'package:siteplus_mb/utils/HomePage/task_statistics_provider.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_provider.dart';
+import 'package:siteplus_mb/utils/SiteDeal/site_deal_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/sites_provider.dart';
 
@@ -24,6 +25,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => SiteReportProvider()),
         ChangeNotifierProvider(create: (_) => LocationsProvider()),
         ChangeNotifierProvider(create: (_) => SitesProvider()),
+        ChangeNotifierProvider(create: (_) => SiteDealProvider()),
       ],
       child: const MyApp(),
     ),
@@ -64,27 +66,44 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Future<void> _loadLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token') ?? '';
+    final hintId = prefs.getString('hintId');
     setState(() {
       isLoggedIn = token.isNotEmpty;
     });
 
-    if (token.isNotEmpty) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (mounted) {
-        Provider.of<TaskStatisticsProvider>(
-          context,
-          listen: false,
-        ).fetchTaskStatistics();
-        Provider.of<SiteReportProvider>(
-          context,
-          listen: false,
-        ).fetchSiteReportStatistics();
-        final apiService = ApiService();
-        final categories = await apiService.getSiteCategories(token);
-        Provider.of<SiteCategoriesProvider>(
-          context,
-          listen: false,
-        ).setCategories(categories);
+    if (token.isNotEmpty && hintId != null) {
+      final userId = int.tryParse(hintId);
+      if (userId != null) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (mounted) {
+          // Các khởi tạo hiện có
+          Provider.of<TaskStatisticsProvider>(
+            context,
+            listen: false,
+          ).fetchTaskStatistics();
+          Provider.of<SiteReportProvider>(
+            context,
+            listen: false,
+          ).fetchSiteReportStatistics();
+          final apiService = ApiService();
+          final categories = await apiService.getSiteCategories(token);
+          Provider.of<SiteCategoriesProvider>(
+            context,
+            listen: false,
+          ).setCategories(categories);
+          Provider.of<SiteDealProvider>(
+            context,
+            listen: false,
+          ).fetchAllSiteDeals(userId);
+
+          // Thêm khởi tạo SignalR cho NotificationProvider
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Provider.of<NotificationProvider>(
+              context,
+              listen: false,
+            ).initSignalR();
+          });
+        }
       }
     }
   }
@@ -99,6 +118,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         context,
         listen: false,
       ).refreshSiteReportStatistics();
+      Provider.of<NotificationProvider>(
+        context,
+        listen: false,
+      ).initSignalR(); // Kết nối lại SignalR khi ứng dụng vào foreground
     }
   }
 

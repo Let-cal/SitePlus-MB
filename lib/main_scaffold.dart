@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/custom_app_bar.dart';
 import 'package:siteplus_mb/pages/HomePage/pages/home_page.dart';
 import 'package:siteplus_mb/pages/NotificationPage/pages/notification_page.dart';
+import 'package:siteplus_mb/pages/SiteDealPage/pages/site_deal_view_page.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/pages/site_view_page.dart';
 import 'package:siteplus_mb/pages/TaskPage/pages/task_view_page.dart';
 
@@ -22,20 +23,36 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _unreadNotifications = 0;
   int? _filterSiteId;
   int? _filterTaskId;
-
+  int? _filterTaskStatus;
   void navigateToSiteTab(int? filterSiteId) {
     setState(() {
       _selectedIndex = 2; // Chuyển sang tab "Mặt Bằng"
       _filterSiteId = filterSiteId; // Cập nhật filterSiteId
       _filterTaskId = null;
+      _filterTaskStatus = null;
     });
   }
 
-  void navigateToTaskTab(int? filterTaskId) {
+  void navigateToTaskTab(int? filterTaskId, {int? filterTaskStatus}) {
     setState(() {
       _selectedIndex = 1; // Chuyển sang tab "Nhiệm Vụ"
       _filterTaskId = filterTaskId;
-      _filterSiteId = null; // Reset filterSiteId khi chuyển sang tab khác
+      _filterTaskStatus = filterTaskStatus;
+      _filterSiteId = null;
+    });
+  }
+
+  void navigateToNotificationsTab() {
+    setState(() {
+      _selectedIndex = 4;
+      _filterSiteId = null;
+      _filterTaskId = null;
+      _filterTaskStatus = null;
+      _unreadNotifications = 0;
+    });
+    // Update shared preferences
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setInt('unread_notification_count', 0);
     });
   }
 
@@ -48,35 +65,51 @@ class _MainScaffoldState extends State<MainScaffold> {
     });
   }
 
+  void resetTaskStatusFilter() {
+    setState(() {
+      _filterTaskStatus = null;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _loadUnreadNotificationCount();
-    print("thông báo chưa đọc : $_unreadNotifications");
+    print("thông báo chưa đọc : $_unreadNotifications");
   }
 
   // Titles và descriptions cho từng tab
   final List<Map<String, String>> _pageInfo = [
-    {'title': 'Thống kê', 'description': 'Tổng quan hoạt động của dự án'},
-    {'title': 'Nhiệm Vụ', 'description': 'Quản lý công việc của bạn'},
+    {'title': 'Statistics', 'description': 'Overview of project activities'},
     {
-      'title': 'Mặt Bằng',
-      'description': 'Quản lý mặt bằng và tạo bản báo cáo chi tiết',
+      'title': 'Tasks',
+      'description': 'Get updates on the latest announcements and tasks',
     },
-    {'title': 'Thông Báo', 'description': 'Thông báo và cập nhật mới nhất'},
+    {'title': 'Sites', 'description': 'Manage site information and locations'},
+    {
+      'title': 'Deals',
+      'description': 'Manage negotiations and site conditions',
+    },
+    {
+      'title': 'Notifications',
+      'description': 'View the latest alerts and updates',
+    },
   ];
 
   List<Widget> _getPages() => [
     const HomePageWidget(),
     TasksPage(
-      onNavigateToSiteTab: navigateToSiteTab, // Truyền callback vào TasksPage
+      onNavigateToSiteTab: navigateToSiteTab,
       filterTaskId: _filterTaskId,
+      filterTaskStatus: _filterTaskStatus,
+      onResetTaskStatusFilter: resetTaskStatusFilter,
     ),
     SiteViewPage(
       onNavigateToTaskTab: navigateToTaskTab,
       filterSiteId: _filterSiteId,
     ),
+    SiteDealViewPage(onNavigateToSiteTab: navigateToSiteTab),
     const NotificationPage(),
   ];
 
@@ -91,6 +124,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         description: _pageInfo[_selectedIndex]['description'],
         notificationCount:
             _unreadNotifications, // Truyền số lượng thông báo chưa đọc
+        onNavigateToNotificationsTab: navigateToNotificationsTab,
       ),
       body: _getPages()[_selectedIndex],
       bottomNavigationBar: NavigationBar(
@@ -101,9 +135,10 @@ class _MainScaffoldState extends State<MainScaffold> {
             _selectedIndex = index;
             _filterSiteId = null;
             _filterTaskId = null;
+            _filterTaskStatus = null;
           });
 
-          if (index == 3) {
+          if (index == 4) {
             setState(() {
               _unreadNotifications = 0;
             });
@@ -116,22 +151,27 @@ class _MainScaffoldState extends State<MainScaffold> {
           const NavigationDestination(
             icon: Icon(LucideIcons.house),
             selectedIcon: Icon(LucideIcons.house, fill: 1),
-            label: 'Trang Chủ',
+            label: 'Statistics',
           ),
           const NavigationDestination(
             icon: Icon(LucideIcons.clipboardList),
             selectedIcon: Icon(LucideIcons.clipboardList, fill: 1),
-            label: 'Nhiệm Vụ',
+            label: 'Tasks',
           ),
           const NavigationDestination(
             icon: Icon(LucideIcons.building),
             selectedIcon: Icon(LucideIcons.building, fill: 1),
-            label: 'Mặt Bằng',
+            label: 'Sites',
+          ),
+          const NavigationDestination(
+            icon: Icon(LucideIcons.handshake),
+            selectedIcon: Icon(LucideIcons.handshake, fill: 1),
+            label: 'Deals',
           ),
           // Badge cho tab Notifications
           NavigationDestination(
             icon: Badge(
-              isLabelVisible: (_unreadNotifications ?? 0) > 0,
+              isLabelVisible: _unreadNotifications > 0,
               label: Text(
                 _unreadNotifications.toString(),
                 style: const TextStyle(color: Colors.white, fontSize: 10),
@@ -139,7 +179,7 @@ class _MainScaffoldState extends State<MainScaffold> {
               child: const Icon(LucideIcons.bell),
             ),
             selectedIcon: const Icon(LucideIcons.bell, fill: 1),
-            label: 'Thông Báo',
+            label: 'Notifications',
           ),
         ],
       ),

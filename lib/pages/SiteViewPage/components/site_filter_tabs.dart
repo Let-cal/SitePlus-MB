@@ -184,7 +184,7 @@ class _FilterTabPanelState extends State<FilterTabPanel> {
                                   : [],
                         ),
                         child: Text(
-                          getVietnameseStatus(status),
+                          getStatusText(status),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight:

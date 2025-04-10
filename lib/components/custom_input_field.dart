@@ -51,6 +51,9 @@ class CustomInputField extends StatefulWidget {
   final bool isDescription; // Thêm prop mới
   final bool formatThousands;
   final TextEditingController? controller;
+  final VoidCallback? onTap;
+  final bool useSmallText;
+  final bool useNewUI;
 
   const CustomInputField({
     super.key,
@@ -68,6 +71,9 @@ class CustomInputField extends StatefulWidget {
     this.isDescription = false,
     this.formatThousands = false,
     this.controller,
+    this.onTap, // Thêm vào constructor
+    this.useSmallText = false,
+    this.useNewUI = false,
   });
 
   @override
@@ -138,24 +144,81 @@ class _CustomInputFieldState extends State<CustomInputField> {
         decoration: InputDecoration(
           labelText: widget.label,
           hintText: widget.hintText,
+          labelStyle:
+              widget.useNewUI
+                  ? TextStyle(
+                    color: widget.theme.colorScheme.primary,
+                    fontSize: widget.useSmallText ? 12 : null,
+                  )
+                  : (widget.useSmallText
+                      ? widget.theme.textTheme.bodySmall
+                      : null),
+          hintStyle:
+              widget.useSmallText
+                  ? widget.theme.textTheme.bodySmall?.copyWith(
+                    color: widget.theme.colorScheme.onSurface.withOpacity(0.6),
+                  )
+                  : null,
           prefixIcon: Icon(
             widget.icon,
             color: widget.theme.colorScheme.primary,
           ),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+          border:
+              widget.useNewUI
+                  ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16.0),
+                    borderSide: BorderSide(
+                      color: widget.theme.colorScheme.primary,
+                    ),
+                  )
+                  : OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+          enabledBorder:
+              widget.useNewUI
+                  ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16.0),
+                    borderSide: BorderSide(
+                      color: widget.theme.colorScheme.primary.withOpacity(0.5),
+                    ),
+                  )
+                  : OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide(
+                      color: widget.theme.colorScheme.onSurface.withOpacity(
+                        0.2,
+                      ),
+                    ),
+                  ),
+          focusedBorder:
+              widget.useNewUI
+                  ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16.0),
+                    borderSide: BorderSide(
+                      color: widget.theme.colorScheme.primary,
+                      width: 2,
+                    ),
+                  )
+                  : OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide(
+                      color: widget.theme.colorScheme.primary,
+                      width: 2,
+                    ),
+                  ),
           suffixText: widget.suffixText,
           // Tùy chỉnh giao diện khi là description
-          filled: widget.isDescription,
-          fillColor:
-              widget.isDescription ? widget.theme.colorScheme.surface : null,
+          filled: true,
+          fillColor: widget.theme.colorScheme.surface,
           contentPadding:
               widget.isDescription
                   ? const EdgeInsets.all(16.0)
                   : const EdgeInsets.symmetric(
-                    vertical: 12.0,
+                    vertical: 16.0,
                     horizontal: 16.0,
                   ),
         ),
+        style: widget.useSmallText ? widget.theme.textTheme.bodySmall : null,
         keyboardType:
             widget.isDescription
                 ? TextInputType.multiline

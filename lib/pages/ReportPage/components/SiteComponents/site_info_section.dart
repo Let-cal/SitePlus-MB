@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:siteplus_mb/components/custom_input_field.dart';
-import 'package:siteplus_mb/components/read_only_field.dart'; // Import component mới
+import 'package:siteplus_mb/components/read_only_field.dart'; // Import new component
 
 class SiteInfoSection extends StatelessWidget {
   final TextEditingController sizeController;
@@ -30,18 +30,18 @@ class SiteInfoSection extends StatelessWidget {
 
     return Column(
       children: [
-        // Loại mặt bằng (read-only)
+        // Site Type (read-only)
         ReadOnlyField(
-          label: 'Loại mặt bằng',
+          label: 'Site Type',
           value: siteCategory,
           icon: Icons.category,
         ),
         const SizedBox(height: 16),
 
-        // Diện tích (Size) - chỉ nhận số
+        // Size (numeric input only)
         CustomInputField(
-          label: 'Diện tích',
-          hintText: 'Ví dụ: 200m2',
+          label: 'Size',
+          hintText: 'e.g.: 200m2',
           icon: Icons.square_foot,
           onSaved: onSizeSaved,
           suffixText: "m2",
@@ -52,13 +52,13 @@ class SiteInfoSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Tầng
+        // Floor input
         CustomInputField(
-          label: siteCategoryId == 1 ? 'Tầng' : 'Tổng số tầng',
+          label: siteCategoryId == 1 ? 'Floor' : 'Total Floors',
           hintText:
               siteCategoryId == 1
-                  ? 'Ví dụ: tầng 2'
-                  : 'Gợi ý: tổng cộng có 2 tầng',
+                  ? 'e.g.: Floor 2'
+                  : 'Suggestion: Total 2 floors',
           icon: Icons.stairs,
           onSaved: onFloorSaved,
           theme: theme,
@@ -67,13 +67,6 @@ class SiteInfoSection extends StatelessWidget {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
         const SizedBox(height: 16),
-
-        // Trạng thái (read-only) - chuyển từ location_section
-        ReadOnlyField(
-          label: 'Trạng thái',
-          value: 'Đang hoạt động',
-          icon: Icons.check_circle,
-        ),
       ],
     );
   }

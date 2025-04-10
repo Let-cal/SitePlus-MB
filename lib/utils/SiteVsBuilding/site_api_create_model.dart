@@ -1,5 +1,5 @@
 class SiteCreateRequest {
-  final int taskId;
+  final int? taskId;
   final int siteCategoryId;
   final int areaId;
   final String address;
@@ -7,10 +7,11 @@ class SiteCreateRequest {
   final int floor;
   final int totalFloor;
   final String description;
+  final int status;
   final int? buildingId;
 
   SiteCreateRequest({
-    required this.taskId,
+    this.taskId,
     required this.siteCategoryId,
     required this.areaId,
     required this.address,
@@ -18,12 +19,12 @@ class SiteCreateRequest {
     required this.floor,
     required this.totalFloor,
     required this.description,
+    required this.status,
     this.buildingId,
   });
 
   Map<String, dynamic> toJson() {
-    return {
-      'taskId': taskId,
+    final Map<String, dynamic> json = {
       'siteCategoryId': siteCategoryId,
       'areaId': areaId,
       'address': address,
@@ -32,17 +33,33 @@ class SiteCreateRequest {
       'totalFloor': totalFloor,
       'description': description,
       'buildingId': buildingId,
+      'status': status,
       'brandId': null, // Theo yêu cầu, brandId luôn là null
     };
+    // Chỉ thêm taskId nếu nó không null
+    if (taskId != null) {
+      json['taskId'] = taskId;
+    }
+    return json;
   }
 
   // Tạo SiteCreateRequest từ reportData
-  factory SiteCreateRequest.fromReportData(Map<String, dynamic> reportData) {
+  factory SiteCreateRequest.fromReportData(
+    Map<String, dynamic> reportData, {
+    int? customStatus,
+  }) {
     final siteInfo = reportData['siteInfo'];
     final int siteCategoryId = reportData['siteCategoryId'] ?? 0;
-    final bool isInBuilding = reportData['reportType'] == 'Building';
+    final bool isInBuilding =
+        reportData['reportType'] == 'Building' ||
+        reportData['reportType'] == 'Internal Site';
     final int areaId = siteInfo['areaId'] ?? 0;
-    final int taskId = int.tryParse(siteInfo['taskId'].toString()) ?? 0;
+    // Chỉ lấy taskId nếu nó tồn tại trong siteInfo
+    final int? taskId =
+        siteInfo.containsKey('taskId')
+            ? int.tryParse(siteInfo['taskId'].toString())
+            : null;
+
     int? buildingId;
     if (isInBuilding && siteInfo['buildingId'] != null) {
       buildingId = int.tryParse(siteInfo['buildingId'].toString()) ?? 0;
@@ -62,7 +79,10 @@ class SiteCreateRequest {
         siteInfo['totalFloor'].toString().isNotEmpty) {
       totalFloor = int.tryParse(siteInfo['totalFloor'].toString()) ?? 0;
     }
-
+    final int status =
+        siteInfo['status'] != null && siteInfo['status'].toString().isNotEmpty
+            ? int.tryParse(siteInfo['status'].toString()) ?? (customStatus ?? 2)
+            : (customStatus ?? 2);
     return SiteCreateRequest(
       taskId: taskId,
       siteCategoryId: siteCategoryId,
@@ -73,6 +93,7 @@ class SiteCreateRequest {
       totalFloor: totalFloor,
       description: reportData['additionalNotes'] ?? '',
       buildingId: buildingId,
+      status: status,
     );
   }
 }

@@ -9,6 +9,8 @@ class ApiEndpoints {
   static const String getAllSites = '/Site/staff';
   static const String createSiteDeal = '/SiteDeal';
   static const String getSiteDealBySiteId = '/SiteDeal/site';
+  static const String getSiteDealByUserId = '/SiteDeal/user';
+  static const String getSiteDealById = '/SiteDeal/SiteDeal';
   static const String updateSiteDeal = '/SiteDeal';
 
   ///building service

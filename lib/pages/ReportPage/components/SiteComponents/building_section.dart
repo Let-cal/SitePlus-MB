@@ -77,7 +77,7 @@ class _BuildingSectionState extends State<BuildingSection> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Tạo Tòa Nhà Mới'),
+              title: Text('Create New Building'),
               content: Form(
                 key: dialogFormKey,
                 child: Column(
@@ -86,14 +86,14 @@ class _BuildingSectionState extends State<BuildingSection> {
                     TextFormField(
                       controller: buildingNameController,
                       decoration: InputDecoration(
-                        labelText: 'Tên tòa nhà',
+                        labelText: 'Building Name',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Vui lòng nhập tên tòa nhà';
+                          return 'Please enter the building name';
                         }
                         return null;
                       },
@@ -101,7 +101,7 @@ class _BuildingSectionState extends State<BuildingSection> {
                     SizedBox(height: 16),
                     if (widget.areaId == null)
                       Text(
-                        'Vui lòng chọn khu vực trước khi tạo tòa nhà',
+                        'Please select an area before creating a building',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),
@@ -112,7 +112,7 @@ class _BuildingSectionState extends State<BuildingSection> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Hủy'),
+                  child: Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed:
@@ -130,9 +130,8 @@ class _BuildingSectionState extends State<BuildingSection> {
                                     );
                                 Navigator.of(context).pop();
 
-                                // Cập nhật danh sách buildings trước khi chọn
-                                await widget
-                                    .onReloadBuildings(); // Đảm bảo danh sách được tải lại
+                                // Update the buildings list before selecting
+                                await widget.onReloadBuildings();
 
                                 setState(() {
                                   _selectedBuilding = newBuilding;
@@ -146,7 +145,9 @@ class _BuildingSectionState extends State<BuildingSection> {
 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Tạo tòa nhà thành công!'),
+                                    content: Text(
+                                      'Building created successfully!',
+                                    ),
                                     backgroundColor:
                                         Theme.of(context).colorScheme.primary,
                                   ),
@@ -154,7 +155,7 @@ class _BuildingSectionState extends State<BuildingSection> {
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Lỗi: ${e.toString()}'),
+                                    content: Text('Error: ${e.toString()}'),
                                     backgroundColor:
                                         Theme.of(context).colorScheme.error,
                                   ),
@@ -162,7 +163,7 @@ class _BuildingSectionState extends State<BuildingSection> {
                               }
                             }
                           },
-                  child: Text('Tạo'),
+                  child: Text('Create'),
                 ),
               ],
             );
@@ -253,7 +254,7 @@ class _BuildingSectionState extends State<BuildingSection> {
             onChanged: isEnabled && !isLoading ? onChanged : null,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Vui lòng chọn $label';
+                return 'Please select $label';
               }
               return null;
             },
@@ -272,7 +273,7 @@ class _BuildingSectionState extends State<BuildingSection> {
     return TextFormField(
       controller: _totalFloorNumberController,
       decoration: InputDecoration(
-        labelText: 'Tổng số tầng của tòa nhà',
+        labelText: 'Total number of floors',
         prefixIcon: Icon(
           Icons.stairs,
           color: Theme.of(context).colorScheme.primary,
@@ -299,17 +300,9 @@ class _BuildingSectionState extends State<BuildingSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header
-        _buildSectionHeader(
-          title: 'Thông tin Tòa nhà',
-          icon: Icons.apartment,
-          theme: theme,
-        ),
-        SizedBox(height: 16),
-
         // Building dropdown with add button
         _buildStyledDropdown(
-          label: 'Tòa nhà',
+          label: 'Building',
           icon: Icons.apartment,
           value: _selectedBuilding?.name,
           items: widget.buildings.map((building) => building.name).toList(),
@@ -352,7 +345,7 @@ class _BuildingSectionState extends State<BuildingSection> {
               onPressed:
                   widget.areaId == null ? null : _showCreateBuildingDialog,
               icon: Icon(Icons.add, size: 18),
-              label: Text('Tạo tòa nhà mới'),
+              label: Text('Create New Building'),
               style: TextButton.styleFrom(
                 foregroundColor: theme.colorScheme.primary,
               ),

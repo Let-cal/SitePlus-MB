@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/components/help_dialog.dart';
+import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/building_section.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/location_section.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/section_header.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/SiteComponents/site_info_section.dart';
 import 'package:siteplus_mb/pages/ReportPage/components/additional_notes.dart';
-import 'package:siteplus_mb/pages/ReportPage/components/building_section.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/report_create_dialog.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
@@ -23,17 +23,19 @@ class SiteBuildingDialog extends StatefulWidget {
   final String taskStatus;
   final int? siteId;
   final VoidCallback? onUpdateSuccess;
+  final bool isProposeMode;
 
   const SiteBuildingDialog({
     super.key,
     required this.reportType,
     required this.siteCategoryId,
-    required this.areaId,
+    this.areaId,
     required this.siteCategory,
     required this.taskId,
     required this.taskStatus,
     this.siteId,
     this.onUpdateSuccess,
+    this.isProposeMode = false,
   });
 
   @override
@@ -90,18 +92,22 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     _sizeController = TextEditingController(text: '');
     _floorNumberController = TextEditingController(text: '');
     _totalFloorNumberController = TextEditingController(text: '');
+    debugPrint('Report type received: ${widget.reportType}');
 
-    _isInBuilding = widget.reportType == 'Building';
+    _isInBuilding =
+        widget.reportType == 'Building' ||
+        widget.reportType == 'Internal Site' ||
+        widget.reportType == '1';
     await Future.wait([_getUserAreaInfo(), _loadDistricts()]);
     if (_districts.isEmpty) {
-      debugPrint('Districts chưa được tải, không thể chọn district/area');
+      debugPrint('Districts have not been loaded, cannot select district/area');
       setState(() {
         _isLoading = false;
       });
       return;
     }
 
-    // Kiểm tra nếu là chỉnh sửa (task.status == STATUS_DA_NHAN và có siteId)
+    // If editing (task.status == STATUS_DA_NHAN and there is a siteId)
     if (widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null) {
       await _loadSiteData(widget.siteId!);
     } else if (widget.areaId != null) {
@@ -121,10 +127,10 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
   Future<void> _loadSiteData(int siteId) async {
     try {
-      debugPrint('site id lấy được từ task là: ${siteId.toString()}');
+      debugPrint('Site id received from task: ${siteId.toString()}');
       final siteResponse = await _apiService.getSiteById(siteId);
       final siteData = siteResponse['data'];
-      // Lấy tất cả areas để tìm areaId từ areaName
+      // Retrieve all areas to find areaId from areaName
       final allAreas = await _apiService.getAllAreas();
       final selectedArea = allAreas.firstWhere(
         (area) => area.name == siteData['areaName'],
@@ -134,12 +140,12 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       int? areaId = selectedArea.id != -1 ? selectedArea.id : null;
       int? districtId = selectedArea.id != -1 ? selectedArea.districtId : null;
       setState(() {
-        // Điền dữ liệu vào controllers
+        // Fill data into controllers
         _addressController.text = siteData['address'] ?? '';
         _sizeController.text = siteData['size'].toString();
         _floorNumberController.text = siteData['floor'].toString();
         _totalFloorNumberController.text = siteData['totalFloor'].toString();
-        // Tạo BuildingCreateRequest từ dữ liệu API
+        // Create BuildingCreateRequest from API data
         if (siteData['buildingId'] != null) {
           final BuildingCreateRequest initialBuilding = BuildingCreateRequest(
             id: siteData['buildingId'],
@@ -149,7 +155,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
             status: 1,
             statusName: 'Active',
           );
-          // Kiểm tra xem building đã tồn tại trong danh sách chưa
+          // Check whether the building already exists in the list
           bool buildingExists = _buildings.any(
             (b) => b.id == initialBuilding.id,
           );
@@ -157,10 +163,10 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
             _buildings.add(initialBuilding);
           }
 
-          // Đặt building được chọn
+          // Set the selected building
           _selectedBuilding = initialBuilding;
         }
-        // Cập nhật reportData
+        // Update reportData
         reportData['siteInfo'] = {
           'siteName': '',
           'siteCategory': widget.siteCategory,
@@ -175,14 +181,14 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           'totalFloor': siteData['totalFloor'].toString(),
           'taskId': widget.taskId,
         };
-        debugPrint('building id: ${siteData['buildingId']}');
-        debugPrint('building name: ${siteData['buildingName']}');
-        // Cập nhật selection cho area và district
+        debugPrint('Building id: ${siteData['buildingId']}');
+        debugPrint('Building name: ${siteData['buildingName']}');
+        // Update area and district selection
         _selectedAreaName = siteData['areaName'];
         _selectedAreaId = areaId;
       });
 
-      // Tự động chọn district nếu tìm được districtId
+      // Auto-select district if districtId is found
       if (districtId != null) {
         await _autoSelectDistrictFromArea(areaId);
       }
@@ -191,7 +197,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       debugPrint('Error loading site data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Không thể tải thông tin site: $e'),
+          content: Text('Unable to load site information: $e'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -209,7 +215,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       );
 
       if (selectedArea.id == -1) {
-        debugPrint('Không tìm thấy area với id: $areaId');
+        debugPrint('Area not found with id: $areaId');
         return;
       }
 
@@ -230,9 +236,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           _selectedAreaName = selectedArea.name;
         });
       } else {
-        debugPrint(
-          'Không tìm thấy district với id: ${selectedArea.districtId}',
-        );
+        debugPrint('District not found with id: ${selectedArea.districtId}');
       }
     } catch (e) {
       debugPrint('Error in auto selecting district: $e');
@@ -248,11 +252,10 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       });
 
       try {
-        final siteRequest =
-            SiteCreateRequest.fromReportData(reportData).toJson();
-
         if (widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null) {
-          // Cập nhật site
+          // Update site
+          final siteRequest =
+              SiteCreateRequest.fromReportData(reportData).toJson();
           final response = await _apiService.updateSite(
             widget.siteId!,
             siteRequest,
@@ -260,7 +263,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           if (response['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Cập nhật mặt bằng thành công!'),
+                content: Text('Site updated successfully!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -271,9 +274,9 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
             throw Exception('Failed to update site: ${response['message']}');
           }
         } else if (widget.taskStatus == STATUS_CHUA_NHAN) {
-          // Tạo mới site
+          // Create new site
           final response = await _apiService.createSite(
-            SiteCreateRequest.fromReportData(reportData),
+            SiteCreateRequest.fromReportData(reportData, customStatus: 2),
           );
           if (response['success'] == true || response.containsKey('siteId')) {
             final statusTaskUpdated = await _apiService.updateTaskStatus(
@@ -281,17 +284,17 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
               2,
             );
             if (statusTaskUpdated) {
-              debugPrint('Task status updated to "Đã nhận" (2)');
+              debugPrint('Task status updated to "Received" (2)');
             }
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Tạo mặt bằng thành công!'),
+                content: Text('Site created successfully!'),
                 backgroundColor: Colors.green,
               ),
             );
             await Future.delayed(Duration(milliseconds: 500));
-            widget.onUpdateSuccess?.call(); // Gọi callback
+            widget.onUpdateSuccess?.call(); // Call callback
             Navigator.of(context).pop(true);
           } else {
             throw Exception('Failed to create site: ${response['message']}');
@@ -300,7 +303,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -310,14 +313,79 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         });
       }
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please complete all required fields')),
+      );
+    }
+  }
+
+  Future<void> _createSite() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Copy reportData for modifications
+        Map<String, dynamic> modifiedReportData = Map.from(reportData);
+
+        // Remove taskId if in propose mode
+        if (widget.isProposeMode) {
+          modifiedReportData['siteInfo'].remove('taskId');
+        }
+        final siteRequest = SiteCreateRequest.fromReportData(
+          modifiedReportData,
+          customStatus:
+              widget.isProposeMode ? 9 : 2, // 9 for propose, 2 for normal
+        );
+        debugPrint(
+          'Site request sent for API create site when isProposeMode == ${widget.isProposeMode}: ${siteRequest.toJson()}',
+        );
+        final response = await _apiService.createSite(siteRequest);
+
+        if (response['siteId'] != null &&
+            response['siteId']['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.isProposeMode
+                    ? 'Site proposed successfully!'
+                    : 'Site created successfully!',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop(true);
+        } else {
+          final errorMessage =
+              response['siteId']?['message'] ??
+              response['message'] ??
+              'Unknown error';
+          throw Exception('Failed to create site: $errorMessage');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill in all required fields')),
+      );
     }
   }
 
   Map<String, dynamic> _createInitialReportData() {
-    return {
+    final initialData = {
       'reportType': widget.reportType,
       'siteCategory': widget.siteCategory,
       'siteCategoryId': widget.siteCategoryId,
@@ -328,14 +396,23 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         'address': '',
         'size': '',
         'areaId': null,
-        'status': 'Available',
+        'status': '',
         'floor': '',
         'buildingId': null,
         'buildingName': '',
         'totalFloor': '',
-        'taskId': widget.taskId,
       },
     };
+
+    // Only add taskId if not in propose mode
+    if (!widget.isProposeMode) {
+      final siteInfo = initialData['siteInfo'] as Map<String, dynamic>?;
+      if (siteInfo != null) {
+        siteInfo['taskId'] = widget.taskId;
+      }
+    }
+
+    return initialData;
   }
 
   Future<void> _loadDistricts() async {
@@ -357,10 +434,10 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
   Future<void> _autoSelectDistrictAndArea(int areaId) async {
     try {
-      // Gọi API để lấy tất cả areas
+      // Call API to get all areas
       final allAreas = await _apiService.getAllAreas();
 
-      // Tìm area có id bằng areaId
+      // Find the area with the given areaId
       final selectedArea = allAreas.firstWhere(
         (area) => area.id == areaId,
         orElse: () => Area(id: -1, name: '', districtId: -1),
@@ -369,7 +446,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       if (selectedArea.id != -1) {
         final districtId = selectedArea.districtId;
 
-        // Tìm district tương ứng trong _districts
+        // Find the corresponding district in _districts
         final selectedDistrict = _districts.firstWhere(
           (district) => district.id == districtId,
           orElse: () => District(id: -1, name: '', cityId: -1),
@@ -379,27 +456,27 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           setState(() {
             _selectedDistrictId = districtId;
             _selectedDistrictName = selectedDistrict.name;
+          });
+
+          // Load areas for the selected district
+          await _loadAreas(districtId);
+          setState(() {
             _selectedAreaId = areaId;
             _selectedAreaName = selectedArea.name;
           });
-
-          // Load areas cho district đã chọn
-          await _loadAreas(districtId);
-
-          // Cập nhật reportData
+          // Update reportData
           _updateReportData('areaId', areaId);
         } else {
-          debugPrint('Không tìm thấy district với districtId: $districtId');
+          debugPrint('District not found with districtId: $districtId');
         }
       } else {
-        debugPrint('Không tìm thấy area với areaId: $areaId');
+        debugPrint('Area not found with areaId: $areaId');
       }
     } catch (e) {
-      debugPrint('Lỗi khi tự động chọn district và area: $e');
-      // Có thể hiển thị thông báo lỗi cho người dùng nếu cần
+      debugPrint('Error when auto-selecting district and area: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Không thể tự động chọn vị trí: $e'),
+          content: Text('Unable to auto select location: $e'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -444,11 +521,11 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       }
 
       setState(() {
-        _buildings = buildings; // Gán trực tiếp danh sách mới
-        // Kiểm tra xem _selectedBuilding có còn hợp lệ không
+        _buildings = buildings;
+        // Check if _selectedBuilding is still valid
         if (_selectedBuilding != null &&
             !_buildings.any((b) => b.id == _selectedBuilding!.id)) {
-          _selectedBuilding = null; // Reset nếu không tìm thấy
+          _selectedBuilding = null;
         }
         _isLoadingBuildings = false;
       });
@@ -459,7 +536,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Không thể tải danh sách tòa nhà: ${e.toString()}'),
+          content: Text('Unable to load building list: ${e.toString()}'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -478,8 +555,6 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     setState(() {
       _isLoadingAreas = true;
       _areas = [];
-      _selectedAreaName = null;
-      _selectedAreaId = null;
     });
 
     try {
@@ -489,6 +564,13 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         setState(() {
           _areas = areas;
           _isLoadingAreas = false;
+          if (_selectedAreaId != null &&
+              _areas.any((a) => a.id == _selectedAreaId)) {
+            final selectedArea = _areas.firstWhere(
+              (a) => a.id == _selectedAreaId,
+            );
+            _selectedAreaName = selectedArea.name;
+          }
         });
       }
     } catch (e) {
@@ -498,7 +580,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Không thể tải danh sách khu vực/phường'),
+            content: Text('Unable to load list of areas/wards'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -527,34 +609,34 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('Xác nhận'),
+              title: Text('Confirmation'),
               content: Text(
-                'Nếu bạn tiếp tục báo cáo thì thông tin mặt bằng bạn vừa điền vào sẽ được lưu. Bạn có chắc không?',
+                'If you continue with the report, the property information you entered will be saved. Are you sure you want to continue?',
               ),
               actions: <Widget>[
                 TextButton(
-                  child: Text('Hủy'),
+                  child: Text('Cancel'),
                   onPressed: () => Navigator.of(context).pop(false),
                 ),
                 TextButton(
-                  child: Text('Đồng ý'),
+                  child: Text('Confirm'),
                   onPressed: () => Navigator.of(context).pop(true),
                 ),
               ],
             );
           },
         ) ??
-        false; // Trả về false nếu người dùng thoát dialog mà không chọn
+        false; // Return false if the user exits the dialog without choosing
   }
 
   Future<void> _proceedToFullReport() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      // Hiển thị dialog xác nhận
+      // Display confirmation dialog
       final bool confirmed = await _showConfirmationDialog();
       if (!confirmed) {
-        return; // Người dùng không đồng ý, thoát hàm
+        return; // The user did not confirm; exit the function.
       }
 
       setState(() {
@@ -563,25 +645,32 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
       try {
         if (widget.taskStatus == STATUS_CHUA_NHAN) {
-          // Tạo site mới
-          final siteRequest = SiteCreateRequest.fromReportData(reportData);
+          // Create a new site
+          final siteRequest = SiteCreateRequest.fromReportData(
+            reportData,
+            customStatus: 2,
+          );
           final createResponse = await _apiService.createSite(siteRequest);
 
-          if (createResponse['success'] == true) {
+          if (createResponse['siteId'] != null &&
+              createResponse['siteId']['success'] == true) {
             final statusTaskUpdated = await _apiService.updateTaskStatus(
               widget.taskId,
               2,
             );
             if (statusTaskUpdated) {
-              debugPrint('Task status updated to "Đã nhận" (2)');
+              debugPrint('Task status updated to "Received" (2)');
+            } else {
+              debugPrint('Failed to update task status to 2');
+              throw Exception('Task status update failed');
             }
           }
           if (createResponse['siteId'] != null) {
             final siteId =
-                createResponse['siteId']['data']; // Lấy siteId từ response
-            const siteStatus = 2; // Giả định status mặc định cho site mới
+                createResponse['siteId']['data']; // Retrieve siteId from response
+            const siteStatus = 2; // Assume default status for a new site
 
-            // Thay thế SiteBuildingDialog bằng ReportCreateDialog
+            // Replace SiteBuildingDialog with ReportCreateDialog
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -605,7 +694,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
             );
           }
         } else if (widget.taskStatus == STATUS_DA_NHAN) {
-          // Cập nhật site
+          // Update the site
           final siteRequest =
               SiteCreateRequest.fromReportData(reportData).toJson();
           final updateResponse = await _apiService.updateSite(
@@ -615,20 +704,21 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
           if (updateResponse['success'] == true) {
             final siteStatus =
-                updateResponse['data']['status']; // Lấy status từ response
+                reportData['siteInfo']['status'] ??
+                updateResponse['data']['status'];
             debugPrint(
-              "site status truyền về report create dialog là : ${siteStatus}",
+              "Site status passed to ReportCreateDialog is: ${siteStatus}",
             );
 
             bool isEditMode = [4, 7, 8].contains(siteStatus);
             debugPrint(
-              "isEditMode truyền về report create dialog là : ${isEditMode}",
+              "isEditMode passed to ReportCreateDialog is: ${isEditMode}",
             );
             debugPrint(
-              "siteId truyền về report create dialog là : ${widget.siteId}",
+              "siteId passed to ReportCreateDialog is: ${widget.siteId}",
             );
 
-            // Mở ReportCreateDialog, giữ SiteBuildingDialog trong stack
+            // Open ReportCreateDialog, keeping the current dialog in the stack
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -656,7 +746,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -668,7 +758,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Vui lòng điền đầy đủ thông tin'),
+          content: Text('Please complete all required fields.'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -738,7 +828,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            'Thông tin mặt bằng',
+            widget.isProposeMode ? 'Propose Site' : 'Create Site',
             style: theme.textTheme.titleLarge?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -751,7 +841,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                   () => HelpDialog.show(
                     context,
                     content:
-                        'Điền đầy đủ thông tin mặt bằng và thêm ghi chú để tiến hành khảo sát đầy đủ. Nếu bạn điền xong và chỉ muốn đăng tải thông tin của mặt bằng lên trước thì bạn hãy tạo thông tin cho mặt trước rồi sau đó tiếp tục viết báo cáo chi tiết sau!!!',
+                        'Fill in all required site information and add notes to proceed. You can save the site information first and complete a detailed report later.',
                   ),
             ),
           ],
@@ -793,13 +883,13 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
               _buildProgressIndicator(theme),
               SizedBox(height: 24),
 
-              // Section: Thông tin Mặt bằng
+              // Section: Site Information
               _buildSectionWithAnimation(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SectionHeader(
-                      title: 'Thông tin Mặt bằng',
+                      title: 'Site Information',
                       icon: Icons.store_mall_directory,
                     ),
                     SizedBox(height: 20),
@@ -836,7 +926,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SectionHeader(
-                        title: 'Thông tin Tòa nhà',
+                        title: 'Building Information',
                         icon: Icons.apartment,
                       ),
                       SizedBox(height: 20),
@@ -867,7 +957,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SectionHeader(title: 'Vị trí', icon: Icons.location_on),
+                    SectionHeader(title: 'Location', icon: Icons.location_on),
                     SizedBox(height: 20),
                     _buildElevatedCard(
                       child: LocationSection(
@@ -898,7 +988,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SectionHeader(
-                      title: 'Ghi chú bổ sung',
+                      title: 'Additional Notes',
                       icon: Icons.note_add,
                     ),
                     SizedBox(height: 20),
@@ -941,7 +1031,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Tiến độ thông tin',
+              'Information Progress',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w500,
               ),
@@ -976,7 +1066,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       opacity: _isInitialized ? 1.0 : 0.0,
       duration: Duration(milliseconds: 500),
       curve: Curves.easeInOut,
-      // Thêm delay để tạo hiệu ứng tuần tự
+      // Add delay for sequential animation
       onEnd: () {},
       child: AnimatedSlide(
         offset: _isInitialized ? Offset.zero : Offset(0, 0.1),
@@ -1016,14 +1106,18 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                 : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Nút lưu mặt bằng
+                    // Save site information button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: _createOrUpdateSite,
+                        onPressed:
+                            widget.isProposeMode
+                                ? _createSite
+                                : _createOrUpdateSite,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: theme.colorScheme.onPrimary,
+                          iconColor: theme.colorScheme.onPrimary,
                           padding: EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -1033,8 +1127,10 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                         icon: Icon(Icons.save),
                         label: Text(
                           widget.taskStatus == STATUS_DA_NHAN
-                              ? 'Cập nhật mặt bằng'
-                              : 'Lưu thông tin mặt bằng',
+                              ? 'Update site information'
+                              : widget.isProposeMode
+                              ? 'Propose Site'
+                              : 'Save site information',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -1043,71 +1139,72 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                       ),
                     ),
                     SizedBox(height: 12),
-                    // Row chứa nút tiếp tục và nút hủy
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: theme.colorScheme.error,
-                              side: BorderSide(color: theme.colorScheme.error),
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.close,
+                    // Row with Continue and Close buttons
+                    if (!widget.isProposeMode)
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: theme.colorScheme.error,
+                                side: BorderSide(
                                   color: theme.colorScheme.error,
                                 ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Hủy',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.close,
                                     color: theme.colorScheme.error,
                                   ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Close',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.error,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          // Continue to full report button
+                          Expanded(
+                            flex: 3,
+                            child: OutlinedButton.icon(
+                              onPressed: _proceedToFullReport,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: theme.colorScheme.primary,
+                                side: BorderSide(
+                                  color: theme.colorScheme.primary,
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        // Nút tiếp tục báo cáo đầy đủ
-                        Expanded(
-                          flex: 3,
-                          child: OutlinedButton.icon(
-                            onPressed: _proceedToFullReport,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: theme.colorScheme.primary,
-                              side: BorderSide(
-                                color: theme.colorScheme.primary,
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: Icon(Icons.navigate_next),
-                            label: Text(
-                              'Tiếp tục báo cáo đầy đủ',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                              icon: Icon(Icons.navigate_next),
+                              label: Text(
+                                'Continue Full Report',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-
-                        // Nút hủy với viền và icon
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
       ),

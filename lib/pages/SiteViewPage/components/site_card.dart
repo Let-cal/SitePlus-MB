@@ -135,7 +135,7 @@ class SiteCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              getVietnameseStatus(site.status),
+                              getStatusText(site.status),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

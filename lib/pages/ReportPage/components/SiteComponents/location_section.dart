@@ -12,8 +12,8 @@ class LocationSection extends StatelessWidget {
   final Function(String?) onDistrictChanged;
   final Function(String?) onAreaChanged;
   final bool isAreaSelectionEnabled;
-  final TextEditingController addressController; // Thêm controller cho địa chỉ
-  final Function(String?) onAddressSaved; // Thêm callback cho địa chỉ
+  final TextEditingController addressController; // Added controller for address
+  final Function(String?) onAddressSaved; // Added callback for address
 
   const LocationSection({
     super.key,
@@ -35,10 +35,10 @@ class LocationSection extends StatelessWidget {
 
     return Column(
       children: [
-        // Địa chỉ - chuyển từ site_info_section
+        // Address - translated from site_info_section
         CustomInputField(
-          label: 'Địa chỉ',
-          hintText: 'Ví dụ: phường 14/200 đường D3...',
+          label: 'Address',
+          hintText: 'e.g.: District 14/200 D3 Street...',
           icon: Icons.location_on,
           onSaved: onAddressSaved,
           theme: theme,
@@ -48,7 +48,7 @@ class LocationSection extends StatelessWidget {
         // District Dropdown
         _buildStyledDropdown(
           context: context,
-          label: 'Quận/Huyện',
+          label: 'District',
           icon: Icons.location_city,
           value: selectedDistrictName,
           items: districts.map((district) => district.name).toList(),
@@ -59,7 +59,7 @@ class LocationSection extends StatelessWidget {
         // Area Dropdown
         _buildStyledDropdown(
           context: context,
-          label: 'Phường/Xã',
+          label: 'Ward',
           icon: Icons.map,
           value: selectedAreaName,
           items: areas.map((area) => area.name).toList(),
@@ -145,7 +145,7 @@ class LocationSection extends StatelessWidget {
           onChanged: isEnabled && !isLoading ? onChanged : null,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Vui lòng chọn $label';
+              return 'Please select $label';
             }
             return null;
           },

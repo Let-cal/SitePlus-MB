@@ -1,16 +1,18 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:siteplus_mb/components/multi_tab_filter_panel.dart';
 import 'package:siteplus_mb/service/api_service.dart';
+import 'package:siteplus_mb/utils/SiteDeal/site_deal_status.dart';
 
 class ReportViewDialog extends StatefulWidget {
-  final Map<String, dynamic> siteDeal;
+  final List<Map<String, dynamic>> siteDeals;
   final List<Map<String, dynamic>> attributeValues;
   final int siteCategoryId;
   final int siteId;
 
   const ReportViewDialog({
     super.key,
-    required this.siteDeal,
+    required this.siteDeals,
     required this.attributeValues,
     required this.siteCategoryId,
     required this.siteId,
@@ -23,36 +25,17 @@ class ReportViewDialog extends StatefulWidget {
 class _ReportViewDialogState extends State<ReportViewDialog>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _dealType = '';
-  String _leaseTermInput = '';
   List<Map<String, dynamic>> _attributes = [];
   List<Map<String, dynamic>> _images = [];
   List<Map<String, dynamic>> _processedAttributeValues = [];
   bool _isLoading = true;
+  String? _selectedStatus; // Selected status from the filter
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _initializeDealType();
     _fetchData();
-  }
-
-  void _initializeDealType() {
-    final leaseTerm = widget.siteDeal['leaseTerm'] ?? '';
-    if (leaseTerm.contains('Mặt bằng chuyển nhượng')) {
-      _dealType = 'Mặt bằng chuyển nhượng';
-      _leaseTermInput = '';
-    } else if (leaseTerm.contains('Mặt bằng cho thuê')) {
-      _dealType = 'Mặt bằng cho thuê';
-      _leaseTermInput = leaseTerm.replaceFirst(
-        'Mặt bằng cho thuê - Thời hạn ',
-        '',
-      );
-    } else {
-      _dealType = 'Không xác định';
-      _leaseTermInput = '';
-    }
   }
 
   Future<void> _fetchData() async {
@@ -62,14 +45,12 @@ class _ReportViewDialogState extends State<ReportViewDialog>
       _processedAttributeValues = _processAttributeValues(
         widget.attributeValues,
       );
-      try {
-        _images = await apiService.getSiteImages(widget.siteId);
-      } catch (e) {
-        debugPrint('Lỗi lấy ảnh site: $e');
-        _images = [];
-      }
+      _images = await apiService.getSiteImages(widget.siteId).catchError((e) {
+        debugPrint('Error retrieving site images: $e');
+        return [];
+      });
     } catch (e) {
-      debugPrint('Lỗi khi tải dữ liệu: $e');
+      debugPrint('Error loading data: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -87,7 +68,8 @@ class _ReportViewDialogState extends State<ReportViewDialog>
     final List<Map<String, dynamic>> processedValues = [];
     groupedByAttrId.forEach((attrId, values) {
       if (attrId == 3) {
-        final combinedValue = values.map((v) => v['value']).join(' và ');
+        // Combine multiple values into one string joined with " and "
+        final combinedValue = values.map((v) => v['value']).join(' and ');
         final latestValue = values.reduce(
           (a, b) =>
               DateTime.parse(
@@ -109,7 +91,6 @@ class _ReportViewDialogState extends State<ReportViewDialog>
         processedValues.addAll(values);
       }
     });
-
     return processedValues;
   }
 
@@ -139,7 +120,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
             elevation: 0,
             backgroundColor: theme.colorScheme.surface,
             title: const Text(
-              'Chi Tiết Báo Cáo',
+              'Report Details',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             centerTitle: true,
@@ -160,11 +141,10 @@ class _ReportViewDialogState extends State<ReportViewDialog>
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
-              labelPadding: EdgeInsets.symmetric(horizontal: 2),
               tabs: const [
-                Tab(text: 'Thương Lượng'),
-                Tab(text: 'Báo Cáo'),
-                Tab(text: 'Hình Ảnh'),
+                Tab(text: 'Negotiation'),
+                Tab(text: 'Report'),
+                Tab(text: 'Images'),
               ],
             ),
           ),
@@ -175,8 +155,8 @@ class _ReportViewDialogState extends State<ReportViewDialog>
                     controller: _tabController,
                     children: [
                       _buildDealTab(),
-                      _buildReportTab(),
-                      _buildImagesTab(),
+                      _buildReportTab(), // Keep this function unchanged
+                      _buildImagesTab(), // Keep this function unchanged
                     ],
                   ),
         ),
@@ -186,45 +166,132 @@ class _ReportViewDialogState extends State<ReportViewDialog>
 
   Widget _buildDealTab() {
     final theme = Theme.of(context);
+    final siteDealList = widget.siteDeals;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Filter Panel
+          MultiTabFilterPanel(
+            groups: [
+              FilterGroup(
+                key: 'status',
+                title: 'Filter by status',
+                options: [
+                  FilterOption(id: null, label: 'All'),
+                  FilterOption(id: STATUS_IN_PROGRESS, label: 'In Progress'),
+                  FilterOption(id: STATUS_ACTIVE, label: 'Active'),
+                  FilterOption(id: STATUS_EXPIRED, label: 'Inactive'),
+                ],
+              ),
+            ],
+            onFilterChanged: (selections) {
+              setState(() {
+                _selectedStatus = selections['status'];
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          // List of Site Deal Cards
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: siteDealList.length,
+            itemBuilder: (context, index) {
+              final deal = siteDealList[index];
+              debugPrint(
+                'Deal $index: status=${deal['status']}, statusName=${deal['statusName']}',
+              );
+              final statusName = getSiteDealStatusName(deal['statusName']);
+              if (_selectedStatus == null || statusName == _selectedStatus) {
+                return _buildSiteDealCard(deal);
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSiteDealCard(Map<String, dynamic> deal) {
+    final theme = Theme.of(context);
+    final statusName = getSiteDealStatusName(deal['statusName']);
+    final statusColor = getSiteDealStatusColor(context, statusName);
+    bool isExpanded = false;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          isExpanded = !isExpanded;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Stack(
             children: [
-              Text(
-                'Thông tin thương lượng',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
+              ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildDealInfoRow('Loại mặt bằng', _dealType, Icons.store),
-              if (_dealType == 'Mặt bằng cho thuê')
-                _buildDealInfoRow(
-                  'Thời hạn thuê',
-                  _leaseTermInput,
-                  Icons.calendar_today,
+                leading: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: statusColor.withOpacity(0.2),
+                  child: Icon(Icons.store, color: statusColor),
                 ),
-              _buildDealInfoRow(
-                'Giá đề xuất',
-                '${widget.siteDeal['proposedPrice'].toInt()} VND',
-                Icons.money,
+                title: Text(
+                  'Deal #${deal['id']}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  'Created: ${deal['createdAt'].toString().substring(0, 10)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildDealDetails(deal),
+                  ),
+                ],
               ),
-              _buildDealInfoRow(
-                'Tiền đặt cọc',
-                '${widget.siteDeal['deposit'].toInt()} VND',
-                Icons.account_balance_wallet,
-              ),
-              _buildDealInfoRow(
-                'Điều khoản bổ sung',
-                widget.siteDeal['additionalTerms']?.toString() ?? 'Không có',
-                Icons.notes,
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusColor.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    statusName,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -233,10 +300,67 @@ class _ReportViewDialogState extends State<ReportViewDialog>
     );
   }
 
+  Widget _buildDealDetails(Map<String, dynamic> deal) {
+    String dealType = '';
+    String leaseTermInput = '';
+    final leaseTerm = deal['leaseTerm'] ?? '';
+    if (leaseTerm.contains('Mặt bằng chuyển nhượng')) {
+      dealType = 'Mặt bằng chuyển nhượng';
+      leaseTermInput = '';
+    } else if (leaseTerm.contains('Mặt bằng cho thuê')) {
+      dealType = 'Mặt bằng cho thuê';
+      leaseTermInput = leaseTerm.replaceFirst(
+        'Mặt bằng cho thuê - Thời hạn ',
+        '',
+      );
+    } else {
+      dealType = 'Undefined';
+      leaseTermInput = '';
+    }
+
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Negotiation Information',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildDealInfoRow('Deal Type', dealType, Icons.store),
+        if (dealType == 'Mặt bằng cho thuê')
+          _buildDealInfoRow('Lease Term', leaseTermInput, Icons.calendar_today),
+        _buildDealInfoRow(
+          'Proposed Price',
+          '${deal['proposedPrice'].toInt()} VND',
+          Icons.money,
+        ),
+        _buildDealInfoRow(
+          'Deposit',
+          '${deal['deposit'].toInt()} VND',
+          Icons.account_balance_wallet,
+        ),
+        _buildDealInfoRow(
+          'Deposit Months',
+          '${deal['depositMonth']}',
+          Icons.calendar_month,
+        ),
+        _buildDealInfoRow(
+          'Additional Terms',
+          deal['additionalTerms'] ?? 'None',
+          Icons.notes,
+        ),
+      ],
+    );
+  }
+
   Widget _buildDealInfoRow(String label, String value, IconData icon) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -250,9 +374,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
                   ),
-                  textAlign: TextAlign.start,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -260,7 +382,6 @@ class _ReportViewDialogState extends State<ReportViewDialog>
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withOpacity(0.8),
                   ),
-                  textAlign: TextAlign.start,
                 ),
               ],
             ),
@@ -278,7 +399,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Text(
-          'Báo cáo mặt bằng',
+          'Property Report',
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
             color: theme.colorScheme.primary,
@@ -293,27 +414,27 @@ class _ReportViewDialogState extends State<ReportViewDialog>
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
-            'Không có dữ liệu báo cáo',
+            'No report data available',
             style: TextStyle(fontSize: 16),
             textAlign: TextAlign.start,
           ),
         ),
       );
     } else {
-      // Explicitly type the attributeMap as Map<int, String>
+      // Explicitly type attributeMap as Map<int, String>
       final Map<int, String> attributeMap = Map.fromEntries(
         _attributes.map((attr) {
-          final int id = attr['id'] as int; // Ensure id is an int
-          final String name = attr['name'] as String; // Ensure name is a String
+          final int id = attr['id'] as int;
+          final String name = attr['name'] as String;
           return MapEntry(id, name);
         }),
       );
 
-      debugPrint('Attribute Map: $attributeMap'); // Debug logging
+      debugPrint('Attribute Map: $attributeMap');
 
       var reportSections = [
         CustomReportSection(
-          title: 'Lưu lượng khách hàng',
+          title: 'Customer Traffic',
           attributeIds: [2, 3],
           icon: Icons.directions_car,
           processedAttributeValues: _processedAttributeValues,
@@ -321,7 +442,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           buildAgeGroupInfo: _buildAgeGroupInfo,
         ),
         CustomReportSection(
-          title: 'Mật độ khách hàng',
+          title: 'Customer Density',
           attributeIds: [4, 5],
           icon: Icons.group,
           processedAttributeValues: _processedAttributeValues,
@@ -329,7 +450,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           buildAgeGroupInfo: _buildAgeGroupInfo,
         ),
         CustomReportSection(
-          title: 'Mô hình khách hàng',
+          title: 'Customer Segments',
           attributeIds: [6, 7, 8],
           icon: Icons.person,
           processedAttributeValues: _processedAttributeValues,
@@ -337,7 +458,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           buildAgeGroupInfo: _buildAgeGroupInfo,
         ),
         CustomReportSection(
-          title: 'Mặt bằng',
+          title: 'Property',
           attributeIds:
               widget.siteCategoryId == 2 ? [9, 10, 11, 34, 35] : [9, 10, 11],
           icon: Icons.store,
@@ -346,7 +467,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           buildAgeGroupInfo: _buildAgeGroupInfo,
         ),
         CustomReportSection(
-          title: 'Yếu tố môi trường',
+          title: 'Environmental Factors',
           attributeIds:
               widget.siteCategoryId == 1
                   ? [12, 13, 14, 15, 16, 24, 26, 27]
@@ -357,7 +478,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           buildAgeGroupInfo: _buildAgeGroupInfo,
         ),
         CustomReportSection(
-          title: 'Tầm nhìn & Cản trở',
+          title: 'Vision & Barriers',
           attributeIds: widget.siteCategoryId == 2 ? [17, 18] : [17, 18, 28],
           icon: Icons.visibility,
           processedAttributeValues: _processedAttributeValues,
@@ -365,7 +486,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           buildAgeGroupInfo: _buildAgeGroupInfo,
         ),
         CustomReportSection(
-          title: 'Tiện ích',
+          title: 'Amenities',
           attributeIds: widget.siteCategoryId == 2 ? [19, 20] : [19, 20, 29],
           icon: Icons.build,
           processedAttributeValues: _processedAttributeValues,
@@ -390,7 +511,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
     return _images.isEmpty
         ? Center(
           child: Text(
-            'Không có hình ảnh nào',
+            'No images available',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
@@ -458,24 +579,24 @@ class _ReportViewDialogState extends State<ReportViewDialog>
   Widget _buildAgeGroupInfo(Map<String, dynamic> attr) {
     final theme = Theme.of(context);
     Map<String, int> ageGroups = {
-      'dưới 18 tuổi': 0,
-      '18-30 tuổi': 0,
-      '31-45 tuổi': 0,
-      'trên 45 tuổi': 0,
+      'Under 18': 0,
+      '18-30': 0,
+      '31-45': 0,
+      'Over 45': 0,
     };
 
-    // Lấy tất cả các bản ghi có attributeId: 7
+    // Get all records with attributeId: 7
     final sameAgeAttrs =
         _processedAttributeValues.where((a) => a['attributeId'] == 7).toList();
 
-    // Debug: In ra danh sách các bản ghi attributeId: 7
+    // Debug: Print the list of records with attributeId: 7
     debugPrint('Processing age group attributes: $sameAgeAttrs');
 
-    // Xử lý dữ liệu
+    // Process the data
     for (var ageAttr in sameAgeAttrs) {
       final additionalInfo = ageAttr['additionalInfo'] ?? '';
 
-      // Định dạng cũ: Chuỗi gộp
+      // Old format: Combined string
       if (additionalInfo.contains(',')) {
         final RegExp regex = RegExp(
           r'(\d+)% nhóm khách hàng có độ tuổi (dưới 18|18-30|31-45|trên 45)',
@@ -486,11 +607,25 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           final ageGroup = match.group(2);
           final percentValue = int.tryParse(percentage ?? '0') ?? 0;
           if (ageGroup != null) {
-            ageGroups[ageGroup] = percentValue;
+            // Convert Vietnamese age group key to English label
+            switch (ageGroup) {
+              case 'dưới 18':
+                ageGroups['Under 18'] = percentValue;
+                break;
+              case '18-30':
+                ageGroups['18-30'] = percentValue;
+                break;
+              case '31-45':
+                ageGroups['31-45'] = percentValue;
+                break;
+              case 'trên 45':
+                ageGroups['Over 45'] = percentValue;
+                break;
+            }
           }
         }
       } else {
-        // Định dạng mới: Bản ghi riêng lẻ
+        // New format: Single record
         final RegExp regex = RegExp(r'(\d+)% nhóm khách hàng có độ tuổi (.+)');
         final match = regex.firstMatch(additionalInfo);
         if (match != null) {
@@ -498,39 +633,36 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           final ageGroup = match.group(2);
           final percentValue = int.tryParse(percentage ?? '0') ?? 0;
           if (ageGroup != null) {
-            ageGroups[ageGroup] = percentValue;
+            switch (ageGroup) {
+              case 'dưới 18':
+                ageGroups['Under 18'] = percentValue;
+                break;
+              case '18-30':
+                ageGroups['18-30'] = percentValue;
+                break;
+              case '31-45':
+                ageGroups['31-45'] = percentValue;
+                break;
+              case 'trên 45':
+                ageGroups['Over 45'] = percentValue;
+                break;
+              default:
+                ageGroups[ageGroup] = percentValue;
+            }
           }
         }
       }
     }
 
-    // Tạo danh sách hiển thị theo thứ tự cố định
+    // Create a list for display in a fixed order
     List<Widget> ageGroupWidgets = [];
     ageGroups.forEach((ageGroup, percentage) {
       if (percentage > 0) {
-        // Chỉ hiển thị nếu phần trăm lớn hơn 0
-        String displayAgeGroup;
-        switch (ageGroup) {
-          case 'dưới 18':
-            displayAgeGroup = 'Dưới 18 tuổi';
-            break;
-          case '18-30':
-            displayAgeGroup = '18-30 tuổi';
-            break;
-          case '31-45':
-            displayAgeGroup = '31-45 tuổi';
-            break;
-          case 'trên 45':
-            displayAgeGroup = 'Trên 45 tuổi';
-            break;
-          default:
-            displayAgeGroup = ageGroup;
-        }
         ageGroupWidgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              '$displayAgeGroup: $percentage%',
+              '$ageGroup: $percentage%',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
                 color: theme.colorScheme.onSurface.withOpacity(0.8),
@@ -549,7 +681,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
               ? ageGroupWidgets
               : [
                 Text(
-                  'Không có dữ liệu độ tuổi',
+                  'No age data available',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withOpacity(0.6),
                   ),
@@ -694,7 +826,7 @@ class _CustomReportSectionState extends State<CustomReportSection>
                         final attrId = entry.key;
                         final values = entry.value;
                         final attrName =
-                            widget.attributeMap[attrId] ?? 'Không xác định';
+                            widget.attributeMap[attrId] ?? 'Undefined';
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: Column(
@@ -709,8 +841,8 @@ class _CustomReportSectionState extends State<CustomReportSection>
                                 textAlign: TextAlign.start,
                               ),
                               const SizedBox(height: 8),
-                              if (attrId ==
-                                  7) // Chỉ gọi _buildAgeGroupInfo một lần
+                              if (attrId == 7)
+                                // Only call buildAgeGroupInfo once
                                 widget.buildAgeGroupInfo(values.first)
                               else
                                 ...values.map((attr) {

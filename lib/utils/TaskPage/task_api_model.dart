@@ -169,15 +169,26 @@ class TaskResponse {
   });
 
   factory TaskResponse.fromJson(Map<String, dynamic> json) {
+    // Kiểm tra nếu json['data'] là null
+    if (json['data'] == null) {
+      return TaskResponse(
+        page: 1,
+        totalPage: 1,
+        totalRecords: 0,
+        listData: [],
+      );
+    }
+
     final data = json['data'];
     return TaskResponse(
-      page: data['page'],
-      totalPage: data['totalPage'],
-      totalRecords: data['totalRecords'],
-      listData:
-          (data['listData'] as List)
-              .map((item) => Task.fromJson(item))
-              .toList(),
+      page: data['page'] ?? 1, // Giá trị mặc định nếu page không tồn tại
+      totalPage: data['totalPage'] ?? 1,
+      totalRecords: data['totalRecords'] ?? 0,
+      listData: (data['listData'] as List<dynamic>?)
+              ?.map((item) => Task.fromJson(item))
+              .toList() ??
+          [],
     );
   }
 }
+

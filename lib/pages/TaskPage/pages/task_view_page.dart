@@ -8,6 +8,7 @@ import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_filter_tab.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
+import 'package:siteplus_mb/utils/TaskPage/task_status.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 enum FilterUIType { chip, tab }
@@ -16,11 +17,16 @@ class TasksPage extends StatefulWidget {
   final void Function(int? filterSiteId)? onNavigateToSiteTab;
   final void Function(int? filterTaskId)? onNavigateToTaskTab;
   final int? filterTaskId;
+  final int? filterTaskStatus;
+  final VoidCallback? onResetTaskStatusFilter;
+
   const TasksPage({
     super.key,
     this.onNavigateToSiteTab,
     this.onNavigateToTaskTab,
     this.filterTaskId,
+    this.filterTaskStatus,
+    this.onResetTaskStatusFilter,
   });
   @override
   State<TasksPage> createState() => _TasksPageState();
@@ -39,11 +45,13 @@ class _TasksPageState extends State<TasksPage>
   String taskTypeFilter = 'Tất cả';
   int? selectedStatusId;
   int? selectedPriorityId;
+  int? currentFilterTaskId;
   FilterUIType currentFilterUI = FilterUIType.chip;
 
   int currentPage = 1;
   int totalPages = 1;
   int pageSize = 5;
+  int defaultPageSize = 5;
   int totalRecords = 0;
 
   List<Task> tasks = [];
@@ -53,8 +61,10 @@ class _TasksPageState extends State<TasksPage>
   @override
   void initState() {
     super.initState();
-    selectedStatusId = null;
+    selectedStatusId =
+        widget.filterTaskStatus ?? null; // Áp dụng filter từ widget
     selectedPriorityId = null;
+    currentFilterTaskId = widget.filterTaskId;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -68,7 +78,12 @@ class _TasksPageState extends State<TasksPage>
   @override
   void didUpdateWidget(TasksPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.filterTaskId != oldWidget.filterTaskId) {
+    if (widget.filterTaskId != oldWidget.filterTaskId ||
+        widget.filterTaskStatus != oldWidget.filterTaskStatus) {
+      setState(() {
+        currentFilterTaskId = widget.filterTaskId;
+        pageSize = currentFilterTaskId != null ? 1 : defaultPageSize;
+      });
       _loadTasks();
     }
   }
@@ -107,7 +122,7 @@ class _TasksPageState extends State<TasksPage>
               uiName = name;
           }
           newStatusMap[uiName] = id;
-          newStatusIdToNameMap[id] = uiName;
+          newStatusIdToNameMap[id] = getStatusText(uiName);
         }
         setState(() {
           STATUS_API_MAP = newStatusMap;
@@ -126,14 +141,11 @@ class _TasksPageState extends State<TasksPage>
     setState(() => isLoading = true);
     try {
       final result = await _apiService.getTasks(
-        status: selectedStatusId,
+        status: selectedStatusId ?? widget.filterTaskStatus,
         priority: selectedPriorityId,
-        page:
-            widget.filterTaskId != null
-                ? 1
-                : currentPage, // Đảm bảo page luôn có giá trị
-        pageSize: widget.filterTaskId != null ? 1 : pageSize,
-        search: widget.filterTaskId?.toString(),
+        page: widget.filterTaskId != null ? 1 : currentPage,
+        pageSize: pageSize,
+        search: currentFilterTaskId?.toString(),
       );
       if (result['success'] == true) {
         final TaskResponse response = TaskResponse.fromJson(result);
@@ -161,9 +173,12 @@ class _TasksPageState extends State<TasksPage>
     } catch (e) {
       print("Error loading tasks: $e");
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() {
+          isLoading = false;
+          tasks = [];
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã xảy ra lỗi: ${e.toString()}')),
+          SnackBar(content: Text('An error occurred: ${e.toString()}')),
         );
       }
     }
@@ -173,8 +188,18 @@ class _TasksPageState extends State<TasksPage>
     if (page < 1 || page > totalPages || page == currentPage) return;
     setState(() {
       currentPage = page;
+      currentFilterTaskId = null;
+      pageSize = defaultPageSize;
     });
     _loadTasks();
+  }
+
+  Future<void> _refreshTasks() async {
+    setState(() {
+      currentPage = 1;
+      currentFilterTaskId = null;
+    });
+    await _loadTasks();
   }
 
   @override
@@ -201,10 +226,7 @@ class _TasksPageState extends State<TasksPage>
   Widget _buildMainContent() {
     final theme = Theme.of(context);
     return RefreshIndicator(
-      onRefresh: () async {
-        setState(() => currentPage = 1);
-        await _loadTasks();
-      },
+      onRefresh: _refreshTasks,
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -214,8 +236,8 @@ class _TasksPageState extends State<TasksPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SectionHeader(
-                    title: 'Danh sách nhiệm vụ',
-                    subtitle: 'Quản lý và theo dõi các nhiệm vụ',
+                    title: 'Task List',
+                    subtitle: 'Manage and track your tasks',
                     icon: LucideIcons.fileCheck,
                   ),
                   const SizedBox(height: 24),
@@ -225,9 +247,16 @@ class _TasksPageState extends State<TasksPage>
                         selectedPriorityId: selectedPriorityId,
                         onFilterChanged: (selections) {
                           setState(() {
-                            selectedStatusId = selections['status'];
+                            final newStatusId = selections['status'];
+                            if (widget.filterTaskStatus == 1 &&
+                                newStatusId != 1) {
+                              widget.onResetTaskStatusFilter?.call();
+                            }
+                            selectedStatusId = newStatusId;
                             selectedPriorityId = selections['priority'];
                             currentPage = 1;
+                            currentFilterTaskId = null;
+                            pageSize = defaultPageSize;
                           });
                           _loadTasks();
                         },
@@ -267,10 +296,7 @@ class _TasksPageState extends State<TasksPage>
                           curve: Curves.easeInOut,
                         ),
                     const SizedBox(height: 16),
-                    Text(
-                          'Đang tải nhiệm vụ...',
-                          style: theme.textTheme.bodyLarge,
-                        )
+                    Text('Loading tasks...', style: theme.textTheme.bodyLarge)
                         .animate(onPlay: (controller) => controller.repeat())
                         .fadeIn(duration: 1000.ms)
                         .then()
@@ -325,7 +351,7 @@ class _TasksPageState extends State<TasksPage>
               ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
               const SizedBox(height: 16),
               Text(
-                "Không có nhiệm vụ nào phù hợp với bộ lọc",
+                "No tasks match the filter",
                 style: Theme.of(context).textTheme.titleMedium,
               ).animate().fadeIn(duration: 600.ms, delay: 300.ms),
             ],

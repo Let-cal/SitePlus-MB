@@ -23,6 +23,10 @@ class _ReportSelectionDialogState extends State<ReportSelectionDialog> {
   List<SiteCategory> _categories = [];
   bool _isLoading = true;
 
+  final Map<String, String> categoryNameMapping = {
+    'Mặt bằng nội khu': 'Internal Site',
+    'Mặt bằng độc lập': 'Independent site',
+  };
   @override
   void initState() {
     super.initState();
@@ -84,7 +88,7 @@ class _ReportSelectionDialogState extends State<ReportSelectionDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Chọn loại báo cáo",
+                  "Select Report Type",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -111,29 +115,27 @@ class _ReportSelectionDialogState extends State<ReportSelectionDialog> {
       return Padding(
         padding: const EdgeInsets.all(16.0),
         child: Text(
-          "Không có dữ liệu loại báo cáo",
+          "No report type data available",
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       );
     }
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(_categories.length * 2 - 1, (index) {
-        // Nếu index là số chẵn, hiển thị mục danh sách
         if (index % 2 == 0) {
           final categoryIndex = index ~/ 2;
           final category = _categories[categoryIndex];
-
+          final englishName =
+              categoryNameMapping[category.name] ?? category.name;
           return _buildOption(
             context,
             icon: categoryIndex == 0 ? Icons.business : Icons.apartment,
-            title: category.name,
-            value: category.id.toString(),
+            title: englishName, // Sử dụng tên tiếng Anh
+            value: englishName,
             categoryId: category.id,
           );
         } else {
-          // Hiển thị divider giữa các mục
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Divider(

@@ -78,63 +78,63 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
     // Prepare status filter options với 5 trạng thái
     final statusOptions = [
       FilterOption(
-        label: getVietnameseStatus(8),
+        label: getStatusText(8),
         icon: getStatusIcon(8),
         color: getStatusColor(context, 8),
         isSelected: 8 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(8),
       ),
       FilterOption(
-        label: getVietnameseStatus(1),
+        label: getStatusText(1),
         color: getStatusColor(context, 1),
         icon: getStatusIcon(1),
         isSelected: 1 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(1),
       ),
       FilterOption(
-        label: getVietnameseStatus(2),
+        label: getStatusText(2),
         color: getStatusColor(context, 2),
         icon: getStatusIcon(2),
         isSelected: 2 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(2),
       ),
       FilterOption(
-        label: getVietnameseStatus(7),
+        label: getStatusText(7),
         icon: getStatusIcon(7),
         color: getStatusColor(context, 7),
         isSelected: 7 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(7),
       ),
       FilterOption(
-        label: getVietnameseStatus(3),
+        label: getStatusText(3),
         color: getStatusColor(context, 3),
         icon: getStatusIcon(3),
         isSelected: 3 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(3),
       ),
       FilterOption(
-        label: getVietnameseStatus(4),
+        label: getStatusText(4),
         color: getStatusColor(context, 4),
         icon: getStatusIcon(4),
         isSelected: 4 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(4),
       ),
       FilterOption(
-        label: getVietnameseStatus(6),
+        label: getStatusText(6),
         icon: getStatusIcon(6),
         color: getStatusColor(context, 6),
         isSelected: 6 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(6),
       ),
       FilterOption(
-        label: getVietnameseStatus(5),
+        label: getStatusText(5),
         color: getStatusColor(context, 5),
         icon: getStatusIcon(5),
         isSelected: 5 == widget.initialSelectedStatus,
         onTap: () => _handleStatusSelection(5),
       ),
       FilterOption(
-        label: getVietnameseStatus(9),
+        label: getStatusText(9),
         color: getStatusColor(context, 9),
         icon: getStatusIcon(9),
         isSelected: 9 == widget.initialSelectedStatus,
@@ -187,7 +187,7 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
       for (var section in _filterSections) {
         if (section.title == 'Trạng thái') {
           for (var option in section.options) {
-            option.isSelected = option.label == getVietnameseStatus(status);
+            option.isSelected = option.label == getStatusText(status);
           }
         }
       }

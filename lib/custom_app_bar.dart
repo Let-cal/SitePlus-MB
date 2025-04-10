@@ -11,6 +11,7 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String? description;
   final List<Widget>? additionalActions;
   final int notificationCount;
+  final VoidCallback? onNavigateToNotificationsTab;
 
   const CustomAppBar({
     super.key,
@@ -18,6 +19,7 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.description,
     this.additionalActions,
     this.notificationCount = 0,
+    this.onNavigateToNotificationsTab,
   });
 
   @override
@@ -170,10 +172,13 @@ class _CustomAppBarState extends State<CustomAppBar> {
           child: IconButton(
             icon: const Icon(LucideIcons.bell),
             onPressed: () {
-              // Hiển thị dialog thông báo compact
               showDialog(
                 context: context,
-                builder: (context) => const CompactNotificationDialog(),
+                builder:
+                    (context) => CompactNotificationDialog(
+                      onNavigateToNotificationsTab:
+                          widget.onNavigateToNotificationsTab,
+                    ),
               );
             },
           ),

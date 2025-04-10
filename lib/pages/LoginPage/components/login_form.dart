@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/main_scaffold.dart';
 import 'package:siteplus_mb/service/api_service.dart';
+import 'package:siteplus_mb/utils/SiteDeal/site_deal_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category_provider.dart';
 
 import 'custom_text_field.dart';
@@ -49,52 +51,61 @@ class _LoginFormState extends State<LoginForm> {
       if (response['success']) {
         final prefs = await SharedPreferences.getInstance();
 
-        // Xử lý token
+        // Handle token
         if (response.containsKey('token') && response['token'] != null) {
           final token = response['token'];
           await prefs.setString('auth_token', token);
-          print('Token đã được lưu: $token');
+          print('Token saved: $token');
           // Fetch site categories after getting token
           await _fetchSiteCategories(token);
         } else {
-          print('Lỗi: response không chứa token hoặc không hợp lệ');
+          print('Error: response does not contain a valid token');
         }
         if (response.containsKey('areaId') && response['areaId'] != null) {
           final area = int.parse(response['areaId'].toString());
           await prefs.setInt('areaId', area);
-          print('area đã được lưu: $area');
+          print('Area saved: $area');
         } else {
-          print('Lỗi: response không chứa area hoặc không hợp lệ');
+          print('Error: response does not contain a valid area');
         }
-        // Xử lý hint
+        // Handle hint
         if (response.containsKey('hint') && response['hint'] != null) {
           final hint = response['hint'].toString();
           await prefs.setString('hintId', hint);
-          print('Hint đã được lưu: $hint');
-        } else {
-          print('Lỗi: response không chứa hint hoặc không hợp lệ');
+          print('Hint saved: $hint');
+          final userId = int.tryParse(hint);
+          if (userId != null) {
+            await Provider.of<SiteDealProvider>(
+              context,
+              listen: false,
+            ).fetchAllSiteDeals(userId);
+            print('Site deals fetched after login');
+          } else {
+            print('Error: Could not parse userId from hint');
+          }
         }
+
         await prefs.setString('username', _usernameController.text);
 
-        // Hiển thị thông báo thành công
+        // Show success message
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Đăng nhập thành công'),
+            content: Text(response['message'] ?? 'Login successful'),
             backgroundColor: Colors.green,
           ),
         );
-        // Chuyển hướng đến MainScaffold
+        // Navigate to MainScaffold
         Navigator.pushReplacement(
           // ignore: use_build_context_synchronously
           context,
           MaterialPageRoute(builder: (context) => const MainScaffold()),
         );
       } else {
-        // Hiển thị thông báo lỗi
+        // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Đăng nhập thất bại'),
+            content: Text(response['message'] ?? 'Login failed'),
             backgroundColor: Colors.red,
           ),
         );
@@ -102,7 +113,7 @@ class _LoginFormState extends State<LoginForm> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Đã xảy ra lỗi: ${e.toString()}'),
+          content: Text('An error occurred: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -123,12 +134,12 @@ class _LoginFormState extends State<LoginForm> {
         children: [
           CustomTextField(
             controller: _usernameController,
-            labelText: 'Tên người dùng',
-            hintText: 'Nhập tên người dùng của bạn',
+            labelText: 'Username',
+            hintText: 'Enter your username',
             prefixIcon: Icons.person_outline,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Vui lòng nhập tên người dùng';
+                return 'Please enter your username';
               }
               return null;
             },
@@ -139,8 +150,8 @@ class _LoginFormState extends State<LoginForm> {
 
           CustomTextField(
             controller: _passwordController,
-            labelText: 'Mật khẩu',
-            hintText: 'Nhập mật khẩu của bạn',
+            labelText: 'Password',
+            hintText: 'Enter your password',
             prefixIcon: Icons.lock_outline,
             obscureText: _obscurePassword,
             suffixIcon: IconButton(
@@ -158,7 +169,7 @@ class _LoginFormState extends State<LoginForm> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Vui lòng nhập mật khẩu';
+                return 'Please enter your password';
               }
               return null;
             },
