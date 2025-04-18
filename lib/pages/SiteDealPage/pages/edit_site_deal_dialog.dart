@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:siteplus_mb/pages/ReportPage/components/site_deal_confirmation_dialog.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/deal_section.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/SiteDeal/site_deal_model.dart';
@@ -188,19 +189,91 @@ class _EditSiteDealDialogState extends State<EditSiteDealDialog> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() => _isSubmitting = true);
-      debugPrint("site deal id before update site deal: ${widget.siteDeal.id}");
-      final success = await _apiService.updateSiteDeal(
-        widget.siteDeal.id,
-        dealData,
-      );
-      if (success) {
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cập nhật Site Deal thất bại')),
+
+      try {
+        // Gọi API để lấy danh sách Site Deal của site
+        final siteDeals = await _apiService.getSiteDealBySiteId(
+          widget.siteDeal.siteId,
         );
+
+        // Lọc các Site Deal có status == 0, ngoại trừ Site Deal đang được chỉnh sửa
+        final pendingDeals =
+            siteDeals
+                .where(
+                  (deal) =>
+                      deal['status'] == 0 && deal['id'] != widget.siteDeal.id,
+                )
+                .toList();
+
+        if (pendingDeals.isNotEmpty) {
+          // Hiển thị SiteDealConfirmationDialog nếu có Site Deal chờ phê duyệt khác
+          await showDialog<bool>(
+            context: context,
+            builder:
+                (context) => SiteDealConfirmationDialog(
+                  siteDeal:
+                      pendingDeals
+                          .first, // Hiển thị một trong các Site Deal chờ phê duyệt
+                  siteId: widget.siteDeal.siteId,
+                  siteCategoryId: 0, // Có thể cần điều chỉnh nếu có thông tin
+                  fromEdit: true, // Đánh dấu dialog mở từ EditSiteDealDialog
+                ),
+          );
+          setState(() => _isSubmitting = false);
+          return; // Không tiếp tục cập nhật nếu có Site Deal chờ phê duyệt
+        } else {
+          // Hiển thị popup xác nhận nếu không có Site Deal chờ phê duyệt
+          final confirmUpdate = await showDialog<bool>(
+            context: context,
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Confirmation'),
+                  content: const Text(
+                    'You are about to set this site deal to pending approval status. Are you sure?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Confirm'),
+                    ),
+                  ],
+                ),
+          );
+
+          if (confirmUpdate != true) {
+            setState(() => _isSubmitting = false);
+            return; // Thoát nếu người dùng không đồng ý
+          }
+        }
+
+        // Cập nhật Site Deal với status == 0
+        dealData['status'] = 0;
+        final success = await _apiService.updateSiteDeal(
+          widget.siteDeal.id,
+          dealData,
+        );
+
+        if (success) {
+          Navigator.pop(
+            context,
+            true,
+          ); // Đóng dialog và trả về kết quả thành công
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update Site Deal')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      } finally {
+        setState(() => _isSubmitting = false);
       }
-      setState(() => _isSubmitting = false);
     }
   }
 }

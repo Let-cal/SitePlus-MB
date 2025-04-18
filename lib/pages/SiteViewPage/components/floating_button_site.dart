@@ -5,11 +5,12 @@ import 'package:siteplus_mb/components/floating_action_menu.dart';
 class FloatingButtonSite extends StatelessWidget {
   final VoidCallback onCreateSiteByTask;
   final VoidCallback onProposeSite;
-
+  final VoidCallback onShowFilter;
   const FloatingButtonSite({
     super.key,
     required this.onCreateSiteByTask,
     required this.onProposeSite,
+    required this.onShowFilter,
   });
 
   @override
@@ -25,6 +26,11 @@ class FloatingButtonSite extends StatelessWidget {
           label: 'Propose Site',
           icon: LucideIcons.lightbulb,
           onTap: onProposeSite,
+        ),
+        FloatingActionMenuItem(
+          label: 'Filter Sites',
+          icon: LucideIcons.filter,
+          onTap: onShowFilter,
         ),
       ],
       mainIcon: Icons.add, // Dấu cộng

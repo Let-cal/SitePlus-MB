@@ -28,7 +28,7 @@ Color getSiteDealStatusColor(BuildContext context, String status) {
     case STATUS_EXPIRED:
       return colorScheme.error;
     case STATUS_IN_PROGRESS:
-      return Colors.blue;
+      return Colors.teal;
     default:
       return colorScheme.onSurface;
   }

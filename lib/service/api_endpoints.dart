@@ -23,6 +23,8 @@ class ApiEndpoints {
   /// task service
   static const String task = '/Task';
   static const String taskStatuses = '/Task/statuses';
+
+  /// report statistic
   static const String taskStatistics = '/Statistics/weekly-report-task';
   static const String siteStatistics = '/Statistics/weekly-report-site';
 

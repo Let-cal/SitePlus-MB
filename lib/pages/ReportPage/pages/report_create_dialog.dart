@@ -357,6 +357,8 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     if (dealData['proposedPrice'].isEmpty) missingFields.add('Giá đề xuất');
     if (dealData['leaseTerm'].isEmpty) missingFields.add('Thời hạn thuê');
     if (dealData['deposit'].isEmpty) missingFields.add('Tiền đặt cọc');
+    if (dealData['depositMonth'].isEmpty)
+      missingFields.add('Số tháng đặt cọc');
 
     if (missingFields.isNotEmpty) {
       if (mounted) {
@@ -1229,6 +1231,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                 return; // Không tiếp tục nếu người dùng chọn "Đóng"
               }
               newSiteStatus = 3; // Chờ phê duyệt
+              newTaskStatus = 3;
             } else {
               newSiteStatus = 7; // Đang thương lượng
             }

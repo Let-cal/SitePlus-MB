@@ -7,12 +7,14 @@ class SiteDealConfirmationDialog extends StatelessWidget {
   final Map<String, dynamic> siteDeal;
   final int siteId;
   final int siteCategoryId;
+  final bool fromEdit;
 
   const SiteDealConfirmationDialog({
     super.key,
     required this.siteDeal,
     required this.siteId,
     required this.siteCategoryId,
+    this.fromEdit = false,
   });
 
   @override
@@ -20,8 +22,40 @@ class SiteDealConfirmationDialog extends StatelessWidget {
     final theme = Theme.of(context);
     final siteDealModel = SiteDeal.fromJson(siteDeal);
 
+    String title;
+    String contentText;
+    List<Widget> actions;
+
+    if (fromEdit) {
+      // Nội dung khi mở từ EditSiteDealDialog
+      title = 'Warning';
+      contentText =
+          'You currently have another site deal for this site that is pending approval, excluding the site deal you are updating. You can only update when there are no other pending site deals.';
+      actions = [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Understood'),
+        ),
+      ];
+    } else {
+      // Nội dung mặc định cho logic khác
+      title = 'Notification';
+      contentText =
+          'You have the following site deals for this site. Are you sure you want to submit the report without reviewing the site deal again?';
+      actions = [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Close'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Create Report'),
+        ),
+      ];
+    }
+
     return AlertDialog(
-      title: const Text('Thông báo'),
+      title: Text(title),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -29,25 +63,14 @@ class SiteDealConfirmationDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Bạn đang có các site deal sau dành cho site này, bạn có chắc chắn là gửi báo cáo mà không qua bước kiểm tra lại site deal không?',
-              ),
+              Text(contentText),
               const SizedBox(height: 16),
               _buildSiteDealCard(context, theme, siteDealModel),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Đóng'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Tạo báo cáo'),
-        ),
-      ],
+      actions: actions,
     );
   }
 

@@ -22,6 +22,12 @@ class ApiService {
     return prefs.getString('auth_token') ?? '';
   }
 
+  Future<int?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hint = prefs.getString('hintId');
+    return int.tryParse(hint ?? '');
+  }
+
   Future<bool> createSiteDeal(Map<String, dynamic> dealData) async {
     final token = await getToken();
     const url =
@@ -835,34 +841,42 @@ class ApiService {
   Map<String, List<double>> convertToSiteReportData(
     SiteReportStatistics statistics,
   ) {
-    // Khởi tạo danh sách dữ liệu
-    List<double> totalData = [];
-    List<double> availableData = [];
-    List<double> pendingApprovalData = [];
-    List<double> refuseData = [];
-    List<double> closedData = [];
+    // Danh sách các status cần lấy
+    final selectedStatuses = ['PendingApproval', 'Available', 'Refuse'];
 
-    // Duyệt qua báo cáo hàng ngày và thêm vào danh sách tương ứng
-    for (var dailyReport in statistics.dailyReports) {
-      totalData.add(dailyReport.total.toDouble());
-      availableData.add(
-        (dailyReport.statusTotals['Available'] ?? 0).toDouble(),
-      );
-      pendingApprovalData.add(
-        (dailyReport.statusTotals['PendingApproval'] ?? 0).toDouble(),
-      );
-      refuseData.add((dailyReport.statusTotals['Refuse'] ?? 0).toDouble());
-      closedData.add((dailyReport.statusTotals['Closed'] ?? 0).toDouble());
+    // Khởi tạo map dữ liệu với 7 ngày
+    Map<String, List<double>> reportData = {
+      'total': List.filled(7, 0.0),
+      'pendingApproval': List.filled(7, 0.0),
+      'available': List.filled(7, 0.0),
+      'Decline': List.filled(
+        7,
+        0.0,
+      ), // Sử dụng 'Decline' thay vì 'refuse' để khớp với yêu cầu
+    };
+
+    // Duyệt qua dailyReports (7 ngày)
+    for (int i = 0; i < statistics.dailyReports.length && i < 7; i++) {
+      final dailyReport = statistics.dailyReports[i];
+      double dailyTotal = 0.0;
+
+      // Tính tổng chỉ cho các status được chọn
+      for (var status in selectedStatuses) {
+        final count = (dailyReport.statusTotals[status] ?? 0).toDouble();
+        dailyTotal += count;
+
+        if (status == 'PendingApproval') {
+          reportData['pendingApproval']![i] = count;
+        } else if (status == 'Available') {
+          reportData['available']![i] = count;
+        } else if (status == 'Refuse') {
+          reportData['Decline']![i] = count;
+        }
+      }
+      reportData['total']![i] = dailyTotal;
     }
 
-    // Trả về map dữ liệu
-    return {
-      'total': totalData,
-      'available': availableData,
-      'pendingApproval': pendingApprovalData,
-      'refuse': refuseData,
-      'closed': closedData,
-    };
+    return reportData;
   }
 
   Map<String, List<double>> convertToWeeklyData(TaskStatistics statistics) {
@@ -891,8 +905,11 @@ class ApiService {
 
   Future<SiteReportStatistics> getWeeklySiteReportStatistics(
     String token,
+    int userId,
   ) async {
-    final url = Uri.parse(ApiLink.baseUrl + ApiEndpoints.taskStatistics);
+    final url = Uri.parse(
+      '${ApiLink.baseUrl}${ApiEndpoints.siteStatistics}?userId=$userId',
+    );
 
     try {
       final response = await http.get(
@@ -905,6 +922,7 @@ class ApiService {
       print('API Response: ${response.body}');
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
+        print("site Report statistic: ${response.body}");
         return SiteReportStatistics.fromJson(data);
       } else {
         throw Exception(
@@ -916,8 +934,13 @@ class ApiService {
     }
   }
 
-  Future<TaskStatistics> getWeeklyTaskStatistics(String token) async {
-    final url = Uri.parse(ApiLink.baseUrl + ApiEndpoints.taskStatistics);
+  Future<TaskStatistics> getWeeklyTaskStatistics(
+    String token,
+    int userId,
+  ) async {
+    final url = Uri.parse(
+      '${ApiLink.baseUrl}${ApiEndpoints.taskStatistics}?userId=$userId',
+    );
 
     try {
       final response = await http.get(
@@ -930,6 +953,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
+        print('Task Statistics: ${response.body}');
         return TaskStatistics.fromJson(data);
       } else {
         throw Exception(

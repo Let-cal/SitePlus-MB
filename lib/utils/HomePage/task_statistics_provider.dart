@@ -36,9 +36,13 @@ class TaskStatisticsProvider extends ChangeNotifier {
     try {
       // Lấy token từ ApiService
       final token = await _apiService.getToken();
+      final userId = await _apiService.getUserId();
 
       // Gọi API để lấy thống kê nhiệm vụ
-      final statistics = await _apiService.getWeeklyTaskStatistics(token!);
+      final statistics = await _apiService.getWeeklyTaskStatistics(
+        token!,
+        userId!,
+      );
 
       // Chuyển đổi dữ liệu thống kê sang định dạng biểu đồ hàng tuần
       final weeklyData = _apiService.convertToWeeklyData(statistics);
@@ -63,7 +67,11 @@ class TaskStatisticsProvider extends ChangeNotifier {
 
     try {
       final token = await _apiService.getToken();
-      final statistics = await _apiService.getWeeklyTaskStatistics(token!);
+      final userId = await _apiService.getUserId();
+      final statistics = await _apiService.getWeeklyTaskStatistics(
+        token!,
+        userId!,
+      );
       final weeklyData = _apiService.convertToWeeklyData(statistics);
 
       _taskStatistics = statistics;

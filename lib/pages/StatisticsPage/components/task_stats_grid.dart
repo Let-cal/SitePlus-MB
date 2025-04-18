@@ -4,12 +4,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:siteplus_mb/utils/HomePage/task_statistics.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 
-class TaskStatsGrid extends StatelessWidget {
+class CompactTaskStatsGrid extends StatelessWidget {
   final List<Task> tasks;
   final TaskStatistics? statistics;
   final Map<String, List<double>> weeklyData;
 
-  const TaskStatsGrid({
+  const CompactTaskStatsGrid({
     super.key,
     required this.tasks,
     required this.weeklyData,
@@ -23,6 +23,12 @@ class TaskStatsGrid extends StatelessWidget {
     final previous = data[data.length - 2];
     if (previous == 0) return 0;
     return ((current - previous) / previous * 100);
+  }
+
+  String _formatGrowthRate(String type) {
+    final rate = _getGrowthRate(type);
+    final sign = rate >= 0 ? '+' : '';
+    return '$sign${rate.toStringAsFixed(1)}%';
   }
 
   String _getNextDeadline(List<Task> tasks) {
@@ -51,7 +57,7 @@ class TaskStatsGrid extends StatelessWidget {
     final completedTasks = statistics?.totalByStatus.completed ?? 0;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -78,7 +84,7 @@ class TaskStatsGrid extends StatelessWidget {
                   dataKey: 'total',
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   context,
@@ -92,7 +98,7 @@ class TaskStatsGrid extends StatelessWidget {
               ),
             ],
           ).animate().fadeIn(delay: 200.ms).slideX(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -106,7 +112,7 @@ class TaskStatsGrid extends StatelessWidget {
                   dataKey: 'inProgress',
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
                   context,
@@ -138,6 +144,10 @@ class TaskStatsGrid extends StatelessWidget {
     // Ensure we have data to display, or use fallback
     final chartData =
         weeklyData[dataKey] ?? weeklyData['total'] ?? _getDefaultData();
+    
+    // Calculate growth rate for this data type
+    final growthRate = _formatGrowthRate(dataKey);
+    final isPositive = !growthRate.startsWith('-');
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -168,14 +178,44 @@ class TaskStatsGrid extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
+          // Value with growth rate indicator (similar to report cards)
+          Row(
+            children: [
+              Text(
                 value,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
-              )
-              .animate(onPlay: (controller) => controller.repeat())
-              .shimmer(duration: 1200.ms, color: color.withOpacity(0.3)),
+              ).animate().shimmer(duration: 1200.ms, color: color.withOpacity(0.3)),
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPositive ? Icons.trending_up : Icons.trending_down,
+                      color: color,
+                      size: 12,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      growthRate,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(
             subtitle,
@@ -191,6 +231,11 @@ class TaskStatsGrid extends StatelessWidget {
                 gridData: FlGridData(show: false),
                 titlesData: FlTitlesData(show: false),
                 borderData: FlBorderData(show: false),
+                minX: 0,
+                maxX: chartData.length - 1.0,
+                minY: 0,
+                maxY: chartData.isEmpty ? 10 : 
+                    chartData.reduce((max, value) => value > max ? value : max) * 1.2,
                 lineBarsData: [
                   LineChartBarData(
                     spots: _getSpots(chartData),

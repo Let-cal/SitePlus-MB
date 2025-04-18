@@ -46,7 +46,12 @@ class _DealSectionState extends State<DealSection> {
       text: _formatNumber(widget.dealData['deposit']?.toString()),
     );
     _depositMonthController = TextEditingController(
-      text: widget.dealData['depositMonth']?.toString() ?? '',
+      text:
+          widget.dealData['depositMonth']?.toString().replaceAll(
+            ' tháng',
+            '',
+          ) ??
+          '',
     );
     _additionalTermsController = TextEditingController(
       text: widget.dealData['additionalTerms'] ?? '',
@@ -66,7 +71,11 @@ class _DealSectionState extends State<DealSection> {
         widget.dealData['deposit']?.toString(),
       );
       _depositMonthController?.text =
-          widget.dealData['depositMonth']?.toString() ?? '';
+          widget.dealData['depositMonth']?.toString().replaceAll(
+            ' tháng',
+            '',
+          ) ??
+          '';
       _additionalTermsController?.text =
           widget.dealData['additionalTerms'] ?? '';
       _initializeLeaseTerm(widget.dealData['leaseTerm']);
@@ -362,7 +371,7 @@ class _DealSectionState extends State<DealSection> {
                 TextEditingController(), // Fallback if null
             onSaved: (value) {
               widget.setState(() {
-                widget.dealData['proposedPrice'] = value?.replaceAll(',', '');
+                widget.dealData['proposedPrice'] = value.replaceAll(',', '');
               });
               _updateDealDebugInfo();
             },
@@ -383,8 +392,25 @@ class _DealSectionState extends State<DealSection> {
                   _leaseTermController ??
                   TextEditingController(), // Fallback if null
               onSaved: (value) {
-                _leaseTermInput = value ?? '';
+                _leaseTermInput = value;
                 _updateLeaseTerm();
+              },
+              validator: (value) {
+                if (_dealType == 'Mặt bằng cho thuê') {
+                  if (value == null || value.isEmpty) {
+                    return 'Vui lòng nhập thời hạn thuê';
+                  }
+                  // Chuẩn hóa giá trị nhập vào
+                  String normalizedValue = _normalizeString(value);
+                  // Regex mới cho chuỗi không dấu
+                  final regex = RegExp(
+                    r'^(\d+\s*thang|\d+\s*nam|\d+\s*nam\s+\d+\s*thang)$',
+                  );
+                  if (!regex.hasMatch(normalizedValue)) {
+                    return 'Định dạng không hợp lệ. Vui lòng nhập: [số + "tháng"], [số + "năm"] hoặc [số + "năm" + số + "tháng"]. Ví dụ: 2 tháng / 2 năm hoặc 2 năm 2 tháng';
+                  }
+                }
+                return null;
               },
               theme: widget.theme,
               useSmallText: widget.useSmallText,
@@ -402,7 +428,8 @@ class _DealSectionState extends State<DealSection> {
                 TextEditingController(), // Fallback if null
             onSaved: (value) {
               widget.setState(() {
-                widget.dealData['deposit'] = value?.replaceAll(',', '');
+                widget.dealData['depositMonth'] =
+                    value.isNotEmpty ? '$value tháng' : '';
               });
               _updateDealDebugInfo();
             },
@@ -417,13 +444,15 @@ class _DealSectionState extends State<DealSection> {
           CustomInputField(
             label: 'Deposit Duration (Months)',
             hintText: 'Enter deposit duration (e.g., 3)',
+            suffixText: "Months",
             icon: Icons.timer,
             controller:
                 _depositMonthController ??
                 TextEditingController(), // Fallback if null
             onSaved: (value) {
               widget.setState(() {
-                widget.dealData['depositMonth'] = value;
+                widget.dealData['depositMonth'] =
+                    value.isNotEmpty ? '$value tháng' : '';
               });
               _updateDealDebugInfo();
             },

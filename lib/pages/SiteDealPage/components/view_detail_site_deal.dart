@@ -264,12 +264,12 @@ class ViewDetailSiteDeal extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: onEditDeal,
-              icon: const Icon(Icons.edit),
-              label: const Text('Edit Deal'),
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close),
+              label: const Text('Close'),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                side: BorderSide(color: theme.colorScheme.primary),
+                side: BorderSide(color: theme.colorScheme.outline),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -278,7 +278,7 @@ class ViewDetailSiteDeal extends StatelessWidget {
           ),
         ],
       );
-    } else if (siteDeal.status == 1 || siteDeal.status == 2) {
+    } else if (siteDeal.status == 1) {
       return Row(
         children: [
           Expanded(
@@ -310,6 +310,46 @@ class ViewDetailSiteDeal extends StatelessWidget {
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 backgroundColor: theme.colorScheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    } else if (siteDeal.status == 2) {
+      return Row(
+        children: [
+          Expanded(
+            child: FilledButton.icon(
+              onPressed:
+                  onViewSite != null
+                      ? () {
+                        print('View Site button pressed'); // Thêm log
+                        onViewSite!();
+                      }
+                      : null,
+              icon: const Icon(Icons.visibility),
+              label: const Text('View Site'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: theme.colorScheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: onEditDeal,
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit Deal'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: theme.colorScheme.primary),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

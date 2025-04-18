@@ -26,6 +26,7 @@ String getStatusText(int status) {
       return 'Undefined';
   }
 }
+
 /// Trả về Color dựa vào [status]
 Color getStatusColor(BuildContext context, int status) {
   final theme = Theme.of(context);
@@ -35,7 +36,7 @@ Color getStatusColor(BuildContext context, int status) {
     case 2:
       return Colors.orange;
     case 3:
-      return Colors.blue;
+      return Colors.teal;
     case 4:
       return theme.colorScheme.error;
     case 5:
@@ -47,7 +48,7 @@ Color getStatusColor(BuildContext context, int status) {
     case 8:
       return Colors.blueGrey;
     case 9:
-      return Colors.teal;
+      return Colors.blue;
     default:
       return theme.colorScheme.secondary;
   }

@@ -54,6 +54,7 @@ class CustomInputField extends StatefulWidget {
   final VoidCallback? onTap;
   final bool useSmallText;
   final bool useNewUI;
+  final String? Function(String?)? validator;
 
   const CustomInputField({
     super.key,
@@ -74,6 +75,7 @@ class CustomInputField extends StatefulWidget {
     this.onTap, // Thêm vào constructor
     this.useSmallText = false,
     this.useNewUI = false,
+    this.validator,
   });
 
   @override
@@ -217,6 +219,12 @@ class _CustomInputFieldState extends State<CustomInputField> {
                     vertical: 16.0,
                     horizontal: 16.0,
                   ),
+          errorStyle: TextStyle(
+            color: widget.theme.colorScheme.error,
+            fontSize: widget.useSmallText ? 10 : 12,
+            height: 1,
+          ),
+          errorMaxLines: 5,
         ),
         style: widget.useSmallText ? widget.theme.textTheme.bodySmall : null,
         keyboardType:
@@ -239,6 +247,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
         onChanged: (value) {
           widget.onSaved(value);
         },
+        validator: widget.validator,
       ),
     );
   }

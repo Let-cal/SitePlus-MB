@@ -24,6 +24,25 @@ class _MainScaffoldState extends State<MainScaffold> {
   int? _filterSiteId;
   int? _filterTaskId;
   int? _filterTaskStatus;
+
+  void navigateToTaskTabWithoutFilter() {
+    setState(() {
+      _selectedIndex = 1; // Chuyển sang tab "Tasks"
+      _filterTaskId = null;
+      _filterTaskStatus = null;
+      _filterSiteId = null;
+    });
+  }
+
+  void navigateToSiteTabWithoutFilter() {
+    setState(() {
+      _selectedIndex = 2; // Chuyển sang tab "Sites"
+      _filterSiteId = null;
+      _filterTaskId = null;
+      _filterTaskStatus = null;
+    });
+  }
+
   void navigateToSiteTab(int? filterSiteId) {
     setState(() {
       _selectedIndex = 2; // Chuyển sang tab "Mặt Bằng"
@@ -81,7 +100,12 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   // Titles và descriptions cho từng tab
   final List<Map<String, String>> _pageInfo = [
-    {'title': 'Statistics', 'description': 'Overview of project activities'},
+    {
+      'title': 'Home',
+      'description':
+          '"Discover, evaluate, and secure the ideal site for your business success.',
+    },
+    // {'title': 'Statistics', 'description': 'Overview of project activities'},
     {
       'title': 'Tasks',
       'description': 'Get updates on the latest announcements and tasks',
@@ -98,7 +122,13 @@ class _MainScaffoldState extends State<MainScaffold> {
   ];
 
   List<Widget> _getPages() => [
-    const HomePageWidget(),
+    HomePage(
+      onNavigateToTaskTab: navigateToTaskTabWithoutFilter,
+      onNavigateToSiteTab: navigateToSiteTabWithoutFilter,
+      onNavigateToTaskTabWithFilter: navigateToTaskTab,
+      onNavigateToSiteTabWithFilter: navigateToSiteTab,
+    ),
+    // const StatisticsPage(),
     TasksPage(
       onNavigateToSiteTab: navigateToSiteTab,
       filterTaskId: _filterTaskId,
@@ -151,16 +181,21 @@ class _MainScaffoldState extends State<MainScaffold> {
           const NavigationDestination(
             icon: Icon(LucideIcons.house),
             selectedIcon: Icon(LucideIcons.house, fill: 1),
-            label: 'Statistics',
+            label: 'Home',
           ),
+          // const NavigationDestination(
+          //   icon: Icon(Icons.analytics),
+          //   selectedIcon: Icon(Icons.analytics, fill: 1),
+          //   label: 'Statistics',
+          // ),
           const NavigationDestination(
             icon: Icon(LucideIcons.clipboardList),
             selectedIcon: Icon(LucideIcons.clipboardList, fill: 1),
             label: 'Tasks',
           ),
           const NavigationDestination(
-            icon: Icon(LucideIcons.building),
-            selectedIcon: Icon(LucideIcons.building, fill: 1),
+            icon: Icon(LucideIcons.landmark),
+            selectedIcon: Icon(LucideIcons.landmark, fill: 1),
             label: 'Sites',
           ),
           const NavigationDestination(

@@ -5,6 +5,7 @@ import 'package:siteplus_mb/components/SectionHeader.dart';
 import 'package:siteplus_mb/components/pagination_component.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_card.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_detail_popup.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/task_filter_popup.dart';
 import 'package:siteplus_mb/pages/TaskPage/components/task_filter_tab.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
@@ -57,19 +58,23 @@ class _TasksPageState extends State<TasksPage>
   List<Task> tasks = [];
   bool isLoading = true;
   late AnimationController _animationController;
+  List<Map<String, dynamic>> allTaskOptions = [];
 
   @override
   void initState() {
     super.initState();
-    selectedStatusId =
-        widget.filterTaskStatus ?? null; // Áp dụng filter từ widget
+    selectedStatusId = widget.filterTaskStatus ?? null;
     selectedPriorityId = null;
     currentFilterTaskId = widget.filterTaskId;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-    _loadTaskStatuses().then((_) => _loadTasks());
+    print('TasksPage initState: filterTaskStatus = ${widget.filterTaskStatus}');
+    _loadTaskStatuses().then((_) {
+      _loadTasks();
+      _loadAllTaskOptions();
+    });
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) _animationController.forward();
     });
@@ -78,6 +83,9 @@ class _TasksPageState extends State<TasksPage>
   @override
   void didUpdateWidget(TasksPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    print(
+      'TasksPage didUpdateWidget: new filterTaskStatus = ${widget.filterTaskStatus}',
+    );
     if (widget.filterTaskId != oldWidget.filterTaskId ||
         widget.filterTaskStatus != oldWidget.filterTaskStatus) {
       setState(() {
@@ -133,6 +141,29 @@ class _TasksPageState extends State<TasksPage>
       }
     } catch (e) {
       print("Error loading task statuses: $e");
+    }
+  }
+
+  Future<void> _loadAllTaskOptions() async {
+    try {
+      final result = await _apiService.getTasks(
+        page: 0,
+        pageSize: 0,
+        status: null,
+        priority: null,
+        search: null,
+      );
+      if (result['success'] == true) {
+        final TaskResponse response = TaskResponse.fromJson(result);
+        setState(() {
+          allTaskOptions =
+              response.listData
+                  .map((task) => {'id': task.id, 'areaName': task.areaName})
+                  .toList();
+        });
+      }
+    } catch (e) {
+      print("Error loading all task options: $e");
     }
   }
 
@@ -198,8 +229,46 @@ class _TasksPageState extends State<TasksPage>
     setState(() {
       currentPage = 1;
       currentFilterTaskId = null;
+      pageSize = defaultPageSize;
     });
     await _loadTasks();
+  }
+
+  void _showFilterPopup() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (context) => TaskFilterPopup(
+            allTaskOptions: allTaskOptions,
+            initialStatus: selectedStatus,
+            initialPriority: selectedPriority,
+            initialTaskId: currentFilterTaskId,
+            onApply: (status, priority, taskId) {
+              setState(() {
+                selectedStatus = status;
+                selectedPriority = priority;
+                currentFilterTaskId = taskId;
+                selectedStatusId =
+                    status == 'Tất Cả' ? null : statusApiMap[status];
+                selectedPriorityId =
+                    priority == 'Tất Cả'
+                        ? null
+                        : {
+                          PRIORITY_THAP: 1,
+                          PRIORITY_TRUNG_BINH: 2,
+                          PRIORITY_CAO: 3,
+                        }[priority];
+                pageSize = taskId != null ? 1 : defaultPageSize;
+                currentPage = 1;
+              });
+              _loadTasks();
+            },
+          ),
+    );
   }
 
   @override
@@ -207,6 +276,10 @@ class _TasksPageState extends State<TasksPage>
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: Theme.of(context).colorScheme.surface,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showFilterPopup,
+        child: Icon(Icons.filter_list),
+      ),
       body: SafeArea(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:siteplus_mb/components/SectionHeader.dart';
 import 'package:siteplus_mb/components/multi_tab_filter_panel.dart';
 import 'package:siteplus_mb/components/pagination_component.dart';
@@ -10,11 +11,13 @@ import 'package:siteplus_mb/pages/ReportPage/pages/site_building_dialog.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/floating_button_site.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/site_card.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/site_detail_popup.dart';
+import 'package:siteplus_mb/pages/SiteViewPage/components/site_filter_popup.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_status.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/sites_provider.dart';
 
 enum FilterUIType { chip, tab }
 
@@ -33,6 +36,7 @@ class _SiteViewPageState extends State<SiteViewPage>
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   // Site filter state
+  int? selectedSiteId;
   int? selectedCategoryId; // null means "All"
   int? selectedStatusId; // null means "All"
   int? currentFilterSiteId;
@@ -59,48 +63,63 @@ class _SiteViewPageState extends State<SiteViewPage>
 
   Future<void> _loadData() async {
     try {
+      setState(() {
+        isLoading = true;
+      });
+
       final token = await ApiService().getToken();
-      debugPrint('Token: $token');
+      print('SiteViewPage: Token: $token');
 
       if (token == null || token.isEmpty) {
-        throw Exception("No authentication token");
+        throw Exception('No authentication token');
       }
 
       final fetchedSiteCategories = await ApiService().getSiteCategories(token);
       final fetchedAreas = await ApiService().getAllAreas();
 
-      // Debug prints
-      debugPrint('Fetched categories: ${fetchedSiteCategories.length}');
+      print(
+        'SiteViewPage: Fetched categories: ${fetchedSiteCategories.length}',
+      );
       for (var cat in fetchedSiteCategories) {
-        debugPrint('Category: ${cat.id} - ${cat.name}');
+        print('SiteViewPage: Category: ${cat.id} - ${cat.name}');
       }
 
       setState(() {
         _siteCategories = fetchedSiteCategories;
         _areas = fetchedAreas;
 
-        // Create maps from category and area data
-        debugPrint('Creating maps...');
         siteCategoryMap = {
           for (var cat in _siteCategories.where((cat) => cat != null))
             cat.id: cat.englishName,
         };
-        debugPrint('siteCategoryMap size: ${siteCategoryMap.length}');
+        print('SiteViewPage: siteCategoryMap size: ${siteCategoryMap.length}');
 
         areaMap = {
           for (var area in _areas.where((area) => area != null))
             area.id: area.name,
         };
+        print('SiteViewPage: areaMap size: ${areaMap.length}');
       });
-      debugPrint('areaMap size: ${areaMap.length}');
+
+      if (areaMap.isEmpty) {
+        print('SiteViewPage: Warning: areaMap is empty');
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      final sitesProvider = Provider.of<SitesProvider>(context, listen: false);
+      print('SiteViewPage: Calling fetchSites with force=true');
+      await sitesProvider.fetchSites(areaMap: areaMap, force: true);
+      print('SiteViewPage: fetchSites completed');
+
+      await _loadSites();
     } catch (e) {
+      print('SiteViewPage: Error loading data: $e');
       setState(() {
         isLoading = false;
       });
-      debugPrint('Error loading data: $e');
-      if (e is Exception) {
-        debugPrint('Exception: $e');
-      }
     }
   }
 
@@ -112,12 +131,28 @@ class _SiteViewPageState extends State<SiteViewPage>
     });
 
     try {
-      if (currentFilterSiteId != null) {
+      String? searchValue;
+      int effectivePageSize = defaultPageSize; // Default page size
+
+      // Prioritize selectedSiteId (from filter popup)
+      if (selectedSiteId != null) {
+        searchValue = selectedSiteId.toString();
+        effectivePageSize = 1; // Limit to 1 result when filtering by siteId
+      } else if (currentFilterSiteId != null) {
+        searchValue = currentFilterSiteId.toString();
+        effectivePageSize = 1; // Limit to 1 result when using initial filter
+      }
+
+      print(
+        'SiteViewPage: _loadSites with searchValue=$searchValue, pageSize=$effectivePageSize',
+      );
+
+      if (searchValue != null) {
         // If filterSiteId exists, search by site id with page 1 and one result only.
         final response = await ApiService().getSites(
           pageNumber: 1,
-          pageSize: 1,
-          search: widget.filterSiteId.toString(),
+          pageSize: effectivePageSize,
+          search: searchValue,
           status: selectedStatusId,
           siteCategoryId: selectedCategoryId,
         );
@@ -132,6 +167,7 @@ class _SiteViewPageState extends State<SiteViewPage>
           sites = fetchedSites;
           totalRecords = fetchedSites.length;
           totalPages = 1;
+          pageSize = effectivePageSize;
         });
       } else {
         // Normal display with pagination
@@ -161,14 +197,16 @@ class _SiteViewPageState extends State<SiteViewPage>
           sites = filteredSites;
           totalRecords = response['data']['totalRecords'];
           totalPages = response['data']['totalPage'];
+          pageSize = defaultPageSize;
         });
       }
     } catch (e) {
-      print('Error loading sites: $e');
+      print('SiteViewPage: Error loading sites: $e');
       setState(() {
         sites = [];
         totalRecords = 0;
         totalPages = 1;
+        pageSize = defaultPageSize;
       });
     } finally {
       setState(() {
@@ -182,10 +220,11 @@ class _SiteViewPageState extends State<SiteViewPage>
     super.initState();
     selectedCategoryId = null;
     selectedStatusId = null;
+    selectedSiteId = null;
     currentFilterSiteId = widget.filterSiteId;
     pageSize = currentFilterSiteId != null ? 1 : defaultPageSize;
-    _loadData().then((_) {
-      _loadSites();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
     });
   }
 
@@ -215,6 +254,7 @@ class _SiteViewPageState extends State<SiteViewPage>
     setState(() {
       currentPage = 1;
       currentFilterSiteId = null;
+      selectedSiteId = null;
       pageSize = defaultPageSize;
     });
     await _loadSites();
@@ -293,6 +333,44 @@ class _SiteViewPageState extends State<SiteViewPage>
     }
   }
 
+  void _showFilterPopup() {
+    final sitesProvider = Provider.of<SitesProvider>(context, listen: false);
+    print('SiteViewPage: Refreshing sites before showing filter popup');
+    sitesProvider.refreshSites(areaMap: areaMap).then((_) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder:
+            (context) => SiteFilterPopup(
+              initialCategoryId: selectedCategoryId,
+              initialStatus: selectedStatusId,
+              initialSiteId: selectedSiteId,
+              categories: _siteCategories,
+              statuses: statuses,
+              areaMap: areaMap,
+              onApply: (categoryId, status, siteId) {
+                setState(() {
+                  selectedCategoryId = categoryId;
+                  selectedStatusId = status;
+                  selectedSiteId = siteId;
+                  currentPage = 1;
+                  if (siteId == null && currentFilterSiteId == null) {
+                    pageSize = defaultPageSize;
+                  } else {
+                    pageSize = 1;
+                  }
+                  currentFilterSiteId = siteId ?? currentFilterSiteId;
+                });
+                _loadSites();
+              },
+            ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -301,6 +379,7 @@ class _SiteViewPageState extends State<SiteViewPage>
       floatingActionButton: FloatingButtonSite(
         onProposeSite: _showReportSelectionForPropose,
         onCreateSiteByTask: _navigateToTaskPage,
+        onShowFilter: _showFilterPopup,
       ),
       body: SafeArea(
         child: RefreshIndicator(

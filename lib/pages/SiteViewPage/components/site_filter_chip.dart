@@ -1,191 +1,110 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:siteplus_mb/components/custom_dropdown_field.dart';
 import 'package:siteplus_mb/components/filter_chip.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_status.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/sites_provider.dart';
 
-/// Mở rộng FilterChipPanel để hỗ trợ filter động
 class SiteFilterChipPanel extends StatefulWidget {
   final List<SiteCategory> categories;
   final List<int> statuses;
-  final Function(int? categoryId, int? status) onFilterChanged;
   final int? initialSelectedCategoryId;
   final int? initialSelectedStatus;
+  final int? initialSelectedSiteId;
+  final bool showDecoration;
+  final Map<int, String> areaMap;
 
   const SiteFilterChipPanel({
     super.key,
     required this.categories,
     required this.statuses,
-    required this.onFilterChanged,
     this.initialSelectedCategoryId,
     this.initialSelectedStatus,
+    this.initialSelectedSiteId,
+    this.showDecoration = true,
+    required this.areaMap,
   });
 
   @override
-  State<SiteFilterChipPanel> createState() => _SiteFilterChipPanelState();
+  State<SiteFilterChipPanel> createState() => SiteFilterChipPanelState();
 }
 
-class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
+class SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
   late List<FilterSection> _filterSections;
   final List<ActiveFilter> _activeFilters = [];
-  @override
-  void didUpdateWidget(SiteFilterChipPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.categories != oldWidget.categories) {
-      _initializeFilterSections();
-    }
-  }
+  int? _selectedSiteId;
 
   @override
   void initState() {
     super.initState();
+    _selectedSiteId = widget.initialSelectedSiteId;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initializeFilterSections(); // Move it here
+    _initializeFilterSections();
   }
 
   void _initializeFilterSections() {
-    // Debug before initializing
-    debugPrint(
-      'Initializing filters with ${widget.categories.length} categories',
-    );
-    for (var cat in widget.categories) {
-      debugPrint('Filter category: ${cat.id} - ${cat.name}');
-    }
-
-    // Prepare category filter options
     final categoryOptions =
         widget.categories.map((category) {
-          bool isSelected = category.id == widget.initialSelectedCategoryId;
-          debugPrint(
-            'Creating option for ${category.name}, selected: $isSelected',
-          );
-
           return FilterOption(
             label: category.name,
             icon: getSiteCategoryIcon(category.id),
             color: getCategoryColor(category.id),
-            isSelected: isSelected,
-            onTap: () {
-              debugPrint('Selecting category: ${category.id}');
-              _handleCategorySelection(category.id);
-            },
+            isSelected: category.id == widget.initialSelectedCategoryId,
+            onTap: () => _handleCategorySelection(category.id),
           );
         }).toList();
 
-    // Prepare status filter options với 5 trạng thái
-    final statusOptions = [
-      FilterOption(
-        label: getStatusText(8),
-        icon: getStatusIcon(8),
-        color: getStatusColor(context, 8),
-        isSelected: 8 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(8),
-      ),
-      FilterOption(
-        label: getStatusText(1),
-        color: getStatusColor(context, 1),
-        icon: getStatusIcon(1),
-        isSelected: 1 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(1),
-      ),
-      FilterOption(
-        label: getStatusText(2),
-        color: getStatusColor(context, 2),
-        icon: getStatusIcon(2),
-        isSelected: 2 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(2),
-      ),
-      FilterOption(
-        label: getStatusText(7),
-        icon: getStatusIcon(7),
-        color: getStatusColor(context, 7),
-        isSelected: 7 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(7),
-      ),
-      FilterOption(
-        label: getStatusText(3),
-        color: getStatusColor(context, 3),
-        icon: getStatusIcon(3),
-        isSelected: 3 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(3),
-      ),
-      FilterOption(
-        label: getStatusText(4),
-        color: getStatusColor(context, 4),
-        icon: getStatusIcon(4),
-        isSelected: 4 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(4),
-      ),
-      FilterOption(
-        label: getStatusText(6),
-        icon: getStatusIcon(6),
-        color: getStatusColor(context, 6),
-        isSelected: 6 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(6),
-      ),
-      FilterOption(
-        label: getStatusText(5),
-        color: getStatusColor(context, 5),
-        icon: getStatusIcon(5),
-        isSelected: 5 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(5),
-      ),
-      FilterOption(
-        label: getStatusText(9),
-        color: getStatusColor(context, 9),
-        icon: getStatusIcon(9),
-        isSelected: 9 == widget.initialSelectedStatus,
-        onTap: () => _handleStatusSelection(9),
-      ),
-    ];
+    final statusOptions =
+        widget.statuses.map((status) {
+          return FilterOption(
+            label: getStatusText(status),
+            icon: getStatusIcon(status),
+            color: getStatusColor(context, status),
+            isSelected: status == widget.initialSelectedStatus,
+            onTap: () => _handleStatusSelection(status),
+          );
+        }).toList();
 
     _filterSections = [
+      FilterSection(title: 'Site ID', isChipStyle: false, options: []),
       FilterSection(
-        title: 'Loại mặt bằng',
+        title: 'Site Type',
         isChipStyle: true,
         options: categoryOptions,
       ),
-      FilterSection(title: 'Trạng thái', options: statusOptions),
+      FilterSection(title: 'Status', options: statusOptions),
     ];
 
-    // Initialize active filters if any
     _updateActiveFilters();
   }
 
   void _handleCategorySelection(int categoryId) {
-    debugPrint('Handling category selection: $categoryId');
-
     setState(() {
       for (var section in _filterSections) {
-        if (section.title == 'Loại mặt bằng') {
+        if (section.title == 'Site Type') {
           for (var option in section.options) {
-            // Find category by ID
             final selectedCategoryName =
                 widget.categories
-                    .firstWhere(
-                      (cat) => cat.id == categoryId,
-                      orElse: () => widget.categories.first,
-                    )
+                    .firstWhere((cat) => cat.id == categoryId)
                     .name;
-
             option.isSelected = option.label == selectedCategoryName;
-            debugPrint('Option ${option.label} selected: ${option.isSelected}');
           }
         }
       }
       _updateActiveFilters();
     });
-
-    widget.onFilterChanged(categoryId, _getCurrentStatus());
   }
 
   void _handleStatusSelection(int status) {
     setState(() {
       for (var section in _filterSections) {
-        if (section.title == 'Trạng thái') {
+        if (section.title == 'Status') {
           for (var option in section.options) {
             option.isSelected = option.label == getStatusText(status);
           }
@@ -193,24 +112,26 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
       }
       _updateActiveFilters();
     });
-    widget.onFilterChanged(_getCurrentCategory(), status);
   }
 
   int? _getCurrentCategory() {
     for (var section in _filterSections) {
-      if (section.title == 'Loại mặt bằng') {
+      if (section.title == 'Site Type') {
         final selectedOption = section.options.firstWhere(
           (option) => option.isSelected,
-          orElse: () => section.options.first,
+          orElse:
+              () => FilterOption(
+                label: '',
+                color: Colors.transparent,
+                isSelected: false,
+                onTap: () {},
+              ),
         );
-
-        // Find matching category, with fallback
-        final matchingCategory = widget.categories.firstWhere(
-          (cat) => cat.name == selectedOption.label,
-          orElse: () => widget.categories.first,
-        );
-
-        return matchingCategory.id;
+        if (selectedOption.isSelected) {
+          return widget.categories
+              .firstWhere((cat) => cat.name == selectedOption.label)
+              .id;
+        }
       }
     }
     return null;
@@ -218,28 +139,21 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
 
   int? _getCurrentStatus() {
     for (var section in _filterSections) {
-      if (section.title == 'Trạng thái') {
+      if (section.title == 'Status') {
         final selectedOption = section.options.firstWhere(
           (option) => option.isSelected,
-          orElse: () => section.options.first,
+          orElse:
+              () => FilterOption(
+                label: '',
+                color: Colors.transparent,
+                isSelected: false,
+                onTap: () {},
+              ),
         );
-        switch (selectedOption.label) {
-          case 'Có sẵn':
-            return 1;
-          case 'Đang tiến hành':
-            return 2;
-          case 'Chờ phê duyệt':
-            return 3;
-          case 'Bị từ chối':
-            return 4;
-          case 'Đã đóng':
-            return 5;
-          case 'Đã kết nối':
-            return 6;
-          case 'Đang thương lượng':
-            return 7;
-          case 'Đã hoàn thành':
-            return 8;
+        if (selectedOption.isSelected) {
+          return widget.statuses.firstWhere(
+            (status) => getStatusText(status) == selectedOption.label,
+          );
         }
       }
     }
@@ -248,7 +162,6 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
 
   void _updateActiveFilters() {
     _activeFilters.clear();
-
     for (var section in _filterSections) {
       for (var option in section.options) {
         if (option.isSelected) {
@@ -261,21 +174,178 @@ class _SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
                   option.isSelected = false;
                   _updateActiveFilters();
                 });
-                widget.onFilterChanged(null, null);
               },
             ),
           );
         }
       }
     }
+    if (_selectedSiteId != null) {
+      final sitesProvider = Provider.of<SitesProvider>(context, listen: false);
+      final selectedSite = sitesProvider.sites.firstWhere(
+        (site) => site.id == _selectedSiteId,
+        orElse:
+            () => Site(
+              id: _selectedSiteId!,
+              brandId: 0,
+              floor: 0,
+              siteCategoryId: 0,
+              areaId: 0,
+              areaName: 'Unknown',
+              address: '',
+              size: 0.0,
+              status: 0,
+              statusName: '',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+      );
+      _activeFilters.add(
+        ActiveFilter(
+          label: 'Site ID: ${selectedSite.id}',
+          color: Colors.blue,
+          onRemove: () {
+            setState(() {
+              _selectedSiteId = null;
+              _updateActiveFilters();
+            });
+          },
+        ),
+      );
+    }
+  }
+
+  (int?, int?, int?) getCurrentSelections() {
+    return (_getCurrentCategory(), _getCurrentStatus(), _selectedSiteId);
+  }
+
+  void resetSelections() {
+    setState(() {
+      for (var section in _filterSections) {
+        for (var option in section.options) {
+          option.isSelected = false;
+        }
+      }
+      _selectedSiteId = null;
+      _updateActiveFilters();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return FilterChipPanel(
-      headerTitle: 'Bộ lọc mặt bằng',
+      headerTitle: 'Filter Site',
       sections: _filterSections,
       activeFilters: _activeFilters,
+      showDecoration: widget.showDecoration,
+      sectionContentBuilder: _buildSectionContent, // Pass the callback
     );
+  }
+
+  Widget _buildSectionContent(FilterSection section) {
+    if (section.title == 'Site ID') {
+      final sitesProvider = Provider.of<SitesProvider>(context);
+      final sites = sitesProvider.sites;
+
+      if (sitesProvider.isLoading) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      if (sites.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            children: [
+              const Text(
+                'No sites available',
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () {
+                  print('SiteFilterChipPanel: Manually refreshing sites');
+                  Provider.of<SitesProvider>(
+                    context,
+                    listen: false,
+                  ).refreshSites(areaMap: widget.areaMap);
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return CustomDropdownField<int>(
+        value: _selectedSiteId,
+        items: sites.map((site) => site.id).toList(),
+        labelText: 'Select Site ID',
+        hintText: 'Tap to select a site',
+        prefixIcon: Icons.business_rounded,
+        theme: Theme.of(context),
+        onChanged: (value) {
+          setState(() {
+            _selectedSiteId = value;
+            _updateActiveFilters();
+          });
+        },
+        itemBuilder: (int siteId) {
+          final site = sites.firstWhere(
+            (s) => s.id == siteId,
+            orElse:
+                () => Site(
+                  id: siteId,
+                  brandId: 0,
+                  floor: 0,
+                  siteCategoryId: 0,
+                  areaId: 0,
+                  areaName: widget.areaMap[siteId] ?? 'Unknown', // Use areaMap
+                  address: '',
+                  size: 0.0,
+                  status: 0,
+                  statusName: '',
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
+                ),
+          );
+          return Row(
+            children: [
+              Icon(
+                Icons.business_rounded,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Site ID: ${site.id} - ${site.areaName}')),
+            ],
+          );
+        },
+        selectedItemBuilder: (int siteId) {
+          final site = sites.firstWhere(
+            (s) => s.id == siteId,
+            orElse:
+                () => Site(
+                  id: siteId,
+                  brandId: 0,
+                  floor: 0,
+                  siteCategoryId: 0,
+                  areaId: 0,
+                  areaName: widget.areaMap[siteId] ?? 'Unknown', // Use areaMap
+                  address: '',
+                  size: 0.0,
+                  status: 0,
+                  statusName: '',
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
+                ),
+          );
+          return Text('Site ID: ${site.id} - ${site.areaName}');
+        },
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

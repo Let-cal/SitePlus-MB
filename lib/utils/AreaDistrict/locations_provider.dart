@@ -17,12 +17,39 @@ class LocationsProvider extends ChangeNotifier {
       _isBusy = true;
       try {
         await loadDistricts();
+        await loadAllAreas();
       } finally {
         _isBusy = false;
+        _hasLoadedOnce = true;
         notifyListeners();
       }
     }
   }
+
+  Future<void> loadAllAreas() async {
+    if (_isLoadingAllAreas || _hasLoadedOnce) return;
+    _isLoadingAllAreas = true;
+    notifyListeners();
+
+    try {
+      final areas = await _apiService.getAllAreas(page: 1, pageSize: 1000);
+      _allAreas = areas;
+    } catch (e) {
+      _allAreas = [];
+      debugPrint('Lỗi khi load all areas: $e');
+    } finally {
+      _isLoadingAllAreas = false;
+      notifyListeners();
+    }
+  }
+
+  // Thêm danh sách allAreas
+  List<Area> _allAreas = [];
+  bool _isLoadingAllAreas = false;
+  bool _hasLoadedOnce = false;
+  List<Area> get allAreas => _allAreas;
+  bool get isLoadingAllAreas => _isLoadingAllAreas;
+  bool get hasLoadedOnce => _hasLoadedOnce;
 
   // Data storage
   List<District> _districts = [];

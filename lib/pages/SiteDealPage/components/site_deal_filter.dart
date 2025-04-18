@@ -404,13 +404,6 @@ class _SiteDealFilterState extends State<SiteDealFilter> {
             children: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface.withOpacity(0.8),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -418,6 +411,13 @@ class _SiteDealFilterState extends State<SiteDealFilter> {
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface.withOpacity(0.8),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
