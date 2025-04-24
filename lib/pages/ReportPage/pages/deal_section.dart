@@ -28,11 +28,17 @@ class _DealSectionState extends State<DealSection> {
     'Mặt bằng cho thuê',
     'Mặt bằng chuyển nhượng',
   ];
-  String _leaseTermInput = '';
+
+  // New controllers for separate year and month inputs
+  TextEditingController? _leaseYearController;
+  TextEditingController? _leaseMonthController;
+
   TextEditingController? _proposedPriceController;
   TextEditingController? _depositController;
-  TextEditingController? _depositMonthController; // Make nullable
+  TextEditingController? _depositMonthController;
   TextEditingController? _additionalTermsController;
+
+  // Keep this for backward compatibility
   TextEditingController? _leaseTermController;
 
   @override
@@ -56,7 +62,15 @@ class _DealSectionState extends State<DealSection> {
     _additionalTermsController = TextEditingController(
       text: widget.dealData['additionalTerms'] ?? '',
     );
+
+    // Initialize the legacy controller
     _leaseTermController = TextEditingController();
+
+    // Initialize new controllers for year and month
+    _leaseYearController = TextEditingController();
+    _leaseMonthController = TextEditingController();
+
+    // Parse existing lease term value if it exists
     _initializeLeaseTerm(widget.dealData['leaseTerm']);
   }
 
@@ -79,6 +93,9 @@ class _DealSectionState extends State<DealSection> {
       _additionalTermsController?.text =
           widget.dealData['additionalTerms'] ?? '';
       _initializeLeaseTerm(widget.dealData['leaseTerm']);
+      debugPrint(
+        'Updated controllers - Year: ${_leaseYearController?.text}, Month: ${_leaseMonthController?.text}',
+      );
     }
   }
 
@@ -93,20 +110,20 @@ class _DealSectionState extends State<DealSection> {
       if (normalizedLeaseTerm.contains('mat bang chuyen nhuong')) {
         setState(() {
           _dealType = 'Mặt bằng chuyển nhượng';
-          _leaseTermInput = '';
+          _leaseYearController?.text = '';
+          _leaseMonthController?.text = '';
           _leaseTermController?.text = '';
           debugPrint('Initialized _dealType: Mặt bằng chuyển nhượng');
         });
       } else if (normalizedLeaseTerm.contains('mat bang cho thue')) {
         setState(() {
           _dealType = 'Mặt bằng cho thuê';
-          _leaseTermInput = leaseTerm.replaceFirst(
-            'Mặt bằng cho thuê - Thời hạn ',
-            '',
-          );
-          _leaseTermController?.text = _leaseTermInput;
+
+          // Parse the lease term value to extract years and months
+          _parseAndSetLeaseTermValues(leaseTerm);
+
           debugPrint(
-            'Initialized _dealType: Mặt bằng cho thuê, _leaseTermInput: $_leaseTermInput',
+            'Initialized _dealType: Mặt bằng cho thuê, Year: ${_leaseYearController?.text}, Month: ${_leaseMonthController?.text}',
           );
         });
       } else {
@@ -115,6 +132,35 @@ class _DealSectionState extends State<DealSection> {
     } else {
       debugPrint('leaseTerm is null or empty');
     }
+  }
+
+  void _parseAndSetLeaseTermValues(String leaseTerm) {
+    // Extract the part after "Mặt bằng cho thuê - Thời hạn "
+    String termPart = leaseTerm.replaceFirst(
+      'Mặt bằng cho thuê - Thời hạn ',
+      '',
+    );
+
+    // Reset controllers
+    _leaseYearController?.text = '';
+    _leaseMonthController?.text = '';
+
+    // Extract year value if exists
+    RegExp yearRegex = RegExp(r'(\d+)\s*năm');
+    Match? yearMatch = yearRegex.firstMatch(termPart);
+    if (yearMatch != null && yearMatch.groupCount >= 1) {
+      _leaseYearController?.text = yearMatch.group(1) ?? '';
+    }
+
+    // Extract month value if exists
+    RegExp monthRegex = RegExp(r'(\d+)\s*tháng');
+    Match? monthMatch = monthRegex.firstMatch(termPart);
+    if (monthMatch != null && monthMatch.groupCount >= 1) {
+      _leaseMonthController?.text = monthMatch.group(1) ?? '';
+    }
+
+    // For backward compatibility
+    _leaseTermController?.text = termPart;
   }
 
   String _normalizeString(String input) {
@@ -227,15 +273,39 @@ class _DealSectionState extends State<DealSection> {
     debugPrint('dealData: ${widget.dealData}');
   }
 
+  // Create formatted lease term from year and month inputs
   void _updateLeaseTerm() {
     widget.setState(() {
       if (_dealType == 'Mặt bằng chuyển nhượng') {
         widget.dealData['leaseTerm'] = 'Mặt bằng chuyển nhượng';
       } else {
-        widget.dealData['leaseTerm'] =
-            _leaseTermInput.isNotEmpty
-                ? 'Mặt bằng cho thuê - Thời hạn $_leaseTermInput'
-                : 'Mặt bằng cho thuê';
+        // Get values from separate year and month inputs
+        String yearValue = _leaseYearController?.text.trim() ?? '';
+        String monthValue = _leaseMonthController?.text.trim() ?? '';
+
+        // Construct the lease term string based on what user entered
+        String leaseTerm = 'Mặt bằng cho thuê';
+
+        if (yearValue.isNotEmpty || monthValue.isNotEmpty) {
+          leaseTerm += ' - Thời hạn ';
+
+          // Add year part if present
+          if (yearValue.isNotEmpty) {
+            leaseTerm += '$yearValue năm';
+
+            // Add space if month part will follow
+            if (monthValue.isNotEmpty) {
+              leaseTerm += ' ';
+            }
+          }
+
+          // Add month part if present
+          if (monthValue.isNotEmpty) {
+            leaseTerm += '$monthValue tháng';
+          }
+        }
+
+        widget.dealData['leaseTerm'] = leaseTerm;
       }
     });
     _updateDealDebugInfo();
@@ -248,6 +318,8 @@ class _DealSectionState extends State<DealSection> {
     _depositMonthController?.dispose();
     _additionalTermsController?.dispose();
     _leaseTermController?.dispose();
+    _leaseYearController?.dispose();
+    _leaseMonthController?.dispose();
     super.dispose();
   }
 
@@ -280,7 +352,8 @@ class _DealSectionState extends State<DealSection> {
                   setState(() {
                     _dealType = newValue!;
                     if (_dealType == 'Mặt bằng chuyển nhượng') {
-                      _leaseTermInput = '';
+                      _leaseYearController?.text = '';
+                      _leaseMonthController?.text = '';
                       _leaseTermController?.text = '';
                     }
                     _updateLeaseTerm();
@@ -354,7 +427,8 @@ class _DealSectionState extends State<DealSection> {
                   setState(() {
                     _dealType = newValue!;
                     if (_dealType == 'Mặt bằng chuyển nhượng') {
-                      _leaseTermInput = '';
+                      _leaseYearController?.text = '';
+                      _leaseMonthController?.text = '';
                       _leaseTermController?.text = '';
                     }
                     _updateLeaseTerm();
@@ -384,38 +458,99 @@ class _DealSectionState extends State<DealSection> {
           ),
           if (_dealType == 'Mặt bằng cho thuê') ...[
             const SizedBox(height: 16),
-            CustomInputField(
-              label: 'Lease Term',
-              hintText: 'Enter term (e.g., 6 months)',
-              icon: Icons.calendar_today,
-              controller:
-                  _leaseTermController ??
-                  TextEditingController(), // Fallback if null
-              onSaved: (value) {
-                _leaseTermInput = value;
-                _updateLeaseTerm();
-              },
-              validator: (value) {
-                if (_dealType == 'Mặt bằng cho thuê') {
-                  if (value == null || value.isEmpty) {
-                    return 'Vui lòng nhập thời hạn thuê';
-                  }
-                  // Chuẩn hóa giá trị nhập vào
-                  String normalizedValue = _normalizeString(value);
-                  // Regex mới cho chuỗi không dấu
-                  final regex = RegExp(
-                    r'^(\d+\s*thang|\d+\s*nam|\d+\s*nam\s+\d+\s*thang)$',
-                  );
-                  if (!regex.hasMatch(normalizedValue)) {
-                    return 'Định dạng không hợp lệ. Vui lòng nhập: [số + "tháng"], [số + "năm"] hoặc [số + "năm" + số + "tháng"]. Ví dụ: 2 tháng / 2 năm hoặc 2 năm 2 tháng';
-                  }
-                }
-                return null;
-              },
-              theme: widget.theme,
-              useSmallText: widget.useSmallText,
-              useNewUI: widget.useNewUI,
+
+            // Two input fields in a Column for year and month
+            Column(
+              children: [
+                // Year input
+                CustomInputField(
+                  label: 'Years',
+                  hintText: 'Enter years',
+                  suffixText: widget.useNewUI ? null : 'Years(s)',
+                  icon: Icons.calendar_today,
+                  controller: _leaseYearController ?? TextEditingController(),
+                  onSaved: (value) {
+                    // Update both local state and controller
+                    setState(() {
+                      _leaseYearController?.text = value;
+                      // Make sure the value is reflected in the controller
+                      if (_leaseYearController != null) {
+                        _leaseYearController!.text = value;
+                      }
+                    });
+                    _updateLeaseTerm();
+                  },
+                  theme: widget.theme,
+                  keyboardType: TextInputType.number,
+                  numbersOnly: true,
+                  useSmallText: widget.useSmallText,
+                  useNewUI: widget.useNewUI,
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  validator: (value) {
+                    // At least one of year or month must be filled
+                    if ((value == null || value.isEmpty) &&
+                        (_leaseMonthController?.text.isEmpty ?? true)) {
+                      return 'Enter either years or months';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Month input
+                CustomInputField(
+                  label: 'Months',
+                  hintText: 'Enter months',
+                  suffixText: widget.useNewUI ? null : 'Month(s)',
+                  icon: Icons.date_range,
+                  controller: _leaseMonthController ?? TextEditingController(),
+                  onSaved: (value) {
+                    setState(() {
+                      _leaseMonthController?.text = value;
+                      // Make sure the value is reflected in the controller
+                      if (_leaseMonthController != null) {
+                        _leaseMonthController!.text = value;
+                      }
+                    });
+                    _updateLeaseTerm();
+                  },
+                  theme: widget.theme,
+                  keyboardType: TextInputType.number,
+                  numbersOnly: true,
+                  useSmallText: widget.useSmallText,
+                  useNewUI: widget.useNewUI,
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  validator: (value) {
+                    // At least one of year or month must be filled
+                    if ((value == null || value.isEmpty) &&
+                        (_leaseYearController?.text.isEmpty ?? true)) {
+                      return 'Enter either years or months';
+                    }
+                    return null;
+                  },
+                ),
+              ],
             ),
+
+            // Display the combined lease term (optional, for debugging)
+            if (widget.dealData['leaseTerm'] != null &&
+                widget.dealData['leaseTerm'].isNotEmpty &&
+                widget.dealData['leaseTerm'].contains('Thời hạn'))
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  widget.dealData['leaseTerm'].replaceFirst(
+                    'Mặt bằng cho thuê - ',
+                    '',
+                  ),
+                  style: TextStyle(
+                    fontSize: widget.useSmallText ? 11 : 12,
+                    color: widget.theme.colorScheme.outline,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
           ],
           const SizedBox(height: 16),
           CustomInputField(
@@ -428,8 +563,7 @@ class _DealSectionState extends State<DealSection> {
                 TextEditingController(), // Fallback if null
             onSaved: (value) {
               widget.setState(() {
-                widget.dealData['depositMonth'] =
-                    value.isNotEmpty ? '$value tháng' : '';
+                widget.dealData['deposit'] = value.replaceAll(',', '');
               });
               _updateDealDebugInfo();
             },

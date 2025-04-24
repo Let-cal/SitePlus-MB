@@ -41,25 +41,32 @@ class VisibilityObstructionSectionState
 
   final Map<String, Map<String, IconData>> obstructionLevels = {
     'cây xanh': {
-      'ít': Icons.filter_1,
-      'trung bình': Icons.filter_2,
-      'nhiều': Icons.filter_3,
+      'Ít (0–2 cây; <20%)': Icons.filter_1,
+      'Trung bình (3–5 cây; 20–50%)': Icons.filter_2,
+      'Nhiều (>5 cây; >50%)': Icons.filter_3,
     },
     'tòa nhà cao tầng': {
-      'gần': Icons.domain,
-      'trung bình': Icons.apartment,
-      'xa': Icons.location_city,
+      'Gần (<50 m)': Icons.domain,
+      'Trung bình (50–100 m)': Icons.apartment,
+      'Xa (>100 m)': Icons.location_city,
     },
-    'cột điện': {'ít': Icons.bolt, 'nhiều': Icons.electrical_services},
-    'biển quảng cáo': {'nhỏ': Icons.crop_square, 'lớn': Icons.crop_din},
+    'cột điện': {
+      'Ít (0–1 cột)': Icons.bolt,
+      'Nhiều (≥2 cột)': Icons.electrical_services,
+    },
+    'biển quảng cáo': {
+      'Nhỏ (<10 m²)': Icons.crop_square,
+      'Lớn (≥10 m²)': Icons.crop_din,
+    },
     'khác': {'Không thể xác định': Icons.fiber_manual_record_outlined},
   };
 
   final generalObstructionLevels = {
-    'thấp': Icons.signal_cellular_alt_1_bar,
-    'trung bình': Icons.signal_cellular_alt_2_bar,
-    'cao': Icons.signal_cellular_alt,
-    'rất cao': Icons.signal_cellular_4_bar,
+    'cực thấp (~ 0-10%)': Icons.signal_cellular_0_bar,
+    'thấp (~ 10-40%)': Icons.signal_cellular_alt_1_bar,
+    'trung bình (~ 40-70%)': Icons.signal_cellular_alt_2_bar,
+    'cao (~ 70-90%)': Icons.signal_cellular_alt,
+    'rất cao (~ 90-100%)': Icons.signal_cellular_4_bar,
   };
 
   final visibilityOptions = {

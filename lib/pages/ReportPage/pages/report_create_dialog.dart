@@ -54,6 +54,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
   bool _isSubmitting = false;
   bool _isLoading = true;
   bool _isEditMode = false;
+  bool _isDataReady = false;
   List<Map<String, dynamic>> newAttributeValues = [];
   List<CustomerSegment> customerSegments = [];
 
@@ -71,6 +72,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _isEditMode = widget.isEditMode;
+    debugPrint('ReportCreateDialog initialized with siteId: ${widget.siteId}');
 
     final defaultReportData = {
       'reportType': widget.reportType,
@@ -105,6 +107,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
         'naturalLight': {'value': '', 'additionalInfo': ''},
         'greenery': {'value': '', 'additionalInfo': ''},
         'waste': {'value': '', 'additionalInfo': ''},
+        'noise': {'value': '', 'additionalInfo': ''},
         'surroundingStores': [],
         'customStores': [],
         'surroundingStores_additionalInfo': '',
@@ -147,6 +150,15 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
       'additionalTerms': '',
       'status': '',
     };
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _isDataReady = true;
+        debugPrint('ReportCreateDialog siteId: ${widget.siteId}'); // Log siteId
+        debugPrint(
+          'initialReportData: ${widget.initialReportData}',
+        ); // Log initialReportData
+      });
+    });
 
     _fetchCustomerSegments();
     if (_isEditMode && widget.siteId != null) {
@@ -307,8 +319,8 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
       'Site Area': siteCategoryId == 2 ? [9, 10, 11, 34, 35] : [9, 10, 11],
       'Environmental Factors':
           siteCategoryId == 1
-              ? [12, 13, 14, 15, 16, 24, 26, 27]
-              : [12, 13, 14, 15, 16],
+              ? [12, 13, 14, 15, 16, 24, 26, 27, 40]
+              : [12, 13, 14, 15, 16, 40],
       'Visibility & Obstruction': siteCategoryId == 2 ? [17, 18] : [17, 18, 28],
       'Convenience': siteCategoryId == 2 ? [19, 20] : [19, 20, 29],
     };
@@ -720,6 +732,9 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
   }
 
   Widget _buildReportTab(ThemeData theme) {
+    if (!_isDataReady) {
+      return Center(child: CircularProgressIndicator());
+    }
     return PageView(
       controller: _pageController,
       onPageChanged: (index) => setState(() => _currentPage = index),
@@ -941,6 +956,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
                   builder:
                       (context) => CreateSiteDealDialog(
                         siteId: widget.siteId,
+                        taskId: widget.taskId,
                         siteStatus: 7,
                       ),
                 );

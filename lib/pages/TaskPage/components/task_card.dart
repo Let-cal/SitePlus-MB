@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:siteplus_mb/utils/TaskPage/dead_line_utils.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_status.dart';
+import 'package:siteplus_mb/utils/constants.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -13,6 +15,10 @@ class TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    // Only show deadline warning for tasks that are not completed
+    final bool showDeadlineWarning =
+        task.status != STATUS_HOAN_THANH && task.isDeadlineWarning;
 
     return GestureDetector(
       onTap: onTap,
@@ -28,15 +34,19 @@ class TaskCard extends StatelessWidget {
               offset: const Offset(0, 4),
             ),
           ],
+          border:
+              showDeadlineWarning && task.daysToDeadline < 0
+                  ? Border.all(color: Colors.red.withOpacity(0.5), width: 1)
+                  : null,
         ),
         child: Stack(
           children: [
             Row(
               children: [
-                // Viền trái theo status
+                // Status bar on the left
                 Container(
                   width: 8,
-                  height: 100,
+                  height: 110, // Fixed height, as layout adjusts dynamically
                   decoration: BoxDecoration(
                     color: getStatusColor(context, task.status),
                     borderRadius: const BorderRadius.only(
@@ -45,7 +55,7 @@ class TaskCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Icon
+                // Task icon
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Icon(
@@ -72,47 +82,122 @@ class TaskCard extends StatelessWidget {
                         Text(
                           task.description.isNotEmpty
                               ? task.description
-                              : 'No Infomation',
+                              : 'No Information',
                           style: theme.textTheme.bodyMedium,
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        // Deadline và Area Name
-                        Row(
-                          children: [
-                            Icon(
-                              LucideIcons.calendar,
-                              size: 16,
-                              color: colorScheme.onSurface,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              _formatDate(task.deadline),
-                              style: theme.textTheme.bodySmall,
-                            ),
-                            const SizedBox(width: 16),
-                            Icon(
-                              LucideIcons.mapPin,
-                              size: 16,
-                              color: colorScheme.onSurface,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              task.areaName.isNotEmpty
-                                  ? task.areaName
-                                  : 'District 1, Ho Chi Minh City',
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
+                        // Conditional layout for deadline warning
+                        if (showDeadlineWarning) ...[
+                          // Deadline warning row
+                          Row(
+                            children: [
+                              Icon(
+                                LucideIcons.calendar,
+                                size: 16,
+                                color: DeadlineUtils.getDeadlineColor(
+                                  task.daysToDeadline,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatDate(task.deadline),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: DeadlineUtils.getDeadlineColor(
+                                    task.daysToDeadline,
+                                  ),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Icon(
+                                DeadlineUtils.getDeadlineIcon(
+                                  task.daysToDeadline,
+                                ),
+                                size: 16,
+                                color: DeadlineUtils.getDeadlineColor(
+                                  task.daysToDeadline,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  DeadlineUtils.getDeadlineMessage(
+                                    task.daysToDeadline,
+                                  ),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: DeadlineUtils.getDeadlineColor(
+                                      task.daysToDeadline,
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          // Deadline and Area name row
+                          Row(
+                            children: [
+                              Icon(
+                                LucideIcons.mapPin,
+                                size: 16,
+                                color: colorScheme.onSurface,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  task.areaName.isNotEmpty
+                                      ? task.areaName
+                                      : 'District 1, Ho Chi Minh City',
+                                  style: theme.textTheme.bodySmall,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          // No deadline warning: single row
+                          Row(
+                            children: [
+                              Icon(
+                                LucideIcons.calendar,
+                                size: 16,
+                                color: colorScheme.onSurface,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatDate(task.deadline),
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              const SizedBox(width: 16),
+                              Icon(
+                                LucideIcons.mapPin,
+                                size: 16,
+                                color: colorScheme.onSurface,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  task.areaName.isNotEmpty
+                                      ? task.areaName
+                                      : 'District 1, Ho Chi Minh City',
+                                  style: theme.textTheme.bodySmall,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
               ],
             ),
-            // Status và Priority ở góc phải trên
+            // Status and Priority badges
             Positioned(
               top: 8,
               right: 8,
@@ -127,6 +212,29 @@ class TaskCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDeadlineWarning(BuildContext context) {
+    final color = DeadlineUtils.getDeadlineColor(task.daysToDeadline);
+    final icon = DeadlineUtils.getDeadlineIcon(task.daysToDeadline);
+    final message = DeadlineUtils.getDeadlineMessage(task.daysToDeadline);
+
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            message,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 

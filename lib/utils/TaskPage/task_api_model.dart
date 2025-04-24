@@ -45,6 +45,8 @@ class Task {
   final DateTime deadline;
   final String areaName;
   final int? areaId;
+  final bool isDeadlineWarning;
+  final int daysToDeadline;
 
   Task({
     required this.id,
@@ -58,6 +60,8 @@ class Task {
     required this.deadline,
     required this.areaName,
     required this.areaId,
+    this.isDeadlineWarning = false,
+    this.daysToDeadline = 0,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -151,6 +155,8 @@ class Task {
       deadline: DateTime.parse(json['deadline']),
       areaName: areaName,
       areaId: areaId,
+      isDeadlineWarning: json['isDeadlineWarning'] ?? false,
+      daysToDeadline: json['daysToDeadline'] ?? 0,
     );
   }
 }
@@ -171,12 +177,7 @@ class TaskResponse {
   factory TaskResponse.fromJson(Map<String, dynamic> json) {
     // Kiểm tra nếu json['data'] là null
     if (json['data'] == null) {
-      return TaskResponse(
-        page: 1,
-        totalPage: 1,
-        totalRecords: 0,
-        listData: [],
-      );
+      return TaskResponse(page: 1, totalPage: 1, totalRecords: 0, listData: []);
     }
 
     final data = json['data'];
@@ -184,11 +185,11 @@ class TaskResponse {
       page: data['page'] ?? 1, // Giá trị mặc định nếu page không tồn tại
       totalPage: data['totalPage'] ?? 1,
       totalRecords: data['totalRecords'] ?? 0,
-      listData: (data['listData'] as List<dynamic>?)
+      listData:
+          (data['listData'] as List<dynamic>?)
               ?.map((item) => Task.fromJson(item))
               .toList() ??
           [],
     );
   }
 }
-

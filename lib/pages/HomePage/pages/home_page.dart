@@ -42,7 +42,6 @@ class _HomePageState extends State<HomePage>
   Future<void> _loadData() async {
     try {
       final token = await ApiService().getToken();
-      debugPrint('Token: $token');
 
       if (token == null || token.isEmpty) {
         throw Exception("No authentication token");

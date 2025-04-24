@@ -41,7 +41,11 @@ class _StatisticsSummaryState extends State<StatisticsSummary> {
       context,
       listen: false,
     );
-    siteReportProvider.fetchSiteReportStatistics();
+    if (!siteReportProvider.hasLoadedOnce) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        siteReportProvider.fetchSiteReportStatistics();
+      });
+    }
   }
 
   @override

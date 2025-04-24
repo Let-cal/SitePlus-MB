@@ -40,67 +40,138 @@ class EnvironmentalFactorsSectionState
   List<String> customAmenities = [];
   final Map<String, Map<String, dynamic>> factorConfigs = {
     'airQuality': {
-      'title': 'Chất lượng không khí',
+      'title': 'Chất lượng không khí \n(AQI/PM2.5)',
       'icon': Icons.air,
       'options': [
-        {'label': 'Thông thoáng', 'icon': Icons.check_circle_outline},
-        {'label': 'Trung bình', 'icon': Icons.remove_circle_outline},
-        {'label': 'Ô nhiễm', 'icon': Icons.cancel_outlined},
+        {
+          'label': 'Tốt (AQI 0–50; PM2.5 ≤5)',
+          'icon': Icons.check_circle_outline,
+        },
+        {
+          'label': 'Trung bình (AQI 51–100; PM2.5 5–12)',
+          'icon': Icons.remove_circle_outline,
+        },
+        {'label': 'Kém (AQI >100; PM2.5 >12)', 'icon': Icons.cancel_outlined},
+      ],
+      'infoTitle': 'AQI (Air Quality Index) - Chỉ số chất lượng không khí',
+      'bulletPoints': [
+        'Là chỉ số tổng hợp thể hiện mức độ ô nhiễm không khí từ nhiều chất ô nhiễm như PM2.5, PM10, NO₂, SO₂, CO và O₃.',
+        'Thang điểm từ 0 đến 500, càng cao càng ô nhiễm.',
+        'Dưới 50 là tốt, trên 100 có thể gây ảnh hưởng đến sức khỏe, đặc biệt là nhóm nhạy cảm.',
       ],
     },
     'naturalLight': {
-      'title': 'Ánh sáng tự nhiên',
+      'title': 'Ánh sáng tự nhiên (lux)',
       'icon': Icons.wb_sunny,
       'options': [
-        {'label': 'Tốt', 'icon': Icons.brightness_high},
-        {'label': 'Trung bình', 'icon': Icons.brightness_medium},
-        {'label': 'Kém', 'icon': Icons.brightness_low},
+        {'label': 'Tốt (≥500 lux)', 'icon': Icons.brightness_high},
+        {'label': 'Trung bình (300–500 lux)', 'icon': Icons.brightness_medium},
+        {'label': 'Kém (<300 lux)', 'icon': Icons.brightness_low},
+      ],
+      'infoTitle': 'Cường độ chiếu sáng (lux) đo tại mặt tiền:',
+      'bulletPoints': [
+        '1 lux = lượng ánh sáng rơi trên diện tích 1 mét vuông từ nguồn sáng 1 lumen.',
+        'Ánh sáng ngoài trời ban ngày thường > 10,000 lux, còn trong nhà thì 100–500 lux tùy chức năng.',
+        'Trong mặt bằng bán lẻ, ≥ 500 lux được xem là đủ sáng.',
       ],
     },
     'greenery': {
-      'title': 'Không gian xanh',
+      'title': 'Không gian xanh (3–30–300)',
       'icon': Icons.park,
       'options': [
-        {'label': 'Phong phú', 'icon': Icons.forest},
-        {'label': 'Hiếm', 'icon': Icons.grass},
-        {'label': 'Không có', 'icon': Icons.crop_square},
+        {'label': 'Phong phú (≥30 %)', 'icon': Icons.forest},
+        {'label': 'Trung bình (10–30 %)', 'icon': Icons.grass},
+        {'label': 'Hiếm (<10 %)', 'icon': Icons.crop_square},
+      ],
+      'infoTitle': 'Áp dụng quy tắc 3–30–300:',
+      'bulletPoints': [
+        '3 m: khoảng cách tối đa đến cây to nhất trong vòng 3 m từ mặt tiền',
+        '30 %: tỷ lệ che phủ xanh trong bán kính 300 m quanh địa điểm ≥ 30 % là “phong phú”',
+        '300 m: phải có công viên ≥ 0,5 ha trong bán kính 300 m',
+        'Phong phú: ≥ 30 %',
+        'Trung bình: 10–30 %',
+        'Hiếm/Thiếu: < 10 %.',
       ],
     },
     'waste': {
-      'title': 'Quản lý rác thải',
+      'title': 'Quản lý rác thải (mẩu/100 m)',
       'icon': Icons.delete_outline,
       'options': [
-        {'label': 'Không có', 'icon': Icons.check_circle_outline},
-        {'label': 'Ít', 'icon': Icons.remove_circle_outline},
-        {'label': 'Nhiều', 'icon': Icons.cancel_outlined},
+        {'label': 'Không có (0)', 'icon': Icons.check_circle_outline},
+        {'label': 'Ít (1–5)', 'icon': Icons.remove_circle_outline},
+        {'label': 'Nhiều (>5)', 'icon': Icons.cancel_outlined},
+      ],
+      'infoTitle': 'Đếm số mẩu rác trong 100 m đường phố sát mặt tiền:',
+      'bulletPoints': ['Không có: 0 mẩu', 'Ít: 1–5 mẩu', 'Nhiều: > 5 mẩu'],
+    },
+    'noise': {
+      'title': 'Tiếng ồn (dB)',
+      'icon': Icons.hearing,
+      'options': [
+        {'label': 'Thấp (<55 dB)', 'icon': Icons.volume_mute},
+        {'label': 'Trung bình (55–70 dB)', 'icon': Icons.volume_down},
+        {'label': 'Cao (>70 dB)', 'icon': Icons.volume_up},
+      ],
+      'infoTitle': 'dB (Decibel) – Đơn vị đo âm lượng',
+      'bulletPoints': [
+        'Là đơn vị logarit để đo cường độ âm thanh.',
+        '30 dB: yên tĩnh như thư viện',
+        '60 dB: âm lượng hội thoại thông thường',
+        '>70 dB: có thể ảnh hưởng đến sức khỏe nếu kéo dài',
       ],
     },
   };
 
   final Map<String, Map<String, dynamic>> additionalFactorConfigs = {
     'ventilation': {
-      'title': 'Hệ thống thông gió',
+      'title': 'Thông gió (ACH)',
       'icon': Icons.air,
-      'qualityOptions': [
-        {'label': 'Tốt', 'icon': Icons.check_circle},
-        {'label': 'Trung bình', 'icon': Icons.remove_circle},
-        {'label': 'Kém', 'icon': Icons.cancel},
+      'options': [
+        {'label': 'Tốt (≥6 ACH)', 'icon': Icons.check_circle},
+        {'label': 'Trung bình (3–6 ACH)', 'icon': Icons.remove_circle},
+        {'label': 'Kém (<3 ACH)', 'icon': Icons.cancel},
+      ],
+      'infoTitle':
+          'ACH (Air Changes per Hour) – Số lần trao đổi không khí mỗi giờ',
+      'bulletPoints': [
+        'Cho biết không khí trong phòng được thay mới bao nhiêu lần mỗi giờ.',
+        'Ví dụ: 6 ACH nghĩa là không khí được thay mới 6 lần mỗi giờ.',
       ],
     },
     'airConditioning': {
-      'title': 'Hệ thống điều hòa',
+      'title': 'Điều hòa (BTU/ft²)',
       'icon': Icons.ac_unit,
-      'qualityOptions': [
-        {'label': 'Tốt', 'icon': Icons.check_circle},
-        {'label': 'Trung bình', 'icon': Icons.remove_circle},
-        {'label': 'Kém', 'icon': Icons.cancel},
+      'options': [
+        {'label': 'Tốt (≥20 BTU/ft²)', 'icon': Icons.check_circle},
+        {'label': 'Trung bình (15–20 BTU/ft²)', 'icon': Icons.remove_circle},
+        {'label': 'Kém (<15 BTU/ft²)', 'icon': Icons.cancel},
+      ],
+      'infoTitle':
+          'BTU/ft² (British Thermal Unit trên foot vuông) – Đơn vị công suất điều hòa trên diện tích',
+      'bulletPoints': [
+        'BTU là đơn vị đo nhiệt lượng, thường dùng để xác định công suất máy lạnh.',
+        '1 ft² (foot vuông) ≈ 0.093 m²',
+        'Ví dụ: mặt bằng 500 ft² cần điều hòa có công suất từ 10,000–12,000 BTU.',
       ],
     },
     'commonAmenities': {
       'title': 'Tiện ích chung',
       'icon': Icons.local_parking,
-      'amenities': ['Bãi đỗ xe', 'Phòng gym', 'Hồ bơi', 'Khu vui chơi'],
+      'amenities': [
+        'Thang máy',
+        'Thang bộ',
+        'Bãi đỗ xe',
+        'Phòng gym',
+        'Hồ bơi',
+        'Khu vui chơi',
+      ],
       'statuses': ['Rộng', 'Đầy đủ', 'Hiện đại', 'Tiện nghi'],
+      'infoTitle': 'Tiện ích chung trong tòa nhà',
+      'bulletPoints': [
+        'Thang máy giúp khách hàng dễ dàng di chuyển giữa các tầng, đặc biệt với mặt bằng ở tầng cao.',
+        'Thang bộ đảm bảo an toàn và là phương tiện thoát hiểm cơ bản.',
+        'Các tiện ích như bãi đỗ xe, phòng gym, hồ bơi góp phần tạo môi trường làm việc và kinh doanh chuyên nghiệp.',
+      ],
     },
   };
 
@@ -109,6 +180,7 @@ class EnvironmentalFactorsSectionState
     'naturalLight': 13,
     'greenery': 14,
     'waste': 15,
+    'noise': 40,
     'surroundingStores': 16,
     'ventilation': 24,
     'airConditioning': 26,
@@ -164,6 +236,7 @@ class EnvironmentalFactorsSectionState
       'naturalLight': {'value': '', 'additionalInfo': ''},
       'greenery': {'value': '', 'additionalInfo': ''},
       'waste': {'value': '', 'additionalInfo': ''},
+      'noise': {'value': '', 'additionalInfo': ''},
       'surroundingStores': [],
       'customStores': [],
       'surroundingStores_additionalInfo': '',
@@ -236,6 +309,12 @@ class EnvironmentalFactorsSectionState
           break;
         case 15: // waste
           localEnvironmentalFactors['waste'] = {
+            'value': value,
+            'additionalInfo': additionalInfo,
+          };
+          break;
+        case 40: // noise
+          localEnvironmentalFactors['noise'] = {
             'value': value,
             'additionalInfo': additionalInfo,
           };
@@ -738,6 +817,13 @@ class EnvironmentalFactorsSectionState
               title: _getTitle(key),
               subtitle: _getSubtitle(key),
               theme: widget.theme,
+              showInfo: true,
+              useBulletPoints: true,
+              infoTitle: factorConfigs[key]!['infoTitle'] as String,
+              bulletPoints:
+                  (factorConfigs[key]!['bulletPoints'] as List)
+                      .map<String>((item) => item.toString())
+                      .toList(),
               children: [
                 Column(
                   children:
@@ -785,6 +871,9 @@ class EnvironmentalFactorsSectionState
                     : 'Cửa hàng xung quanh',
             subtitle: _totalSelectedStores,
             theme: widget.theme,
+            showInfo: true,
+            description:
+                'Đánh giá các cửa hàng hoặc cơ sở xung quanh mặt bằng, như siêu thị, nhà hàng, trường học, v.v.',
             children: [
               CustomChipGroup(
                 options: surroundingStoresIcons.keys.toList(),
@@ -823,6 +912,16 @@ class EnvironmentalFactorsSectionState
               title: additionalFactorConfigs['ventilation']!['title'] as String,
               subtitle: _getSubtitle('ventilation'),
               theme: widget.theme,
+              showInfo: true,
+              useBulletPoints: true,
+              infoTitle:
+                  additionalFactorConfigs['ventilation']!['infoTitle']
+                      as String,
+              bulletPoints:
+                  (additionalFactorConfigs['ventilation']!['bulletPoints']
+                          as List)
+                      .map<String>((item) => item.toString())
+                      .toList(),
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -876,7 +975,7 @@ class EnvironmentalFactorsSectionState
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children:
-                              (additionalFactorConfigs['ventilation']!['qualityOptions']
+                              (additionalFactorConfigs['ventilation']!['options']
                                       as List<Map<String, dynamic>>)
                                   .map(
                                     (option) => Padding(
@@ -934,6 +1033,16 @@ class EnvironmentalFactorsSectionState
                       as String,
               subtitle: _getSubtitle('airConditioning'),
               theme: widget.theme,
+              showInfo: true,
+              useBulletPoints: true,
+              infoTitle:
+                  additionalFactorConfigs['airConditioning']!['infoTitle']
+                      as String,
+              bulletPoints:
+                  (additionalFactorConfigs['airConditioning']!['bulletPoints']
+                          as List)
+                      .map<String>((item) => item.toString())
+                      .toList(),
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -987,7 +1096,7 @@ class EnvironmentalFactorsSectionState
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children:
-                              (additionalFactorConfigs['airConditioning']!['qualityOptions']
+                              (additionalFactorConfigs['airConditioning']!['options']
                                       as List<Map<String, dynamic>>)
                                   .map(
                                     (option) => Padding(
@@ -1045,6 +1154,16 @@ class EnvironmentalFactorsSectionState
                       as String,
               subtitle: _getSubtitle('commonAmenities'),
               theme: widget.theme,
+              showInfo: true,
+              useBulletPoints: true,
+              infoTitle:
+                  additionalFactorConfigs['commonAmenities']!['infoTitle']
+                      as String,
+              bulletPoints:
+                  (additionalFactorConfigs['commonAmenities']!['bulletPoints']
+                          as List)
+                      .map<String>((item) => item.toString())
+                      .toList(),
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -68,7 +68,6 @@ class _SiteViewPageState extends State<SiteViewPage>
       });
 
       final token = await ApiService().getToken();
-      print('SiteViewPage: Token: $token');
 
       if (token == null || token.isEmpty) {
         throw Exception('No authentication token');

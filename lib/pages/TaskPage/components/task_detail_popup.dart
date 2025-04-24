@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/site_building_dialog.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
+import 'package:siteplus_mb/utils/TaskPage/dead_line_utils.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_api_model.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_status.dart';
 import 'package:siteplus_mb/utils/constants.dart';
@@ -363,8 +364,9 @@ class ViewDetailTask extends StatelessWidget {
         _buildInfoRow(
           context,
           label: 'Deadline',
-          value: _formatDate(task.deadline),
+          value: _buildDeadlineText(),
           icon: Icons.calendar_today,
+          valueColor: _getDeadlineColor(),
         ),
         const SizedBox(height: 12),
         _buildInfoRow(
@@ -392,6 +394,22 @@ class ViewDetailTask extends StatelessWidget {
         ],
       ],
     );
+  }
+
+  String _buildDeadlineText() {
+    String text = _formatDate(task.deadline);
+    if (task.status != STATUS_HOAN_THANH && task.isDeadlineWarning) {
+      String warning = DeadlineUtils.getDeadlineMessage(task.daysToDeadline);
+      text += ' - $warning';
+    }
+    return text;
+  }
+
+  Color? _getDeadlineColor() {
+    if (task.status != STATUS_HOAN_THANH && task.isDeadlineWarning) {
+      return DeadlineUtils.getDeadlineColor(task.daysToDeadline);
+    }
+    return null;
   }
 
   Widget _buildBrandInfo(BuildContext context) {

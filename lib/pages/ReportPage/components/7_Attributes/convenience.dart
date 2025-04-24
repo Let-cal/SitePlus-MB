@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/animated_expansion_card.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/custom_chip_group.dart';
-import 'package:siteplus_mb/components/custom_input_field.dart';
 import 'package:siteplus_mb/components/7_AttributesComponents/info_card.dart';
+import 'package:siteplus_mb/components/custom_input_field.dart';
 
 class ConvenienceSection extends StatefulWidget {
   final Map<String, dynamic> reportData;
@@ -37,47 +37,52 @@ class ConvenienceSectionState extends State<ConvenienceSection> {
   };
 
   final List<String> terrainOptions = [
-    'Bằng phẳng',
-    'Cao hơn vỉa hè',
-    'Thấp hơn vỉa hè',
-    'Dốc',
-    'khác',
+    'Bằng phẳng (<0.10 m; dốc <5 %)',
+    'Cao hơn vỉa hè (>0.15 m)',
+    'Thấp hơn vỉa hè (<–0.15 m)',
+    'Dốc nhẹ (5–10 %)',
+    'Dốc vừa (10–15 %)',
+    'Dốc cao (>16 %)',
+    'Khác',
   ];
 
   final Map<String, IconData> terrainIcons = {
-    'Bằng phẳng': Icons.horizontal_rule,
-    'Cao hơn vỉa hè': Icons.arrow_upward,
-    'Thấp hơn vỉa hè': Icons.arrow_downward,
-    'Dốc': Icons.trending_down,
-    'khác': Icons.edit,
+    'Bằng phẳng (<0.10 m; dốc <5 %)': Icons.flatware,
+    'Cao hơn vỉa hè (>0.15 m)': Icons.arrow_upward,
+    'Thấp hơn vỉa hè (<–0.15 m)': Icons.arrow_downward,
+    'Dốc nhẹ (5–10 %)': Icons.trending_flat,
+    'Dốc vừa (10–15 %)': Icons.trending_up,
+    'Dốc cao (>16 %)': Icons.show_chart,
+    'Khác': Icons.edit,
   };
 
   final List<String> accessibilityOptions = [
-    'Thuận tiện',
-    'Khó khăn nhẹ',
-    'Khó tiếp cận',
-    'khác',
+    'Thuận tiện (≥80%)',
+    'Khó khăn nhẹ (50–80%)',
+    'Khó tiếp cận (<50%)',
+    'Khác',
   ];
-
   final Map<String, IconData> accessibilityIcons = {
-    'Thuận tiện': Icons.check_circle_outline,
-    'Khó khăn nhẹ': Icons.warning_amber_outlined,
-    'Khó tiếp cận': Icons.not_interested,
-    'khác': Icons.help_outline,
+    'Thuận tiện (≥80%)': Icons.check_circle_outline,
+    'Khó khăn nhẹ (50–80%)': Icons.warning_amber_outlined,
+    'Khó tiếp cận (<50%)': Icons.not_interested,
+    'Khác': Icons.help_outline,
   };
 
   final List<String> customerAccessibilityOptions = [
-    'Mức độ tiếp cận khách hàng cao',
-    'Mức độ tiếp cận khách hàng trung bình',
-    'Mức độ tiếp cận khách hàng thấp',
-    'khác',
+    'Cao (Đường trục chính; Độ rộng lòng đường: ≥12 m; vỉa hè 2 bên)',
+    'Trung bình (Đường gom; Độ rộng lòng đường:8–12 m; vỉa hè 1 bên)',
+    'Thấp (Đường nhánh, hẻm nhỏ; Độ rộng lòng đường:<8 m; không vỉa hè)',
+    'Khác',
   ];
-
   final Map<String, IconData> customerAccessibilityIcons = {
-    'Mức độ tiếp cận khách hàng cao': Icons.people,
-    'Mức độ tiếp cận khách hàng trung bình': Icons.people_outline,
-    'Mức độ tiếp cận khách hàng thấp': Icons.person_off,
-    'khác': Icons.help_outline,
+    'Cao (Đường trục chính; Độ rộng lòng đường: ≥12 m; vỉa hè 2 bên)':
+        Icons.people,
+    'Trung bình (Đường gom; Độ rộng lòng đường:8–12 m; vỉa hè 1 bên)':
+        Icons.people_outline,
+    'Thấp (Đường nhánh, hẻm nhỏ; Độ rộng lòng đường:<8 m; không vỉa hè)':
+        Icons.person_off,
+    'Khác': Icons.help_outline,
   };
 
   List<String> customTerrainOptions = [];

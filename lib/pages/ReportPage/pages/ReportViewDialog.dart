@@ -303,6 +303,8 @@ class _ReportViewDialogState extends State<ReportViewDialog>
   Widget _buildDealDetails(Map<String, dynamic> deal) {
     String dealType = '';
     String leaseTermInput = '';
+    String deposit =
+        deal['deposit'] != null ? '${deal['deposit'].toInt()} VND' : 'N/A';
     final leaseTerm = deal['leaseTerm'] ?? '';
     if (leaseTerm.contains('Mặt bằng chuyển nhượng')) {
       dealType = 'Mặt bằng chuyển nhượng';
@@ -338,11 +340,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           '${deal['proposedPrice'].toInt()} VND',
           Icons.money,
         ),
-        _buildDealInfoRow(
-          'Deposit',
-          '${deal['deposit'].toInt()} VND',
-          Icons.account_balance_wallet,
-        ),
+        _buildDealInfoRow('Deposit', deposit, Icons.account_balance_wallet),
         _buildDealInfoRow(
           'Deposit Months',
           '${deal['depositMonth']}',
@@ -588,9 +586,6 @@ class _ReportViewDialogState extends State<ReportViewDialog>
     // Get all records with attributeId: 7
     final sameAgeAttrs =
         _processedAttributeValues.where((a) => a['attributeId'] == 7).toList();
-
-    // Debug: Print the list of records with attributeId: 7
-    debugPrint('Processing age group attributes: $sameAgeAttrs');
 
     // Process the data
     for (var ageAttr in sameAgeAttrs) {

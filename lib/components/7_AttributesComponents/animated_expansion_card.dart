@@ -6,7 +6,12 @@ class AnimatedExpansionCard extends StatelessWidget {
   final String? subtitle;
   final List<Widget> children;
   final ThemeData theme;
-  final bool initiallyExpanded; // Thêm thuộc tính này
+  final bool initiallyExpanded;
+  final bool showInfo;
+  final String? description; 
+  final String? infoTitle; 
+  final List<String>? bulletPoints; 
+  final bool useBulletPoints; 
 
   const AnimatedExpansionCard({
     super.key,
@@ -15,8 +20,53 @@ class AnimatedExpansionCard extends StatelessWidget {
     this.subtitle,
     required this.children,
     required this.theme,
-    this.initiallyExpanded = false, // Mặc định là đóng
+    this.initiallyExpanded = false,
+    this.showInfo = false,
+    this.description,
+    this.infoTitle,
+    this.bulletPoints,
+    this.useBulletPoints = false,
   });
+
+  void _showInfoDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(infoTitle ?? title, style: theme.textTheme.titleMedium),
+        content: SingleChildScrollView(
+          child: useBulletPoints && bulletPoints != null && bulletPoints!.isNotEmpty
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: bulletPoints!.map((point) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Expanded(child: Text(point, style: theme.textTheme.bodyMedium)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                )
+              : Text(description ?? '', style: theme.textTheme.bodyMedium),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Đóng',
+              style: TextStyle(color: theme.colorScheme.primary),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +87,20 @@ class AnimatedExpansionCard extends StatelessWidget {
       child: ExpansionTile(
         initiallyExpanded: initiallyExpanded, // Áp dụng giá trị từ tham số
         leading: Icon(icon, color: theme.colorScheme.primary),
-        title: Text(title, style: theme.textTheme.titleMedium),
+        title: Row(
+          children: [
+            Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
+            if (showInfo)
+              IconButton(
+                icon: Icon(
+                  Icons.lightbulb_outline,
+                  color: theme.colorScheme.primary,
+                ),
+                onPressed: () => _showInfoDialog(context),
+                tooltip: 'Thông tin',
+              ),
+          ],
+        ),
         subtitle:
             subtitle != null
                 ? Text(subtitle!, style: theme.textTheme.bodyMedium)

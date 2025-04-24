@@ -26,8 +26,13 @@ class LocationsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadAllAreas() async {
-    if (_isLoadingAllAreas || _hasLoadedOnce) return;
+  Future<void> loadAllAreas({bool force = false}) async {
+    if (_isLoadingAllAreas || (!force && _hasLoadedOnce)) {
+      debugPrint(
+        'loadAllAreas skipped (_isLoadingAllAreas: $_isLoadingAllAreas, _hasLoadedOnce: $_hasLoadedOnce, force: $force)',
+      );
+      return;
+    }
     _isLoadingAllAreas = true;
     notifyListeners();
 
@@ -39,6 +44,7 @@ class LocationsProvider extends ChangeNotifier {
       debugPrint('Lỗi khi load all areas: $e');
     } finally {
       _isLoadingAllAreas = false;
+      _hasLoadedOnce = true;
       notifyListeners();
     }
   }
@@ -124,6 +130,12 @@ class LocationsProvider extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  void reset() {
+    _hasLoadedOnce = false;
+    _allAreas = [];
+    notifyListeners();
   }
 }
 

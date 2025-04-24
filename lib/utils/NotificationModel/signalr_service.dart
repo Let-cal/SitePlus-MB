@@ -12,7 +12,6 @@ class SignalRService {
   Future<void> startConnection() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token') ?? '';
-    print('Token: $token'); // Log token để kiểm tra
 
     _hubConnection =
         HubConnectionBuilder()

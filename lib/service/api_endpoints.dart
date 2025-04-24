@@ -12,6 +12,7 @@ class ApiEndpoints {
   static const String getSiteDealByUserId = '/SiteDeal/user';
   static const String getSiteDealById = '/SiteDeal/SiteDeal';
   static const String updateSiteDeal = '/SiteDeal';
+  static const String updateSiteDealStatus = '/siteDeal';
 
   ///building service
   static const String getAllBuilding = '/Building/area';

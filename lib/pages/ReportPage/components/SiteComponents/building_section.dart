@@ -95,6 +95,36 @@ class _BuildingSectionState extends State<BuildingSection> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter the building name';
                         }
+
+                        // Case-insensitive comparison and contains check
+                        final String normalizedInput =
+                            value.trim().toLowerCase();
+
+                        // Check for exact duplicate
+                        final bool isExactDuplicate = widget.buildings.any(
+                          (building) =>
+                              building.name.toLowerCase() == normalizedInput,
+                        );
+                        if (isExactDuplicate) {
+                          return 'A building with this name already exists';
+                        }
+
+                        // Check for partial match (if existing name contains input or input contains existing name)
+                        for (var building in widget.buildings) {
+                          final String existingName =
+                              building.name.toLowerCase();
+                          // Check if user input contains an existing building name
+                          if (normalizedInput.contains(existingName) &&
+                              existingName.length > 3) {
+                            return 'Name too similar to existing building: ${building.name}';
+                          }
+
+                          // Check if existing building name contains user input
+                          if (existingName.contains(normalizedInput) &&
+                              normalizedInput.length > 3) {
+                            return 'Name too similar to existing building: ${building.name}';
+                          }
+                        }
                         return null;
                       },
                     ),

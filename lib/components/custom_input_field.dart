@@ -39,7 +39,7 @@ class ThousandsSeparatorInputFormatter extends TextInputFormatter {
 class CustomInputField extends StatefulWidget {
   final String label;
   final String hintText;
-  final IconData icon;
+  final IconData? icon;
   final Function(String) onSaved;
   final ThemeData theme;
   final String? initialValue;
@@ -54,6 +54,7 @@ class CustomInputField extends StatefulWidget {
   final VoidCallback? onTap;
   final bool useSmallText;
   final bool useNewUI;
+  final FloatingLabelBehavior? floatingLabelBehavior;
   final String? Function(String?)? validator;
 
   const CustomInputField({
@@ -75,6 +76,7 @@ class CustomInputField extends StatefulWidget {
     this.onTap, // Thêm vào constructor
     this.useSmallText = false,
     this.useNewUI = false,
+    this.floatingLabelBehavior = FloatingLabelBehavior.auto,
     this.validator,
   });
 
@@ -150,7 +152,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
               widget.useNewUI
                   ? TextStyle(
                     color: widget.theme.colorScheme.primary,
-                    fontSize: widget.useSmallText ? 12 : null,
+                    fontSize: widget.useSmallText ? 12 : 14,
                   )
                   : (widget.useSmallText
                       ? widget.theme.textTheme.bodySmall
@@ -165,6 +167,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
             widget.icon,
             color: widget.theme.colorScheme.primary,
           ),
+          floatingLabelBehavior: widget.floatingLabelBehavior,
           border:
               widget.useNewUI
                   ? OutlineInputBorder(

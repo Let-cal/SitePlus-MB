@@ -644,6 +644,10 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       });
 
       try {
+        final double? siteSize =
+            reportData['siteInfo']['size']?.isNotEmpty == true
+                ? double.tryParse(reportData['siteInfo']['size'])
+                : null;
         if (widget.taskStatus == STATUS_CHUA_NHAN) {
           // Create a new site
           final siteRequest = SiteCreateRequest.fromReportData(
@@ -666,10 +670,10 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
             }
           }
           if (createResponse['siteId'] != null) {
-            final siteId =
+            final siteIdFormResponse =
                 createResponse['siteId']['data']; // Retrieve siteId from response
             const siteStatus = 2; // Assume default status for a new site
-
+            debugPrint('Created site with siteId: $siteIdFormResponse');
             // Replace SiteBuildingDialog with ReportCreateDialog
             Navigator.pushReplacement(
               context,
@@ -680,9 +684,10 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                       siteCategory: widget.siteCategory,
                       siteCategoryId: widget.siteCategoryId,
                       taskId: widget.taskId,
+                      siteSize: siteSize,
+                      siteId: siteIdFormResponse,
                       initialReportData: {
                         ...reportData,
-                        'siteId': siteId,
                         'siteStatus': siteStatus,
                       },
                     ),

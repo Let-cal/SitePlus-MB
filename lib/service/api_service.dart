@@ -28,6 +28,40 @@ class ApiService {
     return int.tryParse(hint ?? '');
   }
 
+  Future<bool> updateSiteDealStatus(int siteDealId, int status) async {
+    final token = await getToken();
+    final url =
+        '${ApiLink.baseUrl}${ApiEndpoints.updateSiteDealStatus}/$siteDealId/status';
+
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': '*/*',
+        },
+        body: jsonEncode({'status': status}),
+      );
+
+      debugPrint('Update Site Deal Status URL: $url');
+      debugPrint('Request Body: {"status": $status}');
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return jsonResponse['success'] == true;
+      } else {
+        debugPrint('Failed to update site deal status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Exception when updating site deal status: $e');
+      return false;
+    }
+  }
+
   Future<bool> createSiteDeal(Map<String, dynamic> dealData) async {
     final token = await getToken();
     const url =
