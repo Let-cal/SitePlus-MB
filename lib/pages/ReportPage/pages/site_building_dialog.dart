@@ -192,7 +192,9 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       if (districtId != null) {
         await _autoSelectDistrictFromArea(areaId);
       }
-      await _loadAllBuildings();
+      if (_isInBuilding) {
+        await _loadAllBuildings();
+      }
     } catch (e) {
       debugPrint('Error loading site data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -422,9 +424,9 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         setState(() {
           _districts = _locationsProvider.districts;
           debugPrint('Districts loaded: ${_districts.length}');
-          for (var district in _districts) {
-            debugPrint('District: ${district.id} - ${district.name}');
-          }
+          // for (var district in _districts) {
+          //   debugPrint('District: ${district.id} - ${district.name}');
+          // }
         });
       }
     } catch (e) {
@@ -978,6 +980,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                         addressController: _addressController,
                         onAddressSaved:
                             (value) => _updateReportData('address', value),
+                        isProposeMode: widget.isProposeMode,
                       ),
                     ),
                   ],

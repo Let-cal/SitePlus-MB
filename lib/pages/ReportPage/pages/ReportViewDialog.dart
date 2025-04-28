@@ -468,8 +468,8 @@ class _ReportViewDialogState extends State<ReportViewDialog>
           title: 'Environmental Factors',
           attributeIds:
               widget.siteCategoryId == 1
-                  ? [12, 13, 14, 15, 16, 24, 26, 27]
-                  : [12, 13, 14, 15, 16],
+                  ? [12, 13, 14, 15, 16, 24, 26, 27, 40]
+                  : [12, 13, 14, 15, 16, 40],
           icon: Icons.eco,
           processedAttributeValues: _processedAttributeValues,
           attributeMap: attributeMap,

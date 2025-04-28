@@ -57,16 +57,16 @@ class _CustomAppBarState extends State<CustomAppBar> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Đăng xuất'),
-            content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+            title: const Text('Logout'),
+            content: const Text('Are you sure you want to log out?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Hủy'),
+                child: const Text('Cancel'),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Đăng xuất'),
+                child: const Text('Logout'),
               ),
             ],
           ),
@@ -80,7 +80,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đăng xuất thành công'),
+            content: Text('Logout successful !'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -93,7 +93,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã xảy ra lỗi: ${e.toString()}'),
+            content: Text('An error occurred: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -186,7 +186,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
         if (widget.additionalActions != null) ...widget.additionalActions!,
         IconButton(
           icon: const Icon(LucideIcons.logOut),
-          tooltip: 'Đăng xuất',
+          tooltip: 'Logout',
           onPressed: _handleLogout,
         ).animate().fadeIn(delay: 300.ms),
       ],

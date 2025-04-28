@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:siteplus_mb/components/custom_dropdown_field.dart';
 import 'package:siteplus_mb/components/filter_chip.dart';
+import 'package:siteplus_mb/components/searchable_dropdown.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_category.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_status.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/sites_provider.dart';
+import 'package:siteplus_mb/utils/string_utils.dart';
 
 class SiteFilterChipPanel extends StatefulWidget {
   final List<SiteCategory> categories;
@@ -279,71 +280,132 @@ class SiteFilterChipPanelState extends State<SiteFilterChipPanel> {
         );
       }
 
-      return CustomDropdownField<int>(
-        value: _selectedSiteId,
-        items: sites.map((site) => site.id).toList(),
-        labelText: 'Select Site ID',
-        hintText: 'Tap to select a site',
-        prefixIcon: Icons.business_rounded,
-        theme: Theme.of(context),
-        onChanged: (value) {
+      return SearchableDropdown<Site>(
+        selectedItem:
+            _selectedSiteId != null
+                ? sites.firstWhere(
+                  (site) => site.id == _selectedSiteId,
+                  orElse:
+                      () => Site(
+                        id: _selectedSiteId!,
+                        brandId: 0,
+                        floor: 0,
+                        siteCategoryId: 0,
+                        areaId: 0,
+                        areaName: widget.areaMap[_selectedSiteId] ?? 'Unknown',
+                        address: '',
+                        size: 0.0,
+                        status: 0,
+                        statusName: '',
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
+                      ),
+                )
+                : null,
+        items: sites,
+        selectedItemBuilder:
+            (site) =>
+                site != null
+                    ? Row(
+                      children: [
+                        Icon(
+                          Icons.business_rounded,
+                          size: 20,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.7),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Site ID: ${site.id} - ${site.areaName}',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    )
+                    : Text(
+                      'Select Site ID',
+                      style: TextStyle(
+                        color: Theme.of(context).hintColor,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+        itemBuilder:
+            (site, isSelected) => Container(
+              padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+              color:
+                  isSelected
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                      : null,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.business_rounded,
+                    size: 20,
+                    color:
+                        isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Site ID: ${site.id}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight:
+                                isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                            color:
+                                isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          site.areaName,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isSelected)
+                    Icon(
+                      Icons.check,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 18,
+                    ),
+                ],
+              ),
+            ),
+        filter: (site, query) {
+          final normalizedQuery = StringUtils.normalizeString(query);
+          final idString = site.id.toString();
+          final normalizedAreaName = StringUtils.normalizeString(site.areaName);
+          return idString.contains(query) ||
+              normalizedAreaName.contains(normalizedQuery);
+        },
+        onChanged: (site) {
           setState(() {
-            _selectedSiteId = value;
+            _selectedSiteId = site?.id;
             _updateActiveFilters();
           });
         },
-        itemBuilder: (int siteId) {
-          final site = sites.firstWhere(
-            (s) => s.id == siteId,
-            orElse:
-                () => Site(
-                  id: siteId,
-                  brandId: 0,
-                  floor: 0,
-                  siteCategoryId: 0,
-                  areaId: 0,
-                  areaName: widget.areaMap[siteId] ?? 'Unknown', // Use areaMap
-                  address: '',
-                  size: 0.0,
-                  status: 0,
-                  statusName: '',
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                ),
-          );
-          return Row(
-            children: [
-              Icon(
-                Icons.business_rounded,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Text('Site ID: ${site.id} - ${site.areaName}')),
-            ],
-          );
-        },
-        selectedItemBuilder: (int siteId) {
-          final site = sites.firstWhere(
-            (s) => s.id == siteId,
-            orElse:
-                () => Site(
-                  id: siteId,
-                  brandId: 0,
-                  floor: 0,
-                  siteCategoryId: 0,
-                  areaId: 0,
-                  areaName: widget.areaMap[siteId] ?? 'Unknown', // Use areaMap
-                  address: '',
-                  size: 0.0,
-                  status: 0,
-                  statusName: '',
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                ),
-          );
-          return Text('Site ID: ${site.id} - ${site.areaName}');
-        },
+        icon: Icons.business_rounded,
+        isLoading: sitesProvider.isLoading,
+        isEnabled: true,
+        useNewUI: true,
       );
     }
     return const SizedBox.shrink();

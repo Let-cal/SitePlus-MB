@@ -58,7 +58,7 @@ Color getStatusPriorityColor(BuildContext context, String priority) {
     case PRIORITY_CAO:
       return theme.colorScheme.error;
     case PRIORITY_TRUNG_BINH:
-      return theme.colorScheme.secondary;
+      return Colors.orange;
     case PRIORITY_THAP:
       return theme.colorScheme.tertiary;
     default:

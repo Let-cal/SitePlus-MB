@@ -76,7 +76,7 @@ class EnvironmentalFactorsSectionState
       ],
     },
     'greenery': {
-      'title': 'Không gian xanh (3–30–300)',
+      'title': 'Không gian xanh \n(3–30–300)',
       'icon': Icons.park,
       'options': [
         {'label': 'Phong phú (≥30 %)', 'icon': Icons.forest},

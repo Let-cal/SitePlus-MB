@@ -631,26 +631,40 @@ class ViewDetailSite extends StatelessWidget {
             ),
           );
         case 4: // Rejected
+          final isTaskAssigned = site.task?.id != null;
           return FilledButton.icon(
-            onPressed: () => navigateToReportCreate(isEditMode: true),
+            onPressed:
+                isTaskAssigned
+                    ? () => navigateToReportCreate(isEditMode: true)
+                    : () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (ctx) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              title: const Text('Notice'),
+                              content: const Text(
+                                'Since this site\'s report was rejected by the Area-Manager, you must wait for a task assignment from the Area-Manager before you can start editing the report.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                      );
+                    },
             icon: const Icon(Icons.edit),
             label: const Text('Edit Report'),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              backgroundColor: theme.colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
-        case 4: // Rejected
-          return FilledButton.icon(
-            onPressed: () => navigateToReportCreate(isEditMode: true),
-            icon: const Icon(Icons.edit),
-            label: const Text('Edit Report'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              backgroundColor: theme.colorScheme.primary,
+              backgroundColor:
+                  isTaskAssigned
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

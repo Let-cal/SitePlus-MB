@@ -1,12 +1,13 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:siteplus_mb/components/custom_dropdown_field.dart';
+import 'package:siteplus_mb/components/searchable_dropdown.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/deal_section.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/sites_provider.dart';
+import 'package:siteplus_mb/utils/string_utils.dart';
 
 class CreateSiteDealDialog extends StatefulWidget {
   final int? siteId;
@@ -34,7 +35,7 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
     'additionalTerms': '',
     'status': 0,
   };
-  int? _selectedSiteId;
+  Site? _selectedSite;
   int? _selectedTaskId;
   String? _selectedSiteName;
   bool _isSubmitting = false;
@@ -81,17 +82,19 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
           );
           if (mounted) {
             setState(() {
-              _selectedSiteId = selectedSite.id;
+              _selectedSite = selectedSite;
               _selectedSiteName =
                   'Site ID #${selectedSite.id} - ${selectedSite.areaName}';
             });
-            debugPrint('Site selected: $_selectedSiteId - $_selectedSiteName');
+            debugPrint(
+              'Site selected: ${_selectedSite?.id} - $_selectedSiteName',
+            );
           }
         } catch (e) {
           debugPrint('No site found with siteId: ${widget.siteId} after fetch');
           if (mounted) {
             setState(() {
-              _selectedSiteId = null;
+              _selectedSite = null;
               _selectedSiteName = null;
             });
             ScaffoldMessenger.of(context).showSnackBar(
@@ -259,205 +262,251 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
   Widget _buildStep1(ThemeData theme, List<Site> sites) {
     return _isLoading
         ? Center(child: CircularProgressIndicator())
-        : Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Site',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+        : SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select Site',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Please select a site to create a new deal',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
+                const SizedBox(height: 8),
+                Text(
+                  'Please select a site to create a new deal',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'List of Sites',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
+                const SizedBox(height: 24),
+                Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'List of Sites',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    CustomDropdownField<int>(
-                      value: _selectedSiteId,
-                      items:
-                          sites
-                              .where(
-                                (site) =>
-                                    site.status != 3 ||
-                                    site.status != 5 ||
-                                    site.status != 6 ||
-                                    site.status != 9,
-                              )
-                              .map((site) => site.id)
-                              .toList(),
-                      labelText: 'Select Site',
-                      hintText: 'Tap to select a site',
-                      prefixIcon: Icons.location_on_rounded,
-                      theme: theme,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSiteId = value;
-                          if (value != null) {
-                            final selectedSite = sites.firstWhere(
-                              (site) => site.id == value,
-                            );
-                            _selectedSiteName =
-                                'Site ID #${selectedSite.id} - ${selectedSite.areaName}';
-                            _selectedTaskId = selectedSite.task?.id;
-                            debugPrint(
-                              'Selected site task ID: $_selectedTaskId',
-                            );
-                          } else {
-                            _selectedSiteName = null;
-                            _selectedTaskId = null;
-                          }
-                        });
-                      },
-                      validator:
-                          (value) =>
-                              value == null ? 'Please select a site' : null,
-                      itemBuilder: (int siteId) {
-                        final site = sites.firstWhere((s) => s.id == siteId);
-                        return Row(
-                          children: [
-                            Icon(
-                              Icons.business_rounded,
-                              size: 20,
-                              color: theme.colorScheme.primary.withOpacity(0.7),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Site ID #${site.id}',
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
+                      const SizedBox(height: 16),
+                      SearchableDropdown<Site>(
+                        selectedItem: _selectedSite,
+                        items:
+                            sites
+                                .where(
+                                  (site) =>
+                                      site.status != 3 &&
+                                      site.status != 5 &&
+                                      site.status != 6 &&
+                                      site.status != 9 &&
+                                      site.status != 8 &&
+                                      site.status != 1,
+                                )
+                                .toList(),
+                        selectedItemBuilder:
+                            (site) =>
+                                site != null
+                                    ? Row(
+                                      children: [
+                                        Icon(
+                                          Icons.business_rounded,
+                                          size: 20,
+                                          color: theme.colorScheme.primary
+                                              .withOpacity(0.7),
+                                        ),
+                                        SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            'Site ID #${site.id}',
+                                            style: theme.textTheme.bodyLarge
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                    : Text(
+                                      'Select Site',
+                                      style: TextStyle(
+                                        color: theme.hintColor,
+                                        fontWeight: FontWeight.normal,
+                                      ),
                                     ),
-                                    overflow: TextOverflow.ellipsis,
+                        itemBuilder:
+                            (site, isSelected) => Container(
+                              padding: EdgeInsets.symmetric(
+                                vertical: 10.0,
+                                horizontal: 16.0,
+                              ),
+                              color:
+                                  isSelected
+                                      ? theme.colorScheme.primary.withOpacity(
+                                        0.1,
+                                      )
+                                      : null,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.business_rounded,
+                                    size: 20,
+                                    color:
+                                        isSelected
+                                            ? theme.colorScheme.primary
+                                            : theme.colorScheme.onSurface
+                                                .withOpacity(0.7),
                                   ),
-                                  Text(
-                                    site.areaName,
-                                    style: theme.textTheme.bodyMedium,
-                                    overflow: TextOverflow.ellipsis,
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Site ID #${site.id}',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight:
+                                                isSelected
+                                                    ? FontWeight.bold
+                                                    : FontWeight.normal,
+                                            color:
+                                                isSelected
+                                                    ? theme.colorScheme.primary
+                                                    : null,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          site.areaName,
+                                          style: theme.textTheme.bodyMedium,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  if (isSelected)
+                                    Icon(
+                                      Icons.check,
+                                      color: theme.colorScheme.primary,
+                                      size: 18,
+                                    ),
                                 ],
                               ),
                             ),
-                          ],
-                        );
-                      },
-                      selectedItemBuilder: (int siteId) {
-                        final site = sites.firstWhere((s) => s.id == siteId);
-                        return Row(
-                          children: [
-                            Icon(
-                              Icons.business_rounded,
-                              size: 20,
-                              color: theme.colorScheme.primary.withOpacity(0.7),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Site ID #${site.id}',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                        filter: (site, query) {
+                          final normalizedQuery = StringUtils.normalizeString(
+                            query,
+                          );
+                          final idString = site.id.toString();
+                          final normalizedAreaName =
+                              StringUtils.normalizeString(site.areaName);
+                          return idString.contains(query) ||
+                              normalizedAreaName.contains(normalizedQuery);
+                        },
+                        onChanged: (site) {
+                          setState(() {
+                            _selectedSite = site;
+                            if (site != null) {
+                              _selectedSiteName =
+                                  'Site ID #${site.id} - ${site.areaName}';
+                              _selectedTaskId = site.task?.id;
+                              debugPrint(
+                                'Selected site task ID: $_selectedTaskId',
+                              );
+                            } else {
+                              _selectedSiteName = null;
+                              _selectedTaskId = null;
+                            }
+                          });
+                        },
+                        icon: Icons.location_on_rounded,
+                        isLoading: false,
+                        isEnabled: true,
+                      ),
+                      if (_selectedSite != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.3,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ],
-                        );
-                      },
-                    ),
-                    if (_selectedSiteId != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: theme.colorScheme.primary.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(
-                                    0.2,
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.2),
+                                    shape: BoxShape.circle,
                                   ),
-                                  shape: BoxShape.circle,
+                                  child: Icon(
+                                    Icons.check_circle_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 24,
+                                  ),
                                 ),
-                                child: Icon(
-                                  Icons.check_circle_rounded,
-                                  color: theme.colorScheme.primary,
-                                  size: 24,
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Selected',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _selectedSiteName ?? '',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Selected',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme.colorScheme.primary,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _selectedSiteName ?? '',
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
   }
@@ -483,7 +532,7 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
               ),
             ),
             const SizedBox(height: 24),
-            if (_selectedSiteId != null)
+            if (_selectedSite != null)
               Container(
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.symmetric(
@@ -579,7 +628,7 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
                         ? null
                         : () {
                           if (_currentStep == 0) {
-                            if (_selectedSiteId != null) {
+                            if (_selectedSite != null) {
                               _pageController.nextPage(
                                 duration: const Duration(milliseconds: 300),
                                 curve: Curves.easeInOut,
@@ -646,10 +695,10 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
           listen: false,
         );
         final selectedSite = sitesProvider.sites.firstWhereOrNull(
-          (site) => site.id == _selectedSiteId,
+          (site) => site.id == _selectedSite,
         );
         final taskIdToUpdate = widget.taskId ?? _selectedTaskId;
-        final siteIdToUpdate = widget.siteId ?? _selectedSiteId;
+        final siteIdToUpdate = widget.siteId ?? _selectedSite?.id;
 
         // Check for existing site deals with status 0
         if (siteIdToUpdate != null) {
@@ -709,7 +758,7 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
             return;
           }
         }
-        dealData['siteId'] = _selectedSiteId;
+        dealData['siteId'] = _selectedSite?.id;
         dealData['status'] = 0;
         debugPrint("site to update is $siteIdToUpdate");
         debugPrint("task to update is $taskIdToUpdate");

@@ -579,14 +579,13 @@ class ApiService {
 
     final response = await http.get(
       uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+      headers: {'Authorization': 'Bearer $token', 'Accept': '/'},
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonData = jsonDecode(response.body);
+      final Map<String, dynamic> responseBody = jsonDecode(response.body);
+      // Extract the data array from the response
+      final List<dynamic> jsonData = responseBody['data'] ?? [];
       debugPrint('Buildings API Response: ${jsonEncode(jsonData)}');
 
       final buildings =

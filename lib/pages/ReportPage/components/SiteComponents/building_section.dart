@@ -1,7 +1,9 @@
 // building_section.dart
 import 'package:flutter/material.dart';
+import 'package:siteplus_mb/components/searchable_dropdown.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_api_create_model.dart';
+import 'package:siteplus_mb/utils/string_utils.dart';
 
 class BuildingSection extends StatefulWidget {
   final int? areaId;
@@ -35,6 +37,10 @@ class _BuildingSectionState extends State<BuildingSection> {
   final ApiService _apiService = ApiService();
   BuildingCreateRequest? _selectedBuilding;
   late TextEditingController _totalFloorNumberController;
+  late TextEditingController _searchController;
+  List<BuildingCreateRequest> _filteredBuildings = [];
+  bool _isSearching = false;
+  bool _isDropdownOpen = false;
 
   @override
   void initState() {
@@ -42,7 +48,9 @@ class _BuildingSectionState extends State<BuildingSection> {
     _totalFloorNumberController = TextEditingController(
       text: widget.totalFloorNumber ?? '',
     );
+    _searchController = TextEditingController();
     _selectedBuilding = widget.initialSelectedBuilding;
+    _filteredBuildings = List.from(widget.buildings);
   }
 
   @override
@@ -58,12 +66,36 @@ class _BuildingSectionState extends State<BuildingSection> {
     if (widget.totalFloorNumber != _totalFloorNumberController.text) {
       _totalFloorNumberController.text = widget.totalFloorNumber ?? '';
     }
+    if (widget.buildings != oldWidget.buildings) {
+      setState(() {
+        _filteredBuildings = List.from(widget.buildings);
+        _filterBuildings(_searchController.text);
+      });
+    }
   }
 
   @override
   void dispose() {
     _totalFloorNumberController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _filterBuildings(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredBuildings = List.from(widget.buildings);
+      } else {
+        final normalizedQuery = StringUtils.normalizeString(query);
+        _filteredBuildings =
+            widget.buildings.where((building) {
+              final normalizedBuildingName = StringUtils.normalizeString(
+                building.name,
+              );
+              return normalizedBuildingName.contains(normalizedQuery);
+            }).toList();
+      }
+    });
   }
 
   void _showCreateBuildingDialog() {
@@ -203,96 +235,237 @@ class _BuildingSectionState extends State<BuildingSection> {
     );
   }
 
-  // Custom styled dropdown for buildings
-  Widget _buildStyledDropdown({
+  // Custom dropdown with integrated search
+  Widget _buildIntegratedDropdown({
     required String label,
     required IconData icon,
     required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
+    required List<BuildingCreateRequest> items,
+    required Function(BuildingCreateRequest?) onChanged,
     bool isLoading = false,
     bool isEnabled = true,
   }) {
     final theme = Theme.of(context);
-    debugPrint('Dropdown value: $value');
-    debugPrint('Dropdown items: $items');
-    String? validValue = items.contains(value) ? value : null;
+
     return Theme(
       data: Theme.of(context).copyWith(),
       child: AnimatedOpacity(
         opacity: isLoading ? 0.6 : 1.0,
         duration: Duration(milliseconds: 300),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow:
-                isLoading
-                    ? []
-                    : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 5,
-                        offset: Offset(0, 3),
+        child: Column(
+          children: [
+            // Integrated dropdown with search
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow:
+                    isLoading
+                        ? []
+                        : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 5,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+              ),
+              child: DropdownButtonHideUnderline(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12.0),
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withOpacity(0.5),
+                    ),
+                    color: theme.colorScheme.surface,
+                  ),
+                  child: ExpansionTile(
+                    onExpansionChanged: (expanded) {
+                      setState(() {
+                        _isDropdownOpen = expanded;
+                        if (!expanded) {
+                          // Clear search when closing dropdown
+                          _searchController.clear();
+                          _filterBuildings('');
+                        }
+                      });
+                    },
+                    leading: Icon(icon, color: theme.colorScheme.primary),
+                    title: Text(
+                      value?.isNotEmpty == true ? value! : label,
+                      style: TextStyle(
+                        color:
+                            value?.isNotEmpty == true
+                                ? theme.textTheme.bodyLarge?.color
+                                : theme.hintColor,
+                        fontWeight:
+                            value?.isNotEmpty == true
+                                ? FontWeight.w500
+                                : FontWeight.normal,
                       ),
-                    ],
-          ),
-          child: DropdownButtonFormField<String>(
-            value: validValue,
-            decoration: InputDecoration(
-              labelText: label,
-              prefixIcon: Icon(icon, color: theme.colorScheme.primary),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 16.0,
-                horizontal: 16.0,
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.surface,
-              suffixIcon:
-                  isLoading
-                      ? Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.0,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              theme.colorScheme.primary.withOpacity(0.5),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing:
+                        isLoading
+                            ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.0,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  theme.colorScheme.primary.withOpacity(0.5),
+                                ),
+                              ),
+                            )
+                            : Icon(
+                              _isDropdownOpen
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              color: theme.colorScheme.primary,
+                            ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    children: [
+                      // Search bar inside dropdown
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            labelText: 'Search Building',
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: theme.colorScheme.primary,
+                              size: 20,
+                            ),
+                            suffixIcon:
+                                _searchController.text.isNotEmpty
+                                    ? IconButton(
+                                      icon: Icon(Icons.clear, size: 18),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _filterBuildings('');
+                                      },
+                                    )
+                                    : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                              borderSide: BorderSide(
+                                color: theme.colorScheme.outline.withOpacity(
+                                  0.5,
+                                ),
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8.0,
+                              horizontal: 12.0,
+                            ),
+                          ),
+                          onChanged: (value) {
+                            _filterBuildings(value);
+                          },
+                        ),
+                      ),
+
+                      // List of filtered buildings
+                      Container(
+                        constraints: BoxConstraints(
+                          maxHeight: 250, // Limit height of dropdown list
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          itemCount: _filteredBuildings.length,
+                          itemBuilder: (context, index) {
+                            final building = _filteredBuildings[index];
+                            final isSelected =
+                                _selectedBuilding?.id == building.id;
+
+                            return InkWell(
+                              onTap:
+                                  isEnabled && !isLoading
+                                      ? () {
+                                        setState(() {
+                                          _selectedBuilding = building;
+                                          _isDropdownOpen = false;
+                                          // Clear search when selecting an item
+                                          _searchController.clear();
+                                          _filterBuildings('');
+                                        });
+                                        onChanged(building);
+                                      }
+                                      : null,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 10.0,
+                                  horizontal: 16.0,
+                                ),
+                                color:
+                                    isSelected
+                                        ? theme.colorScheme.primary.withOpacity(
+                                          0.1,
+                                        )
+                                        : null,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.business,
+                                      size: 18,
+                                      color:
+                                          isSelected
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.onSurface
+                                                  .withOpacity(0.6),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        building.name,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight:
+                                              isSelected
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                          color:
+                                              isSelected
+                                                  ? theme.colorScheme.primary
+                                                  : null,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      Icon(
+                                        Icons.check,
+                                        color: theme.colorScheme.primary,
+                                        size: 18,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      if (_filteredBuildings.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            'No buildings found',
+                            style: TextStyle(
+                              fontStyle: FontStyle.italic,
+                              color: theme.hintColor,
                             ),
                           ),
                         ),
-                      )
-                      : null,
-              enabled: isEnabled && !isLoading,
+                    ],
+                  ),
+                ),
+              ),
             ),
-            items:
-                items.map((String item) {
-                  return DropdownMenuItem<String>(
-                    value: item,
-                    child: Text(
-                      item,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }).toList(),
-            onChanged: isEnabled && !isLoading ? onChanged : null,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please select $label';
-              }
-              return null;
-            },
-            isExpanded: true,
-            icon: Icon(Icons.arrow_drop_down, color: theme.colorScheme.primary),
-            menuMaxHeight: 200,
-            dropdownColor: theme.colorScheme.surface,
-          ),
+          ],
         ),
       ),
     );
@@ -331,37 +504,84 @@ class _BuildingSectionState extends State<BuildingSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Building dropdown with add button
-        _buildStyledDropdown(
-          label: 'Building',
-          icon: Icons.apartment,
-          value: _selectedBuilding?.name,
-          items: widget.buildings.map((building) => building.name).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              final building = widget.buildings.firstWhere(
-                (b) => b.name == value,
-                orElse:
-                    () => BuildingCreateRequest(
-                      id: -1,
-                      name: '',
-                      areaId: -1,
-                      areaName: '',
-                      status: -1,
-                      statusName: '',
+        SearchableDropdown<BuildingCreateRequest>(
+          selectedItem: _selectedBuilding,
+          items: widget.buildings,
+          selectedItemBuilder:
+              (building) =>
+                  building != null
+                      ? Text(
+                        building.name,
+                        style: TextStyle(
+                          color: theme.textTheme.bodyLarge?.color,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      )
+                      : Text(
+                        'Select Building',
+                        style: TextStyle(
+                          color: theme.hintColor,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+          itemBuilder:
+              (building, isSelected) => Container(
+                padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                color:
+                    isSelected
+                        ? theme.colorScheme.primary.withOpacity(0.1)
+                        : null,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.business,
+                      size: 18,
+                      color:
+                          isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
-              );
-
-              if (building.id != -1) {
-                setState(() {
-                  _selectedBuilding = building;
-                });
-
-                // Update parent component
-                widget.onBuildingSelected(building);
-                widget.onBuildingDataChanged(building.id, building.name);
-              }
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        building.name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? theme.colorScheme.primary : null,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isSelected)
+                      Icon(
+                        Icons.check,
+                        color: theme.colorScheme.primary,
+                        size: 18,
+                      ),
+                  ],
+                ),
+              ),
+          filter: (building, query) {
+            final normalizedQuery = StringUtils.normalizeString(query);
+            final normalizedName = StringUtils.normalizeString(building.name);
+            return normalizedName.contains(normalizedQuery);
+          },
+          onChanged: (building) {
+            setState(() {
+              _selectedBuilding = building;
+            });
+            widget.onBuildingSelected(building);
+            if (building != null) {
+              widget.onBuildingDataChanged(building.id, building.name);
+            } else {
+              widget.onBuildingDataChanged(null, null);
             }
           },
+          icon: Icons.apartment,
           isLoading: widget.isLoadingBuildings,
           isEnabled: widget.areaId != null && widget.buildings.isNotEmpty,
         ),

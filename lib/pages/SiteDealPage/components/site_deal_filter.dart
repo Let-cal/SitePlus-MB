@@ -1,10 +1,14 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:siteplus_mb/components/custom_input_field.dart';
+import 'package:siteplus_mb/components/searchable_dropdown.dart';
 import 'package:siteplus_mb/utils/SiteDeal/site_deal_provider.dart';
 import 'package:siteplus_mb/utils/SiteDeal/site_deal_status.dart';
+import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/sites_provider.dart';
+import 'package:siteplus_mb/utils/string_utils.dart';
 
 class SiteDealFilter extends StatefulWidget {
   final Function(Map<String, dynamic>) onApply;
@@ -39,6 +43,7 @@ class _SiteDealFilterState extends State<SiteDealFilter> {
   DateTime? _endDate;
   String? _selectedStatus;
   int? _selectedSiteId;
+  Site? _selectedSite;
 
   late TextEditingController _startDateController;
   late TextEditingController _endDateController;
@@ -81,6 +86,7 @@ class _SiteDealFilterState extends State<SiteDealFilter> {
     setState(() {
       _searchController.text = '';
       _selectedSiteId = null;
+      _selectedSite = null;
       _startDate = null;
       _endDate = null;
       _selectedStatus = null;
@@ -115,14 +121,18 @@ class _SiteDealFilterState extends State<SiteDealFilter> {
     // Lấy danh sách site id từ tất cả site deals
     final allSiteIdsWithDeals =
         siteDealProvider.allSiteDeals.map((deal) => deal.siteId).toSet();
+
+    // Lọc sites có deals
     final filteredSites =
         sitesProvider.sites
             .where((site) => allSiteIdsWithDeals.contains(site.id))
             .toList();
 
-    if (_selectedSiteId != null &&
-        !filteredSites.any((site) => site.id == _selectedSiteId)) {
-      _selectedSiteId = null;
+    // Cập nhật selectedSite dựa vào selectedSiteId nếu cần
+    if (_selectedSiteId != null && _selectedSite == null) {
+      _selectedSite = filteredSites.firstWhereOrNull(
+        (site) => site.id == _selectedSiteId,
+      );
     }
 
     return Container(
@@ -193,60 +203,110 @@ class _SiteDealFilterState extends State<SiteDealFilter> {
             useNewUI: true, // Sử dụng UI mới với border radius lớn hơn
           ),
           const SizedBox(height: 16),
-          // Dropdown được thiết kế lại với CustomInputField
-          DropdownButtonFormField<int>(
-            value: _selectedSiteId,
-            decoration: InputDecoration(
-              labelText: 'Site',
-              labelStyle: TextStyle(color: theme.colorScheme.primary),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: theme.colorScheme.primary),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.primary.withOpacity(0.5),
+          // Sử dụng SearchableDropdown thay vì DropdownButtonFormField
+          SearchableDropdown<Site>(
+            selectedItem: _selectedSite,
+            items: filteredSites,
+            selectedItemBuilder:
+                (site) =>
+                    site != null
+                        ? Row(
+                          children: [
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Site ID #${site.id} - ${widget.areaMap[site.areaId] ?? 'Unknown'}',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.normal,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        )
+                        : Text(
+                          'Select Site',
+                          style: TextStyle(
+                            color: theme.hintColor,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+            itemBuilder:
+                (site, isSelected) => Container(
+                  padding: EdgeInsets.symmetric(
+                    vertical: 10.0,
+                    horizontal: 16.0,
+                  ),
+                  color:
+                      isSelected
+                          ? theme.colorScheme.primary.withOpacity(0.1)
+                          : null,
+                  child: Row(
+                    children: [
+                      Icon(
+                        LucideIcons.mapPin,
+                        size: 20,
+                        color:
+                            isSelected
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Site ID #${site.id}',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight:
+                                    isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                color:
+                                    isSelected
+                                        ? theme.colorScheme.primary
+                                        : null,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              widget.areaMap[site.areaId] ?? 'Unknown Area',
+                              style: theme.textTheme.bodyMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        Icon(
+                          Icons.check,
+                          color: theme.colorScheme.primary,
+                          size: 18,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                  color: theme.colorScheme.primary,
-                  width: 2,
-                ),
-              ),
-              prefixIcon: Icon(
-                LucideIcons.mapPin,
-                color: theme.colorScheme.primary,
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.surface,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-            ),
-            items:
-                filteredSites.map((site) {
-                  return DropdownMenuItem<int>(
-                    value: site.id,
-                    child: Text(
-                      'Site ID #${site.id} - ${widget.areaMap[site.areaId] ?? 'Unknown'}',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  );
-                }).toList(),
-            onChanged: (value) => setState(() => _selectedSiteId = value),
-            dropdownColor: theme.colorScheme.surface,
-            isExpanded: true,
-            style: theme.textTheme.bodyMedium,
-            itemHeight: 48,
-            menuMaxHeight: 240,
-            icon: Icon(
-              LucideIcons.chevronDown,
-              color: theme.colorScheme.primary,
-            ),
+            filter: (site, query) {
+              final normalizedQuery = StringUtils.normalizeString(query);
+              final idString = site.id.toString();
+              final normalizedAreaName = StringUtils.normalizeString(
+                widget.areaMap[site.areaId] ?? '',
+              );
+              return idString.contains(query) ||
+                  normalizedAreaName.contains(normalizedQuery);
+            },
+            onChanged: (site) {
+              setState(() {
+                _selectedSite = site;
+                _selectedSiteId = site?.id;
+              });
+            },
+            icon: LucideIcons.mapPin,
+            isLoading: false,
+            isEnabled: true,
+            useNewUI: true,
           ),
           const SizedBox(height: 16),
           Row(

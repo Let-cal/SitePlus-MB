@@ -1,8 +1,10 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:siteplus_mb/components/custom_dropdown_field.dart';
 import 'package:siteplus_mb/components/filter_chip.dart';
+import 'package:siteplus_mb/components/searchable_dropdown.dart';
 import 'package:siteplus_mb/utils/TaskPage/task_status.dart';
 import 'package:siteplus_mb/utils/constants.dart';
+import 'package:siteplus_mb/utils/string_utils.dart';
 
 class TaskFilterChipPanel extends StatefulWidget {
   final List<Map<String, dynamic>> allTaskOptions;
@@ -219,7 +221,7 @@ class TaskFilterChipPanelState extends State<TaskFilterChipPanel> {
           ),
           FilterOption(
             label: PRIORITY_THAP,
-            color: Colors.green,
+            color: Theme.of(context).colorScheme.tertiary,
             isSelected: _selectedPriority == PRIORITY_THAP,
             onTap: () {
               setState(() {
@@ -238,54 +240,126 @@ class TaskFilterChipPanelState extends State<TaskFilterChipPanel> {
       activeFilters: _activeFilters,
       sectionContentBuilder: (section) {
         if (section.title == 'Task ID') {
-          return CustomDropdownField<int>(
-            value: _selectedTaskId,
-            items:
-                widget.allTaskOptions.map((task) => task['id'] as int).toList(),
-            labelText: 'Select Task ID',
-            hintText: 'Tap to select a task',
-            prefixIcon: Icons.task,
-            theme: Theme.of(context),
-            onChanged: (value) {
-              setState(() {
-                _selectedTaskId = value;
-                _updateActiveFilters();
-              });
-            },
-            itemBuilder: (int taskId) {
-              final task = widget.allTaskOptions.firstWhere(
-                (t) => t['id'] == taskId,
-                orElse:
-                    () => <String, Object>{'id': taskId, 'areaName': 'Unknown'},
-              );
-              return Row(
-                children: [
-                  Icon(
-                    Icons.task,
-                    size: 20,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.7),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text('Task ID: ${task['id']} - ${task['areaName']}'),
-                  ),
-                ],
-              );
-            },
-            selectedItemBuilder: (int taskId) {
-              final task = widget.allTaskOptions.firstWhere(
-                (t) => t['id'] == taskId,
-                orElse:
-                    () => <String, Object>{'id': taskId, 'areaName': 'Unknown'},
-              );
-              return Text('Task ID: ${task['id']} - ${task['areaName']}');
-            },
-          );
+          return _buildTaskIdSearchableDropdown();
         }
         return const SizedBox.shrink();
       },
+    );
+  }
+
+  Widget _buildTaskIdSearchableDropdown() {
+    // Chuyển đổi danh sách Map thành đối tượng để dễ dàng sử dụng với SearchableDropdown
+    final List<Map<String, dynamic>> tasks = widget.allTaskOptions;
+
+    return SearchableDropdown<Map<String, dynamic>>(
+      selectedItem:
+          _selectedTaskId != null
+              ? tasks.firstWhereOrNull(
+                    (task) => task['id'] == _selectedTaskId,
+                  ) ??
+                  {'id': _selectedTaskId!, 'areaName': 'Unknown'}
+              : null,
+      items: tasks,
+      selectedItemBuilder:
+          (task) =>
+              task != null
+                  ? Row(
+                    children: [
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Task ID: ${task['id']} - ${task['areaName']}',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  )
+                  : Text(
+                    'Select Task ID',
+                    style: TextStyle(
+                      color: Theme.of(context).hintColor,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+      itemBuilder:
+          (task, isSelected) => Container(
+            padding: const EdgeInsets.symmetric(
+              vertical: 10.0,
+              horizontal: 16.0,
+            ),
+            color:
+                isSelected
+                    ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                    : null,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.task,
+                  size: 20,
+                  color:
+                      isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Task ID: ${task['id']}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        task['areaName'].toString(),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  Icon(
+                    Icons.check,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 18,
+                  ),
+              ],
+            ),
+          ),
+      filter: (task, query) {
+        final normalizedQuery = StringUtils.normalizeString(query);
+        final idString = task['id'].toString();
+        final areaName = task['areaName']?.toString() ?? '';
+        final normalizedAreaName = StringUtils.normalizeString(areaName);
+
+        return idString.contains(query) ||
+            normalizedAreaName.contains(normalizedQuery);
+      },
+      onChanged: (task) {
+        setState(() {
+          _selectedTaskId = task != null ? task['id'] : null;
+          _updateActiveFilters();
+        });
+        widget.onApply(_selectedStatus, _selectedPriority, _selectedTaskId);
+      },
+      icon: Icons.task,
+      isLoading: false,
+      isEnabled: true,
+      useNewUI: true,
     );
   }
 }

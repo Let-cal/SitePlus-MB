@@ -91,7 +91,7 @@ class _LoginFormState extends State<LoginForm> {
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Login successful'),
+            content: Text('Login successful! Welcome to us'),
             backgroundColor: Colors.green,
           ),
         );
@@ -105,7 +105,9 @@ class _LoginFormState extends State<LoginForm> {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Login failed'),
+            content: Text(
+              'Login failed! Your username or password is incorrect.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
