@@ -126,20 +126,18 @@ class _NotificationPageState extends State<NotificationPage> {
     await _saveUnreadNotificationCount(0);
   }
 
-  Future<void> _refreshNotifications() async {
-    final notificationProvider = Provider.of<NotificationProvider>(
-      context,
-      listen: false,
-    );
+ Future<void> _refreshNotifications() async {
+  final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
 
-    try {
-      await notificationProvider.fetchNotifications();
-      final notifications = notificationProvider.notifications;
-      _updateReadStatus(notifications);
-    } catch (e) {
-      // Lỗi đã được xử lý trong provider
-    }
+  try {
+    // Thêm force parameter
+    await notificationProvider.fetchNotifications(force: true);
+    final notifications = notificationProvider.notifications;
+    _updateReadStatus(notifications);
+  } catch (e) {
+    // Lỗi đã được xử lý trong provider
   }
+}
 
   @override
   Widget build(BuildContext context) {

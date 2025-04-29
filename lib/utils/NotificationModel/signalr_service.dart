@@ -7,7 +7,7 @@ class SignalRService {
   // final String _hubUrl =
   //     '${ApiLink.baseUrl}/notificationHub'; // Sửa URL đúng với backend
   final String _hubUrl =
-      'https://siteplus-eeb6evfwhhagfzdd.southeastasia-01.azurewebsites.net/notificationHub';
+      'https://siteplusbe-grhgh9fkhhhkfcd0.southeastasia-01.azurewebsites.net/notificationHub';
   // Khởi tạo và bắt đầu kết nối
   Future<void> startConnection() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,9 +44,17 @@ class SignalRService {
     _hubConnection!.on('ReceiveNotification', (arguments) {
       print('Nhận được thông báo từ backend: $arguments');
       if (arguments != null && arguments.isNotEmpty) {
-        final notificationJson = arguments[0] as Map<String, dynamic>;
-        final notification = NotificationDto.fromJson(notificationJson);
-        callback(notification);
+        try {
+          final notificationJson = arguments[0] as Map<String, dynamic>;
+          print('Json thông báo: $notificationJson');
+          final notification = NotificationDto.fromJson(notificationJson);
+          print(
+            'Đã chuyển đổi thành notification object: ${notification.name}',
+          );
+          callback(notification);
+        } catch (e) {
+          print('Lỗi khi xử lý thông báo nhận được: $e');
+        }
       }
     });
   }

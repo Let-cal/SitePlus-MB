@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/custom_app_bar.dart';
 import 'package:siteplus_mb/pages/HomePage/pages/home_page.dart';
@@ -7,6 +8,7 @@ import 'package:siteplus_mb/pages/NotificationPage/pages/notification_page.dart'
 import 'package:siteplus_mb/pages/SiteDealPage/pages/site_deal_view_page.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/pages/site_view_page.dart';
 import 'package:siteplus_mb/pages/TaskPage/pages/task_view_page.dart';
+import 'package:siteplus_mb/utils/NotificationModel/notification_provider.dart';
 
 class MainScaffold extends StatefulWidget {
   final int initialIndex;
@@ -94,8 +96,13 @@ class _MainScaffoldState extends State<MainScaffold> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
-    _loadUnreadNotificationCount();
-    print("thông báo chưa đọc : $_unreadNotifications");
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<NotificationProvider>(
+        context,
+        listen: false,
+      ).fetchNotifications();
+    });
   }
 
   // Titles và descriptions cho từng tab
@@ -147,77 +154,83 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      key: MainScaffold.scaffoldKey,
-      appBar: CustomAppBar(
-        title: _pageInfo[_selectedIndex]['title'] ?? 'SitePlus',
-        description: _pageInfo[_selectedIndex]['description'],
-        notificationCount:
-            _unreadNotifications, // Truyền số lượng thông báo chưa đọc
-        onNavigateToNotificationsTab: navigateToNotificationsTab,
-      ),
-      body: _getPages()[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        backgroundColor: theme.colorScheme.surfaceContainerLow,
-        onDestinationSelected: (index) async {
-          setState(() {
-            _selectedIndex = index;
-            _filterSiteId = null;
-            _filterTaskId = null;
-            _filterTaskStatus = null;
-          });
+    return Consumer<NotificationProvider>(
+      builder: (context, notificationProvider, child) {
+        // Cập nhật số lượng thông báo chưa đọc từ provider
+        _unreadNotifications = notificationProvider.unreadCount;
 
-          if (index == 4) {
-            setState(() {
-              _unreadNotifications = 0;
-            });
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setInt('unread_notification_count', 0);
-          }
-        },
+        return Scaffold(
+          key: MainScaffold.scaffoldKey,
+          appBar: CustomAppBar(
+            title: _pageInfo[_selectedIndex]['title'] ?? 'SitePlus',
+            description: _pageInfo[_selectedIndex]['description'],
+            notificationCount: _unreadNotifications,
+            onNavigateToNotificationsTab: navigateToNotificationsTab,
+          ),
+          body: _getPages()[_selectedIndex],
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _selectedIndex,
+            backgroundColor: theme.colorScheme.surfaceContainerLow,
+            onDestinationSelected: (index) async {
+              setState(() {
+                _selectedIndex = index;
+                _filterSiteId = null;
+                _filterTaskId = null;
+                _filterTaskStatus = null;
+              });
 
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(LucideIcons.house),
-            selectedIcon: Icon(LucideIcons.house, fill: 1),
-            label: 'Home',
-          ),
-          // const NavigationDestination(
-          //   icon: Icon(Icons.analytics),
-          //   selectedIcon: Icon(Icons.analytics, fill: 1),
-          //   label: 'Statistics',
-          // ),
-          const NavigationDestination(
-            icon: Icon(LucideIcons.clipboardList),
-            selectedIcon: Icon(LucideIcons.clipboardList, fill: 1),
-            label: 'Tasks',
-          ),
-          const NavigationDestination(
-            icon: Icon(LucideIcons.landmark),
-            selectedIcon: Icon(LucideIcons.landmark, fill: 1),
-            label: 'Sites',
-          ),
-          const NavigationDestination(
-            icon: Icon(LucideIcons.handshake),
-            selectedIcon: Icon(LucideIcons.handshake, fill: 1),
-            label: 'Deals',
-          ),
-          // Badge cho tab Notifications
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: _unreadNotifications > 0,
-              label: Text(
-                _unreadNotifications.toString(),
-                style: const TextStyle(color: Colors.white, fontSize: 10),
+              if (index == 4) {
+                setState(() {
+                  _unreadNotifications = 0;
+                });
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setInt('unread_notification_count', 0);
+              }
+            },
+
+            destinations: [
+              const NavigationDestination(
+                icon: Icon(LucideIcons.house),
+                selectedIcon: Icon(LucideIcons.house, fill: 1),
+                label: 'Home',
               ),
-              child: const Icon(LucideIcons.bell),
-            ),
-            selectedIcon: const Icon(LucideIcons.bell, fill: 1),
-            label: 'Notifications',
+              // const NavigationDestination(
+              //   icon: Icon(Icons.analytics),
+              //   selectedIcon: Icon(Icons.analytics, fill: 1),
+              //   label: 'Statistics',
+              // ),
+              const NavigationDestination(
+                icon: Icon(LucideIcons.clipboardList),
+                selectedIcon: Icon(LucideIcons.clipboardList, fill: 1),
+                label: 'Tasks',
+              ),
+              const NavigationDestination(
+                icon: Icon(LucideIcons.landmark),
+                selectedIcon: Icon(LucideIcons.landmark, fill: 1),
+                label: 'Sites',
+              ),
+              const NavigationDestination(
+                icon: Icon(LucideIcons.handshake),
+                selectedIcon: Icon(LucideIcons.handshake, fill: 1),
+                label: 'Deals',
+              ),
+              // Badge cho tab Notifications
+              NavigationDestination(
+                icon: Badge(
+                  isLabelVisible: _unreadNotifications > 0,
+                  label: Text(
+                    _unreadNotifications.toString(),
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                  ),
+                  child: const Icon(LucideIcons.bell),
+                ),
+                selectedIcon: const Icon(LucideIcons.bell, fill: 1),
+                label: 'Notifications',
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

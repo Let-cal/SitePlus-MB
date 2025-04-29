@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/NotificationModel/notification_model.dart';
+
 import 'signalr_service.dart'; // Import SignalRService
 
 class NotificationProvider with ChangeNotifier {
@@ -24,7 +26,16 @@ class NotificationProvider with ChangeNotifier {
     try {
       await _signalRService.startConnection();
       _signalRService.onReceiveNotification((notification) {
-        _notifications.insert(0, notification); // Thêm thông báo mới vào đầu danh sách
+        notification.isRead =
+            false; // Đảm bảo thông báo mới luôn được đánh dấu là chưa đọc
+        _notifications.insert(
+          0,
+          notification,
+        ); // Thêm thông báo mới vào đầu danh sách
+
+        // Cập nhật unread count trong SharedPreferences
+        _updateUnreadCountInPrefs();
+
         notifyListeners(); // Cập nhật UI
       });
     } catch (e) {
@@ -32,9 +43,14 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchNotifications() async {
-    if (_notifications.isNotEmpty && !_isLoading) {
-      return; // Tránh gọi lại API nếu danh sách không rỗng
+  Future<void> _updateUnreadCountInPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('unread_notification_count', unreadCount);
+  }
+
+  Future<void> fetchNotifications({bool force = false}) async {
+    if (_notifications.isNotEmpty && !_isLoading && !force) {
+      return; // Tránh gọi lại API nếu danh sách không rỗng và không yêu cầu force
     }
 
     try {

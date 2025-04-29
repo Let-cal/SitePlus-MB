@@ -32,7 +32,7 @@ class NotificationDto {
   final String name;
   final String description;
   final DateTime createdAt;
-  final TaskDto task;
+  final TaskDto? task;
   bool isRead;
 
   NotificationDto({
@@ -40,7 +40,7 @@ class NotificationDto {
     required this.name,
     required this.description,
     required this.createdAt,
-    required this.task,
+    this.task,
     this.isRead = false,
   });
 
@@ -50,27 +50,44 @@ class NotificationDto {
       name: json['name'] as String,
       description: json['description'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      task: TaskDto.fromJson(json['task'] as Map<String, dynamic>),
-      isRead: false, // Mặc định là chưa đọc khi lấy từ API
+      task:
+          json['task'] != null
+              ? TaskDto.fromJson(json['task'] as Map<String, dynamic>)
+              : null,
+      isRead: false,
+    );
+  }
+
+  // Thêm factory constructor cho SignalR notification
+  factory NotificationDto.fromSignalR(Map<String, dynamic> json) {
+    return NotificationDto(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      description: json['description'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      task: null, // Thông báo từ SignalR có thể không có task
+      isRead: false,
     );
   }
 
   // Chuyển đổi thành NotificationModel để hiển thị trên UI
   NotificationModel toModel() {
     final cityDistrict =
-        '${task.district}${task.areaName != null ? ', ${task.areaName}' : ''}';
+        task != null
+            ? '${task!.district}${task!.areaName != null ? ', ${task!.areaName}' : ''}'
+            : '';
 
     return NotificationModel(
       notificationId: id,
       notificationName: name,
       description: description,
-      taskId: 'T-${task.id.toString()}',
-      taskName: task.name,
+      taskId: task != null ? 'T-${task!.id.toString()}' : '',
+      taskName: task?.name ?? '',
       cityDistrict: cityDistrict,
-      taskDescription: task.description,
+      taskDescription: task?.description ?? '',
       createdAt: createdAt,
-      taskDeadline: task.deadline,
-      areaName: task.areaName,
+      taskDeadline: task?.deadline,
+      areaName: task?.areaName,
       isRead: isRead,
     );
   }
@@ -81,10 +98,10 @@ class NotificationDto {
       notificationId: id,
       notificationName: name,
       description: description,
-      taskId: 'T-${task.id.toString()}',
-      taskName: task.name,
-      cityDistrict: task.district,
-      taskDescription: task.description,
+      taskId: task != null ? 'T-${task!.id.toString()}' : '',
+      taskName: task?.name ?? '',
+      cityDistrict: task?.district ?? '',
+      taskDescription: task?.description ?? '',
       createdAt: createdAt,
       isRead: isRead,
     );
@@ -96,7 +113,7 @@ class TaskDto {
   final String name;
   final String description;
   final String? areaName;
-  final String district;
+  final String? district;
   final DateTime? deadline;
   final DateTime createdAt;
 
@@ -105,7 +122,7 @@ class TaskDto {
     required this.name,
     required this.description,
     this.areaName,
-    required this.district,
+    this.district,
     this.deadline,
     required this.createdAt,
   });
@@ -116,7 +133,7 @@ class TaskDto {
       name: json['name'] as String,
       description: json['description'] as String,
       areaName: json['areaName'] as String?,
-      district: json['district'] as String,
+      district: json['district'] as String?,
       deadline:
           json['deadline'] != null
               ? DateTime.parse(json['deadline'] as String)
