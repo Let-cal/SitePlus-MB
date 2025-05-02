@@ -342,7 +342,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getAllAttributes() async {
     final token = await getToken();
     final url =
-        '${ApiLink.baseUrl}${ApiEndpoints.getAttributes}?page=0&pageSize=0';
+        '${ApiLink.baseUrl}${ApiEndpoints.getAllAttributes}?page=0&pageSize=0';
 
     try {
       final response = await http.get(
@@ -372,7 +372,8 @@ class ApiService {
     int siteId,
   ) async {
     final token = await getToken();
-    final url = '${ApiLink.baseUrl}${ApiEndpoints.getAttributeValues}/$siteId';
+    final url =
+        '${ApiLink.baseUrl}${ApiEndpoints.getAttributeValuesBySiteId}/$siteId';
 
     try {
       final response = await http.get(

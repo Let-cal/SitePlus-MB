@@ -148,7 +148,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
       'deposit': '',
       'depositMonth': '',
       'additionalTerms': '',
-      'status': '',
+      'status': 0,
     };
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
@@ -1111,7 +1111,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
           _scaffoldMessenger.showSnackBar(
             const SnackBar(
               content: Text(
-                'Không có thay đổi hoặc giá trị mới nào để cập nhật.',
+                'Không có thay đổi hoặc giá trị mới nào để cập nhật. Bạn nên xem kỹ báo cáo trước khi gửi cho Area-Manager',
               ),
             ),
           );
@@ -1141,6 +1141,8 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
             'status': dealData['status'] ?? 0,
             'updatedAt': DateTime.now().toUtc().toIso8601String(),
           };
+          debugPrint("updateDealData: $updateDealData");
+          debugPrint("Create site deal: $dealData");
 
           if (dealData['id'] == null) {
             // Tạo mới site deal nếu chưa có

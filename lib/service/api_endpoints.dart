@@ -40,10 +40,10 @@ class ApiEndpoints {
   static const String deleteImage = '/Image';
 
   /// attribute service
-  static const String getAttribute = '/Attribute';
+  static const String getAllAttributes = '/Attribute';
   static const String createReport = '/report';
   static const String updateReport = '/report';
-  static const String getAttributeValues = '/attribute-values';
+  static const String getAttributeValuesBySiteId = '/attribute-values';
   static const String getAttributes = '/Attribute';
 
   /// customer segment
