@@ -31,6 +31,7 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 
 class _CustomAppBarState extends State<CustomAppBar> {
   String _username = 'User';
+  String _district = 'Quận 1';
   bool _isLoading = true;
 
   @override
@@ -44,6 +45,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final username = prefs.getString('username') ?? 'User';
+      final district = prefs.getString('_district') ?? 'Quận 1';
+      setState(() => _district = district);
       setState(() => _username = username);
     } catch (e) {
       debugPrint('Error loading username: $e');
@@ -210,7 +213,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
           Icon(LucideIcons.user, size: 16, color: theme.colorScheme.onPrimary),
           const SizedBox(width: 6),
           Text(
-            _username,
+            _district,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onPrimary,
               fontWeight: FontWeight.w500,

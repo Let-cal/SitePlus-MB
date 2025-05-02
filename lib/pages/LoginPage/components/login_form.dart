@@ -84,7 +84,8 @@ class _LoginFormState extends State<LoginForm> {
             print('Error: Could not parse userId from hint');
           }
         }
-
+        final district = response['district'].toString();
+        await prefs.setString('district', district);
         await prefs.setString('username', _usernameController.text);
 
         // Show success message

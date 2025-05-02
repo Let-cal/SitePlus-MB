@@ -22,6 +22,8 @@ String getStatusText(int status) {
       return 'Draft';
     case 9:
       return 'Proposed';
+    case 10:
+      return 'Done';
     default:
       return 'Undefined';
   }
@@ -49,6 +51,8 @@ Color getStatusColor(BuildContext context, int status) {
       return Colors.blueGrey;
     case 9:
       return Colors.blue;
+    case 10:
+      return Colors.indigo;
     default:
       return theme.colorScheme.secondary;
   }
@@ -75,6 +79,8 @@ IconData getStatusIcon(int status) {
       return Icons.note;
     case 9:
       return LucideIcons.clipboardCheck;
+    case 10:
+      return LucideIcons.badgeCheck;
     default:
       return Icons.help;
   }

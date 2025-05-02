@@ -56,7 +56,7 @@ class _SiteViewPageState extends State<SiteViewPage>
   List<Area> _areas = [];
   Map<int, String> siteCategoryMap = {};
   Map<int, String> areaMap = {};
-  final List<int> statuses = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  final List<int> statuses = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   // All sites list for iterating through pages if needed
   List<Site> allSites = [];
   // In _SiteViewPageState._loadData() add these debug prints:
