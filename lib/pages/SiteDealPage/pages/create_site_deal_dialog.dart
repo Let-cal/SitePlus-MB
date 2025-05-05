@@ -319,8 +319,7 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
                                       site.status != 5 &&
                                       site.status != 6 &&
                                       site.status != 9 &&
-                                      site.status != 8 &&
-                                      site.status != 1,
+                                      site.status != 8,
                                 )
                                 .toList(),
                         selectedItemBuilder:
@@ -695,52 +694,36 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
           listen: false,
         );
         final selectedSite = sitesProvider.sites.firstWhereOrNull(
-          (site) => site.id == _selectedSite,
+          (site) => site.id == _selectedSite?.id,
         );
         final taskIdToUpdate = widget.taskId ?? _selectedTaskId;
         final siteIdToUpdate = widget.siteId ?? _selectedSite?.id;
 
-        // Check for existing site deals with status 0
-        if (siteIdToUpdate != null) {
-          final existingSiteDeals = await _apiService.getSiteDealBySiteId(
-            siteIdToUpdate,
-          );
-          final pendingSiteDeals =
-              existingSiteDeals.where((deal) => deal['status'] == 0).toList();
+        // Check if site has status 1 (new flow for status 1)
+        final isStatus1 = widget.siteStatus == 1 || selectedSite?.status == 1;
+        // Check if site has status 7 (existing flow)
+        final isStatus7 = widget.siteStatus == 7 || selectedSite?.status == 7;
+        // Site requires confirmation if it's status 1 or 7
+        final requiresConfirmation = isStatus1 || isStatus7;
 
-          // If there are any pending site deals, update them to status 2 (invalid)
-          for (var pendingDeal in pendingSiteDeals) {
-            final siteDealId = pendingDeal['id'];
-            debugPrint(
-              'Found existing site deal with status 0, ID: $siteDealId. Updating to status 2.',
-            );
-            final updated = await _apiService.updateSiteDealStatus(
-              siteDealId,
-              2,
-            );
-            if (!updated) {
-              debugPrint('Failed to update site deal $siteDealId to status 2');
-              // Consider showing an error message but continue with the process
-            } else {
-              debugPrint(
-                'Successfully updated site deal $siteDealId to status 2',
-              );
-            }
-          }
+        // Set appropriate confirmation message based on status
+        String confirmationMessage = '';
+        if (isStatus1) {
+          confirmationMessage =
+              'If you create a site deal for this site, it will resend the entire report to the Area-Manager. Do you want to proceed?';
+        } else {
+          confirmationMessage =
+              'If you create a site deal for this site, it will directly send the report to the Area-Manager. Are you sure?';
         }
 
-        // Kiểm tra cả widget.siteStatus và status của site được chọn
-        final requiresConfirmation =
-            widget.siteStatus == 7 || (selectedSite?.status == 7);
+        // Show confirmation dialog if required
         if (requiresConfirmation) {
           final confirm = await showDialog<bool>(
             context: context,
             builder:
                 (context) => AlertDialog(
                   title: const Text('Confirmation'),
-                  content: const Text(
-                    'If you create a site deal for this site, it will directly send the report to the Area-Manager. Are you sure?',
-                  ),
+                  content: Text(confirmationMessage),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
@@ -758,6 +741,75 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
             return;
           }
         }
+
+        // For status 1, update site and task status to 3 immediately after confirmation
+        if (isStatus1 && siteIdToUpdate != null) {
+          debugPrint(
+            'Status 1 detected: Updating site and task status to 3 first',
+          );
+          final apiService = ApiService();
+          final siteStatusUpdated = await apiService.updateSiteStatus(
+            siteIdToUpdate,
+            3,
+          );
+
+          if (!siteStatusUpdated) {
+            debugPrint('Failed to update site status to 3');
+          } else {
+            debugPrint('Site status updated to 3 for siteId: $siteIdToUpdate');
+          }
+
+          if (taskIdToUpdate != null) {
+            final taskStatusUpdated = await apiService.updateTaskStatus(
+              taskIdToUpdate,
+              3,
+            );
+            if (!taskStatusUpdated) {
+              debugPrint('Failed to update task status to 3');
+            } else {
+              debugPrint(
+                'Task status updated to 3 for taskId: $taskIdToUpdate',
+              );
+            }
+          } else {
+            debugPrint('No task ID available to update');
+          }
+        }
+
+        // Check for existing site deals with status 0 or 1
+        if (siteIdToUpdate != null) {
+          debugPrint(
+            'Checking for existing site deals with siteId: $siteIdToUpdate',
+          );
+          final existingSiteDeals = await _apiService.getSiteDealBySiteId(
+            siteIdToUpdate,
+          );
+          final pendingSiteDeals =
+              existingSiteDeals
+                  .where((deal) => deal['status'] == 0 || deal['status'] == 1)
+                  .toList();
+
+          // If there are any pending site deals, update them to status 2 (invalid)
+          for (var pendingDeal in pendingSiteDeals) {
+            final siteDealId = pendingDeal['id'];
+            final oldStatus = pendingDeal['status'];
+            debugPrint(
+              'Found existing site deal with status $oldStatus, ID: $siteDealId. Updating to status 2.',
+            );
+            final updated = await _apiService.updateSiteDealStatus(
+              siteDealId,
+              2,
+            );
+            if (!updated) {
+              debugPrint('Failed to update site deal $siteDealId to status 2');
+            } else {
+              debugPrint(
+                'Successfully updated site deal $siteDealId to status 2',
+              );
+            }
+          }
+        }
+
         dealData['siteId'] = _selectedSite?.id;
         dealData['status'] = 0;
         debugPrint("site to update is $siteIdToUpdate");
@@ -765,7 +817,9 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
         debugPrint('Submitting dealData: $dealData');
         final success = await _apiService.createSiteDeal(dealData);
         if (success) {
-          if (requiresConfirmation && siteIdToUpdate != null) {
+          // Only update site and task status for sites with status other than 1
+          // since status 1 sites have already been updated earlier
+          if (requiresConfirmation && !isStatus1 && siteIdToUpdate != null) {
             final apiService = ApiService();
             final siteStatusUpdated = await apiService.updateSiteStatus(
               siteIdToUpdate,

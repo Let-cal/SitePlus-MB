@@ -85,7 +85,11 @@ class _LoginFormState extends State<LoginForm> {
           }
         }
         final district = response['district'].toString();
+        final districtId = response['districtId'].toString();
+        final userNameFromResponse = response['userName'].toString();
         await prefs.setString('district', district);
+        await prefs.setString('districtId', districtId);
+        await prefs.setString('userName', userNameFromResponse);
         await prefs.setString('username', _usernameController.text);
 
         // Show success message

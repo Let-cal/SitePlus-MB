@@ -14,7 +14,7 @@ class LocationSection extends StatelessWidget {
   final bool isAreaSelectionEnabled;
   final TextEditingController addressController; // Added controller for address
   final Function(String?) onAddressSaved; // Added callback for address
-  final bool isProposeMode;
+  final bool isEnabled;
 
   const LocationSection({
     super.key,
@@ -28,7 +28,7 @@ class LocationSection extends StatelessWidget {
     required this.isAreaSelectionEnabled,
     required this.addressController,
     required this.onAddressSaved,
-    this.isProposeMode = false,
+    this.isEnabled = false,
   });
 
   @override
@@ -55,7 +55,7 @@ class LocationSection extends StatelessWidget {
           value: selectedDistrictName,
           items: districts.map((district) => district.name).toList(),
           onChanged: onDistrictChanged,
-          isEnabled: isProposeMode,
+          isEnabled: isEnabled,
         ),
         SizedBox(height: 23),
 
@@ -68,7 +68,7 @@ class LocationSection extends StatelessWidget {
           items: areas.map((area) => area.name).toList(),
           onChanged: onAreaChanged,
           isLoading: isLoadingAreas,
-          isEnabled: isProposeMode && isAreaSelectionEnabled,
+          isEnabled: isEnabled && isAreaSelectionEnabled,
         ),
       ],
     );

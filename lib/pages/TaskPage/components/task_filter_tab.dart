@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:siteplus_mb/components/multi_tab_filter_panel.dart';
+import 'package:siteplus_mb/utils/TaskPage/task_status.dart';
 import 'package:siteplus_mb/utils/constants.dart';
 
 class TaskFilterTab extends StatelessWidget {
@@ -25,7 +26,7 @@ class TaskFilterTab extends StatelessWidget {
           options: [
             FilterOption(id: null, label: 'All'),
             ...availableStatuses.entries.map(
-              (e) => FilterOption(id: e.key, label: e.value),
+              (e) => FilterOption(id: e.key, label: getStatusText(e.value)),
             ),
           ],
         ),

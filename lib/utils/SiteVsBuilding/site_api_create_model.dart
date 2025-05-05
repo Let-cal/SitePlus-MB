@@ -91,7 +91,7 @@ class SiteCreateRequest {
       size: size,
       floor: floor,
       totalFloor: totalFloor,
-      description: reportData['additionalNotes'] ?? '',
+      description: reportData['description'] ?? siteInfo['description'] ?? '',
       buildingId: buildingId,
       status: status,
     );

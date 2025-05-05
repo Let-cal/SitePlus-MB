@@ -22,6 +22,10 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
   late Animation<double> _animation;
   late TextEditingController _notesController;
 
+  String getNotes() {
+    return _notesController.text;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -78,14 +82,6 @@ class AdditionalNotesComponentState extends State<AdditionalNotesComponent>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Additional Notes',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 16),
           _buildInfoCard(
             icon: Icons.lightbulb_outline,
             content: 'Add additional details describing the property.',

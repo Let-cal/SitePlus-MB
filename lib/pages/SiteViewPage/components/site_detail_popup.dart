@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/ReportViewDialog.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/report_create_dialog.dart';
+import 'package:siteplus_mb/pages/ReportPage/pages/site_building_dialog.dart';
 import 'package:siteplus_mb/pages/SiteViewPage/components/ImageComponents/image_upload_dialog_ui.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_status.dart';
@@ -574,6 +575,61 @@ class ViewDetailSite extends StatelessWidget {
       }
     }
 
+    void navigateToSiteBuildingDialog({bool isProposeEdit = false}) {
+      String reportTypeValue;
+      if (site.siteCategoryId == 2) {
+        reportTypeValue = "Commercial";
+      } else {
+        reportTypeValue = "Building";
+      }
+
+      Navigator.of(parentContext)
+          .push(
+            PageRouteBuilder(
+              transitionDuration: const Duration(milliseconds: 400),
+              pageBuilder:
+                  (context, animation, secondaryAnimation) =>
+                      SiteBuildingDialog(
+                        reportType: reportTypeValue,
+                        siteCategoryId: site.siteCategoryId,
+                        siteCategory:
+                            siteCategoryMap[site.siteCategoryId] ?? 'Unknown',
+                        siteId: site.id,
+                        isProposeMode: false,
+                        isProposeEdit: isProposeEdit,
+                      ),
+              transitionsBuilder: (
+                context,
+                animation,
+                secondaryAnimation,
+                child,
+              ) {
+                var fadeTween = Tween<double>(
+                  begin: 0.0,
+                  end: 1.0,
+                ).chain(CurveTween(curve: Curves.easeInOut));
+                var slideTween = Tween<Offset>(
+                  begin: const Offset(0.0, 1.0),
+                  end: Offset.zero,
+                ).chain(CurveTween(curve: Curves.easeInOut));
+                return FadeTransition(
+                  opacity: animation.drive(fadeTween),
+                  child: SlideTransition(
+                    position: animation.drive(slideTween),
+                    child: child,
+                  ),
+                );
+              },
+            ),
+          )
+          .then((result) {
+            // When SiteBuildingDialog closes, pass result back to SiteViewPage
+            if (result == true) {
+              Navigator.of(parentContext).pop(true);
+            }
+          });
+    }
+
     // Determine primary button based on status
     Widget primaryButton() {
       switch (site.status) {
@@ -673,19 +729,6 @@ class ViewDetailSite extends StatelessWidget {
         case 5: // Closed
         case 6: // Connected
         case 1: // Available
-        // Uncomment below if you wish to add a "View Task" button
-        // return FilledButton.icon(
-        //   onPressed: navigateToTaskPage,
-        //   icon: const Icon(Icons.visibility),
-        //   label: const Text('View Task'),
-        //   style: FilledButton.styleFrom(
-        //     padding: const EdgeInsets.symmetric(vertical: 12),
-        //     backgroundColor: theme.colorScheme.primary,
-        //     shape: RoundedRectangleBorder(
-        //       borderRadius: BorderRadius.circular(12),
-        //     ),
-        //   ),
-        // );
         case 3: // Pending Approval
           return Row(
             children: [
@@ -725,6 +768,19 @@ class ViewDetailSite extends StatelessWidget {
             onPressed: () => navigateToReportCreate(isEditMode: true),
             icon: const Icon(Icons.forum),
             label: const Text('Negotiate'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        case 9: // Propose Site
+          return FilledButton.icon(
+            onPressed: () => navigateToSiteBuildingDialog(isProposeEdit: true),
+            icon: const Icon(Icons.edit),
+            label: const Text('Edit Site'),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
               backgroundColor: theme.colorScheme.primary,

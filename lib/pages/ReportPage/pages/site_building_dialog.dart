@@ -19,11 +19,12 @@ class SiteBuildingDialog extends StatefulWidget {
   final int? siteCategoryId;
   final int? areaId;
   final String? siteCategory;
-  final int taskId;
-  final String taskStatus;
+  final int? taskId;
+  final String? taskStatus;
   final int? siteId;
   final VoidCallback? onUpdateSuccess;
   final bool isProposeMode;
+  final bool isProposeEdit;
 
   const SiteBuildingDialog({
     super.key,
@@ -31,11 +32,12 @@ class SiteBuildingDialog extends StatefulWidget {
     required this.siteCategoryId,
     this.areaId,
     required this.siteCategory,
-    required this.taskId,
-    required this.taskStatus,
+    this.taskId,
+    this.taskStatus,
     this.siteId,
     this.onUpdateSuccess,
     this.isProposeMode = false,
+    this.isProposeEdit = false,
   });
 
   @override
@@ -98,7 +100,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         widget.reportType == 'Building' ||
         widget.reportType == 'Internal Site' ||
         widget.reportType == '1';
-    await Future.wait([_getUserAreaInfo(), _loadDistricts()]);
+    await Future.wait([_getUserLocationInfo(), _loadDistricts()]);
     if (_districts.isEmpty) {
       debugPrint('Districts have not been loaded, cannot select district/area');
       setState(() {
@@ -108,7 +110,8 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     }
 
     // If editing (task.status == STATUS_DA_NHAN and there is a siteId)
-    if (widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null) {
+    if ((widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null) ||
+        widget.isProposeEdit) {
       await _loadSiteData(widget.siteId!);
     } else if (widget.areaId != null) {
       await _autoSelectDistrictAndArea(widget.areaId!);
@@ -180,9 +183,18 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           'buildingName': siteData['buildingName'] ?? '',
           'totalFloor': siteData['totalFloor'].toString(),
           'taskId': widget.taskId,
+          'description': siteData['description'].toString(),
         };
         debugPrint('Building id: ${siteData['buildingId']}');
         debugPrint('Building name: ${siteData['buildingName']}');
+
+        String description = siteData['description'] ?? '';
+        String notes = '';
+        if (description.contains('\nNote: ')) {
+          notes = description.split('\nNote: ').last;
+        }
+        reportData['additionalNotes'] =
+            notes; // Gán phần ghi chú vào reportData
         // Update area and district selection
         _selectedAreaName = siteData['areaName'];
         _selectedAreaId = areaId;
@@ -245,6 +257,27 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     }
   }
 
+  Future<String> _getFormattedDescription() async {
+    // Get user name and ID from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final String userName = prefs.getString('userName') ?? 'Unknown User';
+    final String userId = prefs.getString('hintId') ?? '0';
+
+    // Get notes from the additional notes component
+    final String additionalNotes =
+        _additionalNotesKey.currentState?.getNotes() ?? '';
+
+    // Format the description
+    String description = '$userName - ID#$userId';
+
+    // Add notes if provided
+    if (additionalNotes.isNotEmpty) {
+      description += '\nNote: $additionalNotes';
+    }
+
+    return description;
+  }
+
   Future<void> _createOrUpdateSite() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -254,10 +287,20 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       });
 
       try {
-        if (widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null) {
+        // Get formatted description
+        final String description = await _getFormattedDescription();
+
+        // Add description to reportData
+        _updateReportData('description', description);
+
+        if (widget.taskStatus == STATUS_DA_NHAN && widget.siteId != null ||
+            widget.isProposeEdit) {
           // Update site
           final siteRequest =
               SiteCreateRequest.fromReportData(reportData).toJson();
+          if (widget.isProposeEdit) {
+            siteRequest['status'] = 9; // Ensure it stays as a proposed site
+          }
           final response = await _apiService.updateSite(
             widget.siteId!,
             siteRequest,
@@ -282,7 +325,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           );
           if (response['success'] == true || response.containsKey('siteId')) {
             final statusTaskUpdated = await _apiService.updateTaskStatus(
-              widget.taskId,
+              widget.taskId!,
               2,
             );
             if (statusTaskUpdated) {
@@ -330,6 +373,11 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       });
 
       try {
+        // Get formatted description
+        final String description = await _getFormattedDescription();
+
+        // Add description to reportData
+        _updateReportData('description', description);
         // Copy reportData for modifications
         Map<String, dynamic> modifiedReportData = Map.from(reportData);
 
@@ -345,6 +393,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         debugPrint(
           'Site request sent for API create site when isProposeMode == ${widget.isProposeMode}: ${siteRequest.toJson()}',
         );
+        debugPrint('Site request description: ${siteRequest.description}');
         final response = await _apiService.createSite(siteRequest);
 
         if (response['siteId'] != null &&
@@ -403,6 +452,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
         'buildingId': null,
         'buildingName': '',
         'totalFloor': '',
+        'description': '',
       },
     };
 
@@ -485,10 +535,11 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
     }
   }
 
-  Future<void> _getUserAreaInfo() async {
+  Future<void> _getUserLocationInfo() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final int? areaId = prefs.getInt('areaId');
+      final String? districtIdStr = prefs.getString('districtId');
 
       if (areaId != null) {
         setState(() {
@@ -497,6 +548,46 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
 
         // Update report data
         _updateReportData('areaId', areaId);
+
+        // If in propose mode, auto-select district and area
+        if (widget.isProposeMode && districtIdStr != null) {
+          final int? districtId = int.tryParse(districtIdStr);
+          if (districtId != null) {
+            // Wait for districts to load before attempting to auto-select
+            if (_districts.isEmpty) {
+              await _loadDistricts();
+            }
+
+            // Select the district first
+            final district = _districts.firstWhere(
+              (d) => d.id == districtId,
+              orElse: () => District(id: -1, name: '', cityId: -1),
+            );
+
+            if (district.id != -1) {
+              setState(() {
+                _selectedDistrictId = districtId;
+                _selectedDistrictName = district.name;
+              });
+
+              // Now load areas for this district
+              await _loadAreas(districtId);
+
+              // Then auto-select the area
+              final area = _areas.firstWhere(
+                (a) => a.id == areaId,
+                orElse: () => Area(id: -1, name: '', districtId: -1),
+              );
+
+              if (area.id != -1) {
+                setState(() {
+                  _selectedAreaId = areaId;
+                  _selectedAreaName = area.name;
+                });
+              }
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error getting user area info: $e');
@@ -646,6 +737,12 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
       });
 
       try {
+        // Get formatted description
+        final String description = await _getFormattedDescription();
+
+        // Add description to reportData
+        _updateReportData('description', description);
+
         final double? siteSize =
             reportData['siteInfo']['size']?.isNotEmpty == true
                 ? double.tryParse(reportData['siteInfo']['size'])
@@ -661,7 +758,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
           if (createResponse['siteId'] != null &&
               createResponse['siteId']['success'] == true) {
             final statusTaskUpdated = await _apiService.updateTaskStatus(
-              widget.taskId,
+              widget.taskId!,
               2,
             );
             if (statusTaskUpdated) {
@@ -980,7 +1077,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                         addressController: _addressController,
                         onAddressSaved:
                             (value) => _updateReportData('address', value),
-                        isProposeMode: widget.isProposeMode,
+                        isEnabled: false,
                       ),
                     ),
                   ],
@@ -1134,7 +1231,8 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                         ),
                         icon: Icon(Icons.save),
                         label: Text(
-                          widget.taskStatus == STATUS_DA_NHAN
+                          widget.taskStatus == STATUS_DA_NHAN ||
+                                  widget.isProposeEdit
                               ? 'Update site information'
                               : widget.isProposeMode
                               ? 'Propose Site'
@@ -1148,7 +1246,7 @@ class _SiteBuildingDialogState extends State<SiteBuildingDialog> {
                     ),
                     SizedBox(height: 12),
                     // Row with Continue and Close buttons
-                    if (!widget.isProposeMode)
+                    if (!widget.isProposeMode && !widget.isProposeEdit)
                       Row(
                         children: [
                           Expanded(

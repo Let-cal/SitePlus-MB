@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/site_building_dialog.dart';
+import 'package:siteplus_mb/pages/TaskPage/components/location_mapper_component.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/TaskPage/dead_line_utils.dart';
@@ -160,6 +161,8 @@ class ViewDetailTask extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                       ],
+                      _buildLocationMapCard(context),
+                      const SizedBox(height: 16),
                       _buildInfoCard(
                         context,
                         title: 'Task Description',
@@ -372,7 +375,7 @@ class ViewDetailTask extends StatelessWidget {
         _buildInfoRow(
           context,
           label: 'Status',
-          value: task.status,
+          value: getStatusText(task.status),
           icon: getStatusIcon(task.status),
           valueColor: getStatusColor(context, task.status),
         ),
@@ -454,7 +457,7 @@ class ViewDetailTask extends StatelessWidget {
       } else if (parts.length == 1) {
         // Trường hợp chỉ có địa chỉ không đầy đủ
         specificAddress = parts[0];
-        district = "Không xác định";
+        district = "Quận 1";
         city = "TP.HCM";
       }
 
@@ -510,6 +513,52 @@ class ViewDetailTask extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+
+  // Thêm phương thức mới để hiển thị card location riêng biệt
+  Widget _buildLocationMapCard(BuildContext context) {
+    final site = task.site;
+    if (site == null) return const SizedBox.shrink();
+
+    Map<String, String> parseAddress(String fullAddress) {
+      final parts = fullAddress.split(', ');
+
+      String specificAddress = '';
+      String district = '';
+      String city = '';
+
+      if (parts.length >= 3) {
+        specificAddress = parts[0];
+        district = parts[1];
+        city = parts[2];
+      } else if (parts.length == 2) {
+        specificAddress = parts[0];
+        district = parts[1];
+        city = "TP.HCM";
+      } else if (parts.length == 1) {
+        specificAddress = parts[0];
+        district = "Quận 1";
+        city = "TP.HCM";
+      }
+
+      return {
+        'specificAddress': specificAddress,
+        'district': district,
+        'city': city,
+      };
+    }
+
+    final addressParts = parseAddress(site.address);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: LocationMapperComponent(
+        specificAddress: addressParts['specificAddress']!,
+        district: addressParts['district']!,
+        city: addressParts['city']!,
+        buildingName: site.building?.name, // Thêm buildingName nếu có
+      ),
     );
   }
 
@@ -656,7 +705,7 @@ class ViewDetailTask extends StatelessWidget {
                         // Giữ nguyên cho các status khác
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.close),
-                        label: const Text('Đóng'),
+                        label: const Text('Close'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           side: BorderSide(color: theme.colorScheme.outline),
@@ -737,7 +786,7 @@ class ViewDetailTask extends StatelessWidget {
             Icon(icon, size: 16, color: color),
             const SizedBox(width: 6),
             Text(
-              status,
+              getStatusText(status),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: color,
                 fontWeight: FontWeight.bold,
