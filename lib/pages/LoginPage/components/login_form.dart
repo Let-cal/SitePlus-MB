@@ -141,12 +141,12 @@ class _LoginFormState extends State<LoginForm> {
         children: [
           CustomTextField(
             controller: _usernameController,
-            labelText: 'Username',
-            hintText: 'Enter your username',
+            labelText: 'Email',
+            hintText: 'Enter your email',
             prefixIcon: Icons.person_outline,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your username';
+                return 'Please enter your email';
               }
               return null;
             },

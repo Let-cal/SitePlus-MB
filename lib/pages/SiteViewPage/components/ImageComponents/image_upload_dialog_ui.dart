@@ -15,6 +15,7 @@ class ImageUploadDialogUI extends StatefulWidget {
   final int siteId;
   final int? buildingId;
   final bool loadExistingImages;
+  final bool preventUploadImages;
 
   const ImageUploadDialogUI({
     super.key,
@@ -24,6 +25,7 @@ class ImageUploadDialogUI extends StatefulWidget {
     required this.siteId,
     this.buildingId,
     this.loadExistingImages = true,
+    this.preventUploadImages = false,
   });
   // Thêm vào file image_upload_dialog_ui.dart
   static Future<List<ImageItem>?> show(
@@ -31,6 +33,7 @@ class ImageUploadDialogUI extends StatefulWidget {
     required int siteId,
     int? buildingId,
     bool loadExistingImages = true,
+    bool preventUploadImages = false,
     List<ImageItem> initialImages = const [],
     int maxImages = 3,
   }) async {
@@ -44,6 +47,7 @@ class ImageUploadDialogUI extends StatefulWidget {
             siteId: siteId,
             buildingId: buildingId,
             loadExistingImages: loadExistingImages,
+            preventUploadImages: preventUploadImages,
           ),
     );
   }
@@ -152,6 +156,29 @@ class _ImageUploadDialogUIState extends State<ImageUploadDialogUI>
     }
   }
 
+  void _handleClose() {
+    if (_imageController.images.isEmpty && widget.preventUploadImages == true) {
+      showDialog(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Confirmation'),
+              content: const Text(
+                'You need to upload at least one image before sending the report to the Area-Manager.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Understood'),
+                ),
+              ],
+            ),
+      );
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -206,7 +233,8 @@ class _ImageUploadDialogUIState extends State<ImageUploadDialogUI>
 
                       ActionSection(
                         controller: _imageController,
-                        onCancel: () => Navigator.of(context).pop(),
+                        onCancel: _handleClose,
+                        onPreventUpload: widget.preventUploadImages,
                       ),
                     ],
                   ),

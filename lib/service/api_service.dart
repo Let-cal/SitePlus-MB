@@ -511,6 +511,9 @@ class ApiService {
               },
             )
             .toList();
+      } else if (response.statusCode == 404) {
+        // Không tìm thấy ảnh nào cho site này, trả về danh sách rỗng
+        return [];
       } else {
         debugPrint('Lỗi lấy ảnh site: ${response.statusCode}');
         debugPrint('Response body: ${response.body}');

@@ -4,11 +4,13 @@ import 'package:siteplus_mb/pages/SiteViewPage/components/ImageComponents/image_
 class ActionSection extends StatelessWidget {
   final ImageUploadController controller;
   final VoidCallback onCancel;
+  final bool? onPreventUpload;
 
   const ActionSection({
     super.key,
     required this.controller,
     required this.onCancel,
+    this.onPreventUpload,
   });
 
   @override
@@ -31,7 +33,16 @@ class ActionSection extends StatelessWidget {
                 controller.isUploading || controller.isLoading
                     ? null
                     : () {
-                      controller.confirmSelection();
+                      if (controller.images.isEmpty &&
+                          onPreventUpload == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please upload at least one image.'),
+                          ),
+                        );
+                      } else {
+                        controller.confirmSelection();
+                      }
                     },
             icon: const Icon(Icons.check),
             label: const Text('Xác nhận'),

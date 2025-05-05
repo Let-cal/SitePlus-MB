@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:siteplus_mb/components/searchable_dropdown.dart';
 import 'package:siteplus_mb/pages/ReportPage/pages/deal_section.dart';
+import 'package:siteplus_mb/pages/SiteViewPage/components/ImageComponents/image_upload_dialog_ui.dart';
 import 'package:siteplus_mb/service/api_service.dart';
 import 'package:siteplus_mb/utils/AreaDistrict/locations_provider.dart';
 import 'package:siteplus_mb/utils/SiteVsBuilding/site_view_model.dart';
@@ -683,6 +684,26 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
     );
   }
 
+  Future<void> _updateSiteAndTaskStatus(int siteId, int? taskId) async {
+    final apiService = ApiService();
+    final siteStatusUpdated = await apiService.updateSiteStatus(siteId, 3);
+    if (!siteStatusUpdated) {
+      debugPrint('Failed to update site status to 3');
+    } else {
+      debugPrint('Site status updated to 3 for siteId: $siteId');
+    }
+    if (taskId != null) {
+      final taskStatusUpdated = await apiService.updateTaskStatus(taskId, 3);
+      if (!taskStatusUpdated) {
+        debugPrint('Failed to update task status to 3');
+      } else {
+        debugPrint('Task status updated to 3 for taskId: $taskId');
+      }
+    } else {
+      debugPrint('No task ID available to update');
+    }
+  }
+
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -747,32 +768,21 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
           debugPrint(
             'Status 1 detected: Updating site and task status to 3 first',
           );
+
           final apiService = ApiService();
-          final siteStatusUpdated = await apiService.updateSiteStatus(
-            siteIdToUpdate,
-            3,
-          );
 
-          if (!siteStatusUpdated) {
-            debugPrint('Failed to update site status to 3');
+          final images = await apiService.getSiteImages(siteIdToUpdate);
+          if (images.isNotEmpty) {
+            await _updateSiteAndTaskStatus(siteIdToUpdate, taskIdToUpdate);
           } else {
-            debugPrint('Site status updated to 3 for siteId: $siteIdToUpdate');
-          }
-
-          if (taskIdToUpdate != null) {
-            final taskStatusUpdated = await apiService.updateTaskStatus(
-              taskIdToUpdate,
-              3,
+            final uploadedImages = await ImageUploadDialogUI.show(
+              context,
+              siteId: siteIdToUpdate,
+              loadExistingImages: true,
             );
-            if (!taskStatusUpdated) {
-              debugPrint('Failed to update task status to 3');
-            } else {
-              debugPrint(
-                'Task status updated to 3 for taskId: $taskIdToUpdate',
-              );
+            if (uploadedImages != null && uploadedImages.isNotEmpty) {
+              await _updateSiteAndTaskStatus(siteIdToUpdate, taskIdToUpdate);
             }
-          } else {
-            debugPrint('No task ID available to update');
           }
         }
 
@@ -820,34 +830,20 @@ class _CreateSiteDealDialogState extends State<CreateSiteDealDialog> {
           // Only update site and task status for sites with status other than 1
           // since status 1 sites have already been updated earlier
           if (requiresConfirmation && !isStatus1 && siteIdToUpdate != null) {
-            final apiService = ApiService();
-            final siteStatusUpdated = await apiService.updateSiteStatus(
-              siteIdToUpdate,
-              3,
-            );
-            bool taskStatusUpdated = true;
-            if (taskIdToUpdate != null) {
-              taskStatusUpdated = await apiService.updateTaskStatus(
-                taskIdToUpdate,
-                3,
+            final images = await _apiService.getSiteImages(siteIdToUpdate);
+            if (images.isNotEmpty) {
+              await _updateSiteAndTaskStatus(siteIdToUpdate, taskIdToUpdate);
+            } else {
+              final uploadedImages = await ImageUploadDialogUI.show(
+                context,
+                siteId: siteIdToUpdate,
+                loadExistingImages: true,
+                preventUploadImages: true,
+                buildingId: _selectedSite?.building?.id,
               );
-              if (!taskStatusUpdated) {
-                debugPrint('Failed to update task status to 3');
-              } else {
-                debugPrint(
-                  'Task status updated to 3 for taskId: $taskIdToUpdate',
-                );
+              if (uploadedImages != null && uploadedImages.isNotEmpty) {
+                await _updateSiteAndTaskStatus(siteIdToUpdate, taskIdToUpdate);
               }
-            } else {
-              debugPrint('No task ID available to update');
-            }
-
-            if (!siteStatusUpdated) {
-              debugPrint('Failed to update site status to 3');
-            } else {
-              debugPrint(
-                'Site status updated to 3 for siteId: $siteIdToUpdate',
-              );
             }
           }
           if (context.mounted) {
