@@ -31,6 +31,16 @@ class CustomerModelSectionState extends State<CustomerModelSection>
   List<Map<String, dynamic>> changedAttributeValues = [];
   late List<Map<String, dynamic>> originalAttributeValues;
   String _debugAttributeValues = '';
+  String _ageGroupValidationMessage = '';
+  String _genderValidationMessage = '';
+
+  int getTotalAgeGroups() {
+    Map<String, int> ageGroups = Map<String, int>.from(
+      localCustomerModelData['ageGroups'],
+    );
+    return ageGroups.values.fold(0, (sum, value) => sum + value);
+  }
+
   final Map<String, int> attributeIds = {
     'gender': 6,
     'ageGroups': 7,
@@ -58,7 +68,6 @@ class CustomerModelSectionState extends State<CustomerModelSection>
   };
 
   String _highestAgeGroupInfo = '';
-  String _genderValidationMessage = ''; // Added for gender validation
 
   @override
   void initState() {
@@ -79,7 +88,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
         'Initial reportData[attributeValues] in CustomerModelSection: ${widget.reportData['attributeValues']}',
       );
       _updateAttributeValues();
-      _updateGenderValidation(); // Validate gender initially
+      _updateGenderValidation();
       _updateDebugInfo();
     });
   }
@@ -107,7 +116,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       'genderInfo': '',
       'ageGroups': {'under18': 0, '18to30': 0, '31to45': 0, 'over45': 0},
       'income': '',
-      'incomePopulation': '', // Added for income population
+      'incomePopulation': '',
     };
 
     defaultValues.forEach((key, value) {
@@ -122,11 +131,20 @@ class CustomerModelSectionState extends State<CustomerModelSection>
   void _initializeAgeGroupControllers() {
     _ageGroupControllers.forEach((key, controller) {
       int value = localCustomerModelData['ageGroups'][key] ?? 0;
-      controller.text = value > 0 ? value.toString() : '';
+      controller.text = value > 0 ? _formatNumber(value.toString()) : '';
       controller.addListener(() {
         _updateAgeGroup(key, controller.text);
       });
     });
+  }
+
+  String _formatNumber(String value) {
+    if (value.isEmpty) return '';
+    final number = int.tryParse(value.replaceAll(',', '')) ?? 0;
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
 
   void _updateDebugInfo() {
@@ -168,30 +186,22 @@ class CustomerModelSectionState extends State<CustomerModelSection>
     );
     if (genderAttribute.isNotEmpty && genderAttribute['value'] != null) {
       String genderValue = genderAttribute['value'];
-      String genderSelection = 'Nam';
-      if (genderValue.contains('nam')) {
-        genderSelection = 'Nam';
-      } else if (genderValue.contains('nữ')) {
-        genderSelection = 'Nữ';
-      } else if (genderValue.contains('đa dạng')) {
-        genderSelection = 'Khác';
-      }
+      String genderSelection =
+          genderValue.contains('nam')
+              ? 'Nam'
+              : genderValue.contains('nữ')
+              ? 'Nữ'
+              : 'Khác';
       localCustomerModelData['gender'] = genderSelection;
       String additionalInfo = genderAttribute['additionalInfo'] ?? '';
-      if (additionalInfo.contains('%')) {
-        String numberPart =
-            additionalInfo.replaceAll(RegExp(r'\s*%'), '').trim();
-        int? personCount = int.tryParse(numberPart);
-        localCustomerModelData['genderInfo'] =
-            personCount != null ? personCount.toString() : '';
-      } else if (additionalInfo.contains('người/ngày')) {
-        RegExp regex = RegExp(r'(\d+)\s*người/ngày');
-        Match? match = regex.firstMatch(additionalInfo);
-        localCustomerModelData['genderInfo'] =
-            match != null && match.groupCount >= 1 ? match.group(1) ?? '' : '';
-      } else {
-        localCustomerModelData['genderInfo'] = additionalInfo;
-      }
+      RegExp regex = RegExp(
+        r'(\d+)\s*người/ngày\s*chiếm\s*(\d+)%\s*trên\s*tổng\s*số\s*dân\s*trong\s*khu\s*vực\s*là\s*(\d+)\s*người/ngày',
+      );
+      Match? match = regex.firstMatch(additionalInfo);
+      localCustomerModelData['genderInfo'] =
+          match != null && match.groupCount >= 1
+              ? match.group(1) ?? ''
+              : additionalInfo.split(' người/ngày')[0].trim();
     }
 
     final ageAttributes =
@@ -205,35 +215,22 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       };
       for (var attr in ageAttributes) {
         String additionalInfo = attr['additionalInfo'] ?? '';
-        RegExp peoplePerDayRegex = RegExp(
+        RegExp regex = RegExp(
           r'(\d+)\s*người/ngày\s*nhóm khách hàng có độ tuổi (.+?)(?:,|\s+và|\s+chiếm|$)',
         );
-        var peopleMatches = peoplePerDayRegex.firstMatch(additionalInfo);
-        RegExp percentRegex = RegExp(
-          r'(\d+)%\s*nhóm khách hàng có độ tuổi (.+?)(?:,|\s+và|\s+chiếm|$)',
-        );
-        var percentMatches = percentRegex.firstMatch(additionalInfo);
-
-        String ageRange = '';
-        int count = 0;
-        if (peopleMatches != null) {
-          String countStr = peopleMatches.group(1) ?? '0';
-          ageRange = peopleMatches.group(2) ?? '';
-          count = int.tryParse(countStr) ?? 0;
-        } else if (percentMatches != null) {
-          String percentage = percentMatches.group(1) ?? '0';
-          ageRange = percentMatches.group(2) ?? '';
-          count = int.tryParse(percentage) ?? 0;
-        }
-
-        if (ageRange.contains('dưới 18')) {
-          ageGroups['under18'] = count;
-        } else if (ageRange.contains('18-30')) {
-          ageGroups['18to30'] = count;
-        } else if (ageRange.contains('31-45')) {
-          ageGroups['31to45'] = count;
-        } else if (ageRange.contains('trên 45')) {
-          ageGroups['over45'] = count;
+        var match = regex.firstMatch(additionalInfo);
+        if (match != null) {
+          String countStr = match.group(1) ?? '0';
+          String ageRange = match.group(2) ?? '';
+          int count = int.tryParse(countStr) ?? 0;
+          if (ageRange.contains('dưới 18'))
+            ageGroups['under18'] = count;
+          else if (ageRange.contains('18-30'))
+            ageGroups['18to30'] = count;
+          else if (ageRange.contains('31-45'))
+            ageGroups['31to45'] = count;
+          else if (ageRange.contains('trên 45'))
+            ageGroups['over45'] = count;
         }
       }
       localCustomerModelData['ageGroups'] = ageGroups;
@@ -246,19 +243,17 @@ class CustomerModelSectionState extends State<CustomerModelSection>
     );
     if (incomeAttribute.isNotEmpty) {
       String additionalInfo = incomeAttribute['additionalInfo'] ?? '';
-      String incomeSelection = '';
-      if (additionalInfo.contains('<5 triệu/tháng')) {
-        incomeSelection = '<5 triệu/tháng';
-      } else if (additionalInfo.contains('5-10 triệu/tháng')) {
-        incomeSelection = '5-10 triệu/tháng';
-      } else if (additionalInfo.contains('10-20 triệu/tháng')) {
-        incomeSelection = '10-20 triệu/tháng';
-      } else if (additionalInfo.contains('>20 triệu/tháng')) {
-        incomeSelection = '>20 triệu/tháng';
-      }
+      String incomeSelection =
+          additionalInfo.contains('<5 triệu/tháng')
+              ? '<5 triệu/tháng'
+              : additionalInfo.contains('5-10 triệu/tháng')
+              ? '5-10 triệu/tháng'
+              : additionalInfo.contains('10-20 triệu/tháng')
+              ? '10-20 triệu/tháng'
+              : additionalInfo.contains('>20 triệu/tháng')
+              ? '>20 triệu/tháng'
+              : '';
       localCustomerModelData['income'] = incomeSelection;
-
-      // Extract incomePopulation from additionalInfo
       RegExp regex = RegExp(
         r'tổng số dân có thu nhập này là (\d+) người/ngày',
       );
@@ -270,12 +265,13 @@ class CustomerModelSectionState extends State<CustomerModelSection>
   }
 
   void _updateAgeGroup(String key, String value) {
-    int? intValue = int.tryParse(value);
+    String cleanedValue = value.replaceAll(',', '');
+    int? intValue = int.tryParse(cleanedValue);
     setState(() {
       localCustomerModelData['ageGroups'][key] = intValue ?? 0;
       _calculateHighestAgeGroup();
       _updateAttributeValues();
-      _updateGenderValidation(); // Validate gender when age changes
+      _updateGenderValidation();
     });
   }
 
@@ -289,79 +285,53 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       return;
     }
 
-    String highestKey = '';
-    int highestValue = 0;
-    ageGroups.forEach((key, value) {
-      if (value > highestValue) {
-        highestValue = value;
-        highestKey = key;
-      }
-    });
-
-    if (highestValue > 0) {
-      int percentage = ((highestValue / total) * 100).round();
-      String ageRangeName = '';
-      switch (highestKey) {
-        case 'under18':
-          ageRangeName = 'dưới 18 tuổi';
-          break;
-        case '18to30':
-          ageRangeName = '18-30 tuổi';
-          break;
-        case '31to45':
-          ageRangeName = '31-45 tuổi';
-          break;
-        case 'over45':
-          ageRangeName = 'trên 45 tuổi';
-          break;
-      }
-      _highestAgeGroupInfo =
-          'Khách hàng nằm trong độ tuổi $ageRangeName chiếm tỉ lệ cao nhất: $percentage%';
-    } else {
-      _highestAgeGroupInfo = '';
-    }
+    String highestKey =
+        ageGroups.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    int highestValue = ageGroups[highestKey]!;
+    int percentage = ((highestValue / total) * 100).round();
+    String ageRangeName =
+        highestKey == 'under18'
+            ? 'dưới 18 tuổi'
+            : highestKey == '18to30'
+            ? '18-30 tuổi'
+            : highestKey == '31to45'
+            ? '31-45 tuổi'
+            : 'trên 45 tuổi';
+    _highestAgeGroupInfo =
+        'Khách hàng nằm trong độ tuổi $ageRangeName chiếm tỉ lệ cao nhất: $percentage%';
   }
 
-  // Added methods
-  int _calculateTotalAgeGroup() {
-    Map<String, int> ageGroups = Map<String, int>.from(
-      localCustomerModelData['ageGroups'],
-    );
-    return ageGroups.values.fold(0, (sum, value) => sum + value);
-  }
+  int _calculateTotalAgeGroup() => getTotalAgeGroups();
+  int _calculateTotalPopulation() =>
+      widget.reportData['totalPopulationPerDay'] ?? 0;
 
-  int? _getGenderValue() {
-    String genderInfo = localCustomerModelData['genderInfo'] ?? '';
-    return int.tryParse(genderInfo);
-  }
+  int? _getGenderValue() => int.tryParse(
+    localCustomerModelData['genderInfo']?.replaceAll(',', '') ?? '',
+  );
 
   void _updateGenderValidation() {
     int? genderValue = _getGenderValue();
-    int totalAgeGroup = _calculateTotalAgeGroup();
-    String message = '';
-    if (genderValue != null &&
-        totalAgeGroup > 0 &&
-        genderValue > totalAgeGroup) {
-      message =
-          'Số lượng dân số trong phần giới tính chính mà bạn đang nhập đang lớn hơn tổng số dân số bạn khảo sát được ở phần nhóm độ tuổi đang có là $totalAgeGroup người/ngày';
-    }
-    if (message != _genderValidationMessage) {
-      setState(() {
-        _genderValidationMessage = message;
-      });
-    }
+    int totalPopulation = widget.reportData['totalPopulationPerDay'] ?? 0;
+    setState(() {
+      _genderValidationMessage =
+          (genderValue != null &&
+                  totalPopulation > 0 &&
+                  genderValue > totalPopulation)
+              ? 'Số lượng khách hàng giới tính chính ($genderValue) vượt quá tổng số dân ($totalPopulation).'
+              : '';
+    });
   }
 
   double? _calculateMarginOfError() {
     String incomePopulationStr =
-        localCustomerModelData['incomePopulation'] ?? '';
+        localCustomerModelData['incomePopulation']?.replaceAll(',', '') ?? '';
     int? incomePopulation = int.tryParse(incomePopulationStr);
-    int totalAgeGroup = _calculateTotalAgeGroup();
-    if (incomePopulation == null || totalAgeGroup == 0) return null;
-    double p = incomePopulation / totalAgeGroup;
-    double z = 1.96; // 95% confidence
-    double marginOfError = z * sqrt(p * (1 - p) / totalAgeGroup);
-    return marginOfError * 100; // Percentage
+    int totalPopulation = widget.reportData['totalPopulationPerDay'] ?? 0;
+    if (incomePopulation == null || totalPopulation == 0) return null;
+    double p = incomePopulation / totalPopulation;
+    double z = 1.96;
+    double marginOfError = z * sqrt(p * (1 - p) / totalPopulation);
+    return marginOfError * 100;
   }
 
   void _updateAttributeValues() {
@@ -370,22 +340,27 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           widget.reportData['attributeValues'] ?? [],
         );
 
+    // Gender
     if (localCustomerModelData['gender'] != null) {
-      String genderValue = "";
-      switch (localCustomerModelData['gender']) {
-        case 'Nam':
-          genderValue = "khách hàng chiếm đa số là nam";
-          break;
-        case 'Nữ':
-          genderValue = "khách hàng chiếm đa số là nữ";
-          break;
-        case 'Khác':
-          genderValue = "khách hàng có giới tính đa dạng";
-          break;
-      }
-      String rawGenderInfo = localCustomerModelData['genderInfo'] ?? '';
+      String genderValue =
+          localCustomerModelData['gender'] == 'Nam'
+              ? 'khách hàng chiếm đa số là nam'
+              : localCustomerModelData['gender'] == 'Nữ'
+              ? 'khách hàng chiếm đa số là nữ'
+              : 'khách hàng có giới tính đa dạng';
+      String rawGenderInfo =
+          localCustomerModelData['genderInfo']?.replaceAll(',', '') ?? '';
+      int totalPopulation = widget.reportData['totalPopulationPerDay'] ?? 0;
       String additionalInfo =
-          rawGenderInfo.isNotEmpty ? "$rawGenderInfo người/ngày" : "";
+          rawGenderInfo.isNotEmpty ? '$rawGenderInfo người/ngày' : '';
+      if (totalPopulation > 0 && rawGenderInfo.isNotEmpty) {
+        int? genderValueInt = int.tryParse(rawGenderInfo);
+        if (genderValueInt != null && genderValueInt > 0) {
+          int percentage = ((genderValueInt / totalPopulation) * 100).round();
+          additionalInfo +=
+              ' chiếm ${percentage}% trên tổng số dân trong khu vực là ${totalPopulation} người/ngày';
+        }
+      }
 
       final existingAttr = originalAttributeValues.firstWhere(
         (attr) => attr['attributeId'] == attributeIds['gender'],
@@ -408,32 +383,30 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           'value': genderValue,
           'additionalInfo': additionalInfo,
         };
-        if (changeIndex != -1) {
+        if (changeIndex != -1)
           changedAttributeValues[changeIndex] = updatedValue;
-        } else {
+        else
           changedAttributeValues.add(updatedValue);
-        }
       } else if (genderValue.isNotEmpty) {
         final newIndex = newAttributeValues.indexWhere(
           (attr) => attr['attributeId'] == attributeIds['gender'],
         );
-        if (newIndex != -1) {
+        if (newIndex != -1)
           newAttributeValues[newIndex] = newValue;
-        } else {
+        else
           newAttributeValues.add(newValue);
-        }
       }
 
       final index = attributeValues.indexWhere(
         (attr) => attr['id'] == existingAttr['id'],
       );
-      if (index != -1) {
+      if (index != -1)
         attributeValues[index] = newValue;
-      } else if (genderValue.isNotEmpty) {
+      else if (genderValue.isNotEmpty)
         attributeValues.add(newValue);
-      }
     }
 
+    // Age Groups
     Map<String, int> ageGroups = Map<String, int>.from(
       localCustomerModelData['ageGroups'],
     );
@@ -448,26 +421,19 @@ class CustomerModelSectionState extends State<CustomerModelSection>
     } else {
       ageGroups.forEach((key, value) {
         if (value > 0) {
-          String ageName = "";
-          switch (key) {
-            case 'under18':
-              ageName = "dưới 18 tuổi";
-              break;
-            case '18to30':
-              ageName = "18-30 tuổi";
-              break;
-            case '31to45':
-              ageName = "31-45 tuổi";
-              break;
-            case 'over45':
-              ageName = "trên 45 tuổi";
-              break;
-          }
+          String ageName =
+              key == 'under18'
+                  ? 'dưới 18 tuổi'
+                  : key == '18to30'
+                  ? '18-30 tuổi'
+                  : key == '31to45'
+                  ? '31-45 tuổi'
+                  : 'trên 45 tuổi';
           String highestAgeAddition =
               _highestAgeGroupInfo.isNotEmpty &&
                       _highestAgeGroupInfo.contains(ageName)
-                  ? " và " + _highestAgeGroupInfo
-                  : "";
+                  ? ' và $_highestAgeGroupInfo'
+                  : '';
           final existingAttr = existingAgeAttrs.firstWhere(
             (attr) => attr['value'] == ageName,
             orElse: () => {},
@@ -477,7 +443,7 @@ class CustomerModelSectionState extends State<CustomerModelSection>
             'siteId': widget.reportData['siteId'] ?? 0,
             'value': ageName,
             'additionalInfo':
-                "$value người/ngày nhóm khách hàng có độ tuổi $ageName$highestAgeAddition",
+                '$value người/ngày nhóm khách hàng có độ tuổi $ageName$highestAgeAddition',
             if (existingAttr['id'] != null) 'id': existingAttr['id'],
           });
         }
@@ -494,11 +460,10 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           'value': attr['value'],
           'additionalInfo': attr['additionalInfo'],
         };
-        if (changeIndex != -1) {
+        if (changeIndex != -1)
           changedAttributeValues[changeIndex] = updatedValue;
-        } else {
+        else
           changedAttributeValues.add(updatedValue);
-        }
       }
     }
 
@@ -506,41 +471,37 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       (attr) => attr['attributeId'] == attributeIds['ageGroups'],
     );
     newAttributeValues.addAll(
-      ageGroupAttrs.where((attr) => attr['id'] == null).toList(),
+      ageGroupAttrs.where((attr) => attr['id'] == null),
     );
     attributeValues.removeWhere(
       (attr) => attr['attributeId'] == attributeIds['ageGroups'],
     );
     attributeValues.addAll(ageGroupAttrs);
 
+    // Income
     if (localCustomerModelData['income'] != null &&
         localCustomerModelData['income'].isNotEmpty) {
-      String incomeValue = "";
-      switch (localCustomerModelData['income']) {
-        case '<5 triệu/tháng':
-          incomeValue = "thấp";
-          break;
-        case '5-10 triệu/tháng':
-        case '10-20 triệu/tháng':
-          incomeValue = "trung bình";
-          break;
-        case '>20 triệu/tháng':
-          incomeValue = "cao";
-          break;
-      }
-      String incomeDescription = "Thu nhập ${localCustomerModelData['income']}";
+      String incomeValue =
+          localCustomerModelData['income'] == '<5 triệu/tháng'
+              ? 'thấp'
+              : localCustomerModelData['income'] == '5-10 triệu/tháng' ||
+                  localCustomerModelData['income'] == '10-20 triệu/tháng'
+              ? 'trung bình'
+              : 'cao';
+      String incomeDescription = 'Thu nhập ${localCustomerModelData['income']}';
       String additionalInfo = incomeDescription;
       String incomePopulation =
-          localCustomerModelData['incomePopulation'] ?? '';
-      int totalAgeGroup = _calculateTotalAgeGroup();
-      if (incomePopulation.isNotEmpty && totalAgeGroup > 0) {
+          localCustomerModelData['incomePopulation']?.replaceAll(',', '') ?? '';
+
+      int totalPopulation = widget.reportData['totalPopulationPerDay'] ?? 0;
+      if (incomePopulation.isNotEmpty && totalPopulation > 0) {
         int? incomePop = int.tryParse(incomePopulation);
         if (incomePop != null) {
-          double p = incomePop / totalAgeGroup;
+          double p = incomePop / totalPopulation;
           double z = 1.96;
-          double marginOfError = z * sqrt(p * (1 - p) / totalAgeGroup) * 100;
+          double marginOfError = z * sqrt(p * (1 - p) / totalPopulation) * 100;
           additionalInfo +=
-              ", tổng số dân có thu nhập này là $incomePop người/ngày so với tổng số dân là $totalAgeGroup người/ngày, với độ tin cậy 95% và biên độ sai số ${marginOfError.toStringAsFixed(2)}%";
+              ', tổng số dân có thu nhập này là $incomePop người/ngày so với tổng số dân trong khu vực là $totalPopulation người/ngày, với độ tin cậy 95% và biên độ sai số ${marginOfError.toStringAsFixed(2)}%';
         }
       }
 
@@ -565,29 +526,49 @@ class CustomerModelSectionState extends State<CustomerModelSection>
           'value': incomeValue,
           'additionalInfo': additionalInfo,
         };
-        if (changeIndex != -1) {
+        if (changeIndex != -1)
           changedAttributeValues[changeIndex] = updatedValue;
-        } else {
+        else
           changedAttributeValues.add(updatedValue);
-        }
       } else if (incomeValue.isNotEmpty) {
         final newIndex = newAttributeValues.indexWhere(
           (attr) => attr['attributeId'] == attributeIds['income'],
         );
-        if (newIndex != -1) {
+        if (newIndex != -1)
           newAttributeValues[newIndex] = newValue;
-        } else {
+        else
           newAttributeValues.add(newValue);
-        }
       }
 
       final index = attributeValues.indexWhere(
         (attr) => attr['id'] == existingAttr['id'],
       );
-      if (index != -1) {
+      if (index != -1)
         attributeValues[index] = newValue;
-      } else if (incomeValue.isNotEmpty) {
+      else if (incomeValue.isNotEmpty)
         attributeValues.add(newValue);
+    }
+
+    int totalAgeGroups = getTotalAgeGroups();
+    int totalPopulation = widget.reportData['totalPopulationPerDay'] ?? 0;
+    if (totalAgeGroups != 0 && totalPopulation != 0) {
+      int difference = totalPopulation - totalAgeGroups;
+      bool allInputsFilled = _ageGroupControllers.values.every(
+        (controller) => controller.text.isNotEmpty,
+      );
+      if (allInputsFilled) {
+        setState(() {
+          _ageGroupValidationMessage =
+              difference < 0
+                  ? 'Tổng số người của 4 nhóm độ tuổi ($totalAgeGroups) vượt quá tổng số dân ($totalPopulation), dư ${-difference} người/ngày.'
+                  : difference > 0
+                  ? 'Tổng số người của 4 nhóm độ tuổi ($totalAgeGroups) thấp hơn tổng số dân ($totalPopulation), thiếu $difference người/ngày.'
+                  : '';
+        });
+      } else {
+        setState(() {
+          _ageGroupValidationMessage = '';
+        });
       }
     }
 
@@ -612,14 +593,22 @@ class CustomerModelSectionState extends State<CustomerModelSection>
       localCustomerModelData['ageGroups'],
     );
     List<String> filledGroups = [];
-    if ((ageGroups['under18'] ?? 0) > 0)
-      filledGroups.add("Dưới 18: ${ageGroups['under18']} người/ngày");
-    if ((ageGroups['18to30'] ?? 0) > 0)
-      filledGroups.add("18-30: ${ageGroups['18to30']} người/ngày");
-    if ((ageGroups['31to45'] ?? 0) > 0)
-      filledGroups.add("31-45: ${ageGroups['31to45']} người/ngày");
-    if ((ageGroups['over45'] ?? 0) > 0)
-      filledGroups.add("Trên 45: ${ageGroups['over45']} người/ngày");
+    if (ageGroups['under18']! > 0)
+      filledGroups.add(
+        'Dưới 18: ${_formatNumber(ageGroups['under18'].toString())} người/ngày',
+      );
+    if (ageGroups['18to30']! > 0)
+      filledGroups.add(
+        '18-30: ${_formatNumber(ageGroups['18to30'].toString())} người/ngày',
+      );
+    if (ageGroups['31to45']! > 0)
+      filledGroups.add(
+        '31-45: ${_formatNumber(ageGroups['31to45'].toString())} người/ngày',
+      );
+    if (ageGroups['over45']! > 0)
+      filledGroups.add(
+        'Trên 45: ${_formatNumber(ageGroups['over45'].toString())} người/ngày',
+      );
     return filledGroups.isEmpty
         ? 'Chưa điền thông tin'
         : filledGroups.join(', ');
@@ -663,6 +652,15 @@ class CustomerModelSectionState extends State<CustomerModelSection>
               title: 'Giới tính khách hàng chính',
               subtitle: _getGenderSubtitle(),
               theme: widget.theme,
+              showInfo: true,
+              infoTitle: 'Hướng dẫn nhập giới tính khách hàng chính',
+              useBulletPoints: true,
+              bulletPoints: [
+                'Chọn giới tính chiếm đa số trong số khách hàng (Nam, Nữ, hoặc Khác).',
+                'Nhập số lượng khách hàng theo giới tính đã chọn (người/ngày).',
+                'Số lượng không được vượt quá tổng số dân trong khu vực.',
+                'Kiểm tra thông báo nếu số liệu vượt quá giới hạn.',
+              ],
               children: [_buildGenderSelectionWidget()],
             ),
             AnimatedExpansionCard(
@@ -670,6 +668,15 @@ class CustomerModelSectionState extends State<CustomerModelSection>
               title: 'Nhóm độ tuổi',
               subtitle: _getAgeGroupsSubtitle(),
               theme: widget.theme,
+              showInfo: true,
+              infoTitle: 'Hướng dẫn nhập nhóm độ tuổi',
+              useBulletPoints: true,
+              bulletPoints: [
+                'Nhập số lượng khách hàng cho từng nhóm độ tuổi (người/ngày).',
+                'Tổng số lượng của các nhóm phải khớp với tổng số dân trong khu vực.',
+                'Hệ thống tự động tính nhóm tuổi chiếm tỉ lệ cao nhất.',
+                'Sử dụng dấu phẩy để định dạng số lớn (ví dụ: 1,000).',
+              ],
               children: [
                 _buildAgeGroupSelectionWidget(),
                 if (_highestAgeGroupInfo.isNotEmpty)
@@ -709,6 +716,15 @@ class CustomerModelSectionState extends State<CustomerModelSection>
               title: 'Thu nhập trung bình của khách hàng',
               subtitle: _getIncomeSubtitle(),
               theme: widget.theme,
+              showInfo: true,
+              infoTitle: 'Hướng dẫn nhập thu nhập trung bình',
+              useBulletPoints: true,
+              bulletPoints: [
+                'Chọn mức thu nhập phổ biến nhất của khách hàng.',
+                'Nhập số lượng dân số có mức thu nhập này (người/ngày).',
+                'Số lượng không được vượt quá tổng số dân trong khu vực.',
+                'Xem biên độ sai số để đánh giá độ tin cậy.',
+              ],
               children: [_buildIncomeSelectionWidget()],
             ),
           ],
@@ -718,6 +734,13 @@ class CustomerModelSectionState extends State<CustomerModelSection>
   }
 
   Widget _buildGenderSelectionWidget() {
+    int totalPopulation = widget.reportData['totalPopulationPerDay'] ?? 0;
+    int? genderValue = _getGenderValue();
+    String percentageInfo =
+        totalPopulation > 0 && genderValue != null && genderValue > 0
+            ? ' ${((genderValue / totalPopulation) * 100).round()}% trên tổng số dân trong khu vực là ${totalPopulation} người/ngày'
+            : '';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -742,22 +765,59 @@ class CustomerModelSectionState extends State<CustomerModelSection>
               }).toList(),
         ),
         if (localCustomerModelData['gender'] != null)
-          CustomInputField(
-            label: 'Số lượng khách hàng',
-            hintText: 'Ví dụ: 1000',
-            icon: Icons.info_outline,
-            theme: widget.theme,
-            initialValue: localCustomerModelData['genderInfo'] ?? '',
-            keyboardType: TextInputType.number,
-            numbersOnly: true,
-            suffixText: 'người/ngày',
-            onSaved: (value) {
-              setState(() {
-                localCustomerModelData['genderInfo'] = value;
-                _updateAttributeValues();
-                _updateGenderValidation();
-              });
-            },
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CustomInputField(
+                label: 'Số lượng khách hàng',
+                hintText: 'Ví dụ: 1,000',
+                icon: Icons.info_outline,
+                theme: widget.theme,
+                initialValue:
+                    localCustomerModelData['genderInfo'] != null &&
+                            localCustomerModelData['genderInfo'].isNotEmpty
+                        ? _formatNumber(localCustomerModelData['genderInfo'])
+                        : '',
+                keyboardType: TextInputType.number,
+                numbersOnly: true,
+                formatThousands: true,
+                suffixText: 'người/ngày',
+                onSaved: (value) {
+                  setState(() {
+                    localCustomerModelData['genderInfo'] = value.replaceAll(
+                      ',',
+                      '',
+                    );
+                    _updateAttributeValues();
+                    _updateGenderValidation();
+                  });
+                },
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    int? inputValue = int.tryParse(value.replaceAll(',', ''));
+                    if (inputValue != null &&
+                        totalPopulation > 0 &&
+                        inputValue > totalPopulation) {
+                      return 'Số lượng vượt quá tổng số dân ($totalPopulation)';
+                    }
+                  }
+                  return null;
+                },
+              ),
+              if (genderValue != null && totalPopulation > 0 && genderValue > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'Chiếm $percentageInfo',
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      color: widget.theme.colorScheme.onSurface.withOpacity(
+                        0.7,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         if (_genderValidationMessage.isNotEmpty)
           Padding(
@@ -791,45 +851,71 @@ class CustomerModelSectionState extends State<CustomerModelSection>
 
   Widget _buildAgeGroupSelectionWidget() {
     return Column(
-      children:
-          _ageGroupControllers.entries.map((entry) {
-            String key = entry.key;
-            TextEditingController controller = entry.value;
-            String label;
-            IconData icon;
-            switch (key) {
-              case 'under18':
-                label = 'Dưới 18 tuổi';
-                icon = Icons.child_care;
-                break;
-              case '18to30':
-                label = '18-30 tuổi';
-                icon = Icons.person;
-                break;
-              case '31to45':
-                label = '31-45 tuổi';
-                icon = Icons.person;
-                break;
-              case 'over45':
-                label = 'Trên 45 tuổi';
-                icon = Icons.elderly;
-                break;
-              default:
-                label = '';
-                icon = Icons.person;
-            }
-            return CustomInputField(
-              label: label,
-              hintText: 'Nhập phần trăm khách hàng',
-              icon: icon,
-              theme: widget.theme,
-              controller: controller,
-              keyboardType: TextInputType.number,
-              numbersOnly: true,
-              suffixText: 'người/ngày',
-              onSaved: (value) => _updateAgeGroup(key, value ?? ''),
-            );
-          }).toList(),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tổng số dân ở khu vực xung quanh mặt bằng ở các khung giờ cao điểm là ${_formatNumber((widget.reportData['totalPopulationPerDay'] ?? 0).toString())} người/ngày',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: widget.theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ..._ageGroupControllers.entries.map((entry) {
+          String key = entry.key;
+          TextEditingController controller = entry.value;
+          String label =
+              key == 'under18'
+                  ? 'Dưới 18 tuổi'
+                  : key == '18to30'
+                  ? '18-30 tuổi'
+                  : key == '31to45'
+                  ? '31-45 tuổi'
+                  : 'Trên 45 tuổi';
+          IconData icon =
+              key == 'under18'
+                  ? Icons.child_care
+                  : key == 'over45'
+                  ? Icons.elderly
+                  : Icons.person;
+          return CustomInputField(
+            label: label,
+            hintText: 'Nhập số lượng khách hàng',
+            icon: icon,
+            theme: widget.theme,
+            controller: controller,
+            keyboardType: TextInputType.number,
+            numbersOnly: true,
+            formatThousands: true,
+            suffixText: 'người/ngày',
+            onSaved: (value) => _updateAgeGroup(key, value),
+            validator: (value) {
+              if (value != null && value.isNotEmpty) {
+                int? inputValue = int.tryParse(value.replaceAll(',', ''));
+                int totalPopulation =
+                    widget.reportData['totalPopulationPerDay'] ?? 0;
+                if (inputValue != null &&
+                    totalPopulation > 0 &&
+                    getTotalAgeGroups() > totalPopulation) {
+                  return 'Tổng vượt quá số dân ($totalPopulation)';
+                }
+              }
+              return null;
+            },
+          );
+        }).toList(),
+        if (_ageGroupValidationMessage.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              _ageGroupValidationMessage,
+              style: TextStyle(
+                color: widget.theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -863,24 +949,46 @@ class CustomerModelSectionState extends State<CustomerModelSection>
             children: [
               CustomInputField(
                 label: 'Số lượng dân số có thu nhập này',
-                hintText: 'Ví dụ: 1000',
+                hintText: 'Ví dụ: 1,000',
                 icon: Icons.info_outline,
                 theme: widget.theme,
-                initialValue: localCustomerModelData['incomePopulation'] ?? '',
+                initialValue:
+                    localCustomerModelData['incomePopulation'] != null &&
+                            localCustomerModelData['incomePopulation']
+                                .isNotEmpty
+                        ? _formatNumber(
+                          localCustomerModelData['incomePopulation'],
+                        )
+                        : '',
                 keyboardType: TextInputType.number,
                 numbersOnly: true,
+                formatThousands: true,
                 suffixText: 'người/ngày',
                 onSaved: (value) {
                   setState(() {
-                    localCustomerModelData['incomePopulation'] = value;
+                    localCustomerModelData['incomePopulation'] = value
+                        .replaceAll(',', '');
                     _updateAttributeValues();
                   });
+                },
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    int? inputValue = int.tryParse(value.replaceAll(',', ''));
+                    int totalPopulation =
+                        widget.reportData['totalPopulationPerDay'] ?? 0;
+                    if (inputValue != null &&
+                        totalPopulation > 0 &&
+                        inputValue > totalPopulation) {
+                      return 'Số lượng vượt quá tổng số dân ($totalPopulation)';
+                    }
+                  }
+                  return null;
                 },
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
-                  'trên tổng số dân ${_calculateTotalAgeGroup()} người/ngày',
+                  'trên tổng số dân ${_formatNumber(_calculateTotalPopulation().toString())} người/ngày',
                   style: TextStyle(
                     fontStyle: FontStyle.italic,
                     color: widget.theme.colorScheme.onSurface.withOpacity(0.7),

@@ -332,13 +332,14 @@ class ViewDetailSite extends StatelessWidget {
           icon: LucideIcons.mapPin,
         ),
         const SizedBox(height: 12),
-        _buildInfoRow(
-          context,
-          label: 'Ward',
-          value: areaName,
-          icon: LucideIcons.map,
-        ),
-        const SizedBox(height: 12),
+        if (site.building != null)
+          _buildInfoRow(
+            context,
+            label: 'Ward',
+            value: areaName,
+            icon: LucideIcons.map,
+          ),
+        if (site.building != null) const SizedBox(height: 12),
         _buildInfoRow(
           context,
           label: 'Status',

@@ -194,29 +194,29 @@ class SiteCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-
-                      // Area
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            LucideIcons.map,
-                            size: 14,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              areaName,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                      if (site.building != null)
+                        // Area
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              LucideIcons.map,
+                              size: 14,
+                              color: theme.colorScheme.primary,
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                areaName,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 4),
 
                       // Address

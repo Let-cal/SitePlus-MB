@@ -89,7 +89,11 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
         'customVehicles': [],
         'customPeakHours': [],
       },
-      'customerConcentration': {'customerTypes': [], 'averageCustomers': null},
+      'customerConcentration': {
+        'totalPopulation': '',
+        'customerTypes': [],
+        'averageCustomers': null,
+      },
       'customerModel': {
         'gender': null,
         'ageGroups': {'under18': 0, '18to30': 0, '31to45': 0, 'over45': 0},
@@ -314,7 +318,7 @@ class _ReportCreateDialogState extends State<ReportCreateDialog>
 
     final Map<String, List<int>> requiredAttributesByStep = {
       'Customer Flow': [2, 3],
-      'Customer Concentration': [4, 5],
+      'Customer Concentration': [4, 5, 41],
       'Customer Model': [6, 7, 8],
       'Site Area': siteCategoryId == 2 ? [9, 10, 11, 34, 35] : [9, 10, 11],
       'Environmental Factors':

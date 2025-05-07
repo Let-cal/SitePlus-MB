@@ -441,7 +441,7 @@ class _ReportViewDialogState extends State<ReportViewDialog>
         ),
         CustomReportSection(
           title: 'Customer Density',
-          attributeIds: [4, 5],
+          attributeIds: [4, 5, 41],
           icon: Icons.group,
           processedAttributeValues: _processedAttributeValues,
           attributeMap: attributeMap,
@@ -589,75 +589,43 @@ class _ReportViewDialogState extends State<ReportViewDialog>
 
     // Process the data
     for (var ageAttr in sameAgeAttrs) {
+      final value = ageAttr['value'] ?? '';
       final additionalInfo = ageAttr['additionalInfo'] ?? '';
 
-      // Old format: Combined string
-      if (additionalInfo.contains(',')) {
-        final RegExp regex = RegExp(
-          r'(\d+)% nhóm khách hàng có độ tuổi (dưới 18|18-30|31-45|trên 45)',
-        );
-        final matches = regex.allMatches(additionalInfo);
-        for (var match in matches) {
-          final percentage = match.group(1);
-          final ageGroup = match.group(2);
-          final percentValue = int.tryParse(percentage ?? '0') ?? 0;
-          if (ageGroup != null) {
-            // Convert Vietnamese age group key to English label
-            switch (ageGroup) {
-              case 'dưới 18':
-                ageGroups['Under 18'] = percentValue;
-                break;
-              case '18-30':
-                ageGroups['18-30'] = percentValue;
-                break;
-              case '31-45':
-                ageGroups['31-45'] = percentValue;
-                break;
-              case 'trên 45':
-                ageGroups['Over 45'] = percentValue;
-                break;
-            }
-          }
-        }
-      } else {
-        // New format: Single record
-        final RegExp regex = RegExp(r'(\d+)% nhóm khách hàng có độ tuổi (.+)');
-        final match = regex.firstMatch(additionalInfo);
-        if (match != null) {
-          final percentage = match.group(1);
-          final ageGroup = match.group(2);
-          final percentValue = int.tryParse(percentage ?? '0') ?? 0;
-          if (ageGroup != null) {
-            switch (ageGroup) {
-              case 'dưới 18':
-                ageGroups['Under 18'] = percentValue;
-                break;
-              case '18-30':
-                ageGroups['18-30'] = percentValue;
-                break;
-              case '31-45':
-                ageGroups['31-45'] = percentValue;
-                break;
-              case 'trên 45':
-                ageGroups['Over 45'] = percentValue;
-                break;
-              default:
-                ageGroups[ageGroup] = percentValue;
-            }
-          }
+      // Extract the number of people per day using regex
+      final RegExp regex = RegExp(r'(\d+)\s*người/ngày');
+      final match = regex.firstMatch(additionalInfo);
+      if (match != null && match.groupCount >= 1) {
+        final countStr = match.group(1) ?? '0';
+        final count = int.tryParse(countStr) ?? 0;
+
+        // Map the age group based on the 'value' field
+        switch (value) {
+          case 'dưới 18 tuổi':
+            ageGroups['Under 18'] = count;
+            break;
+          case '18-30 tuổi':
+            ageGroups['18-30'] = count;
+            break;
+          case '31-45 tuổi':
+            ageGroups['31-45'] = count;
+            break;
+          case 'trên 45 tuổi':
+            ageGroups['Over 45'] = count;
+            break;
         }
       }
     }
 
     // Create a list for display in a fixed order
     List<Widget> ageGroupWidgets = [];
-    ageGroups.forEach((ageGroup, percentage) {
-      if (percentage > 0) {
+    ageGroups.forEach((ageGroup, count) {
+      if (count > 0) {
         ageGroupWidgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              '$ageGroup: $percentage%',
+              '$ageGroup: $count người/ngày',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w500,
                 color: theme.colorScheme.onSurface.withOpacity(0.8),
@@ -668,6 +636,34 @@ class _ReportViewDialogState extends State<ReportViewDialog>
         );
       }
     });
+
+    // Check for highest age group percentage if available
+    String? highestAgeGroupInfo =
+        sameAgeAttrs
+            .map((attr) => attr['additionalInfo'])
+            .where((info) => info?.contains('chiếm tỉ lệ cao nhất') ?? false)
+            .firstOrNull;
+    if (highestAgeGroupInfo != null) {
+      final highestMatch = RegExp(
+        r'chiếm tỉ lệ cao nhất: (\d+)%',
+      ).firstMatch(highestAgeGroupInfo);
+      if (highestMatch != null) {
+        final percentage = highestMatch.group(1) ?? '0';
+        ageGroupWidgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 8),
+            child: Text(
+              'Nhóm tuổi chiếm tỉ lệ cao nhất: $percentage%',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+              textAlign: TextAlign.start,
+            ),
+          ),
+        );
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

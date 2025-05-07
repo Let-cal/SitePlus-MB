@@ -35,6 +35,7 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
   List<Map<String, dynamic>> changedAttributeValues = [];
   List<Map<String, dynamic>> newAttributeValues = [];
   late List<Map<String, dynamic>> originalAttributeValues;
+  String _vehicleValidationMessage = '';
 
   final Map<String, int> attributeIds = {'vehicle': 2, 'peakHour': 3};
 
@@ -54,16 +55,11 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
     'khác': Icons.edit,
   };
 
-  final List<String> calculationOptions = [
-    'theo giờ',
-    'theo ngày',
-    'theo tuần',
-  ];
+  final List<String> calculationOptions = ['theo giờ', 'theo ngày'];
 
   final Map<String, IconData> calculationIcons = {
     'theo giờ': Icons.access_time,
     'theo ngày': Icons.calendar_today,
-    'theo tuần': Icons.calendar_view_week,
   };
 
   final List<String> peakHourOptions = [
@@ -127,7 +123,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
             )
             : {};
 
-    // Khởi tạo selectedVehicleCalculations cho các vehicle đã chọn
     for (var vehicle in selectedVehicles) {
       selectedVehicleCalculations.putIfAbsent(vehicle, () => []);
     }
@@ -135,7 +130,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       widget.reportData['newAttributeValues'] ?? [],
     );
 
-    // Xử lý dữ liệu peakHours từ originalAttributeValues
     final peakHourAttrs =
         originalAttributeValues
             .where((attr) => attr['attributeId'] == attributeIds['peakHour'])
@@ -148,11 +142,9 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
         final value = attr['value'] as String;
         additionalInfo = attr['additionalInfo'] ?? '';
         if (value.contains(' và ')) {
-          // Dữ liệu đã gộp
           combinedValue = value;
           selectedPeakHours = value.split(' và ').toList();
         } else {
-          // Dữ liệu cũ chưa gộp
           if (!selectedPeakHours.contains(value)) {
             selectedPeakHours.add(value);
           }
@@ -162,13 +154,32 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
         }
       }
       if (combinedValue.isNotEmpty) {
-        // Nếu có dữ liệu gộp, cập nhật selectedPeakHours từ combinedValue
         selectedPeakHours = combinedValue.split(' và ').toList();
       }
-      // Cập nhật customPeakHours
       customPeakHours =
           selectedPeakHours.where((p) => !peakHourOptions.contains(p)).toList();
     }
+
+    for (var vehicle in selectedVehicles) {
+      for (var calc in selectedVehicleCalculations[vehicle] ?? []) {
+        String key = '${vehicle}_$calc';
+        if (vehicleCalculationAmounts[key] != null &&
+            vehicleCalculationAmounts[key]!.isNotEmpty) {
+          vehicleCalculationAmounts[key] = _formatNumber(
+            vehicleCalculationAmounts[key]!,
+          );
+        }
+      }
+    }
+  }
+
+  String _formatNumber(String value) {
+    if (value.isEmpty) return '';
+    final number = int.tryParse(value.replaceAll(',', '')) ?? 0;
+    return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
 
   String _generatePeakHourAdditionalInfo(List<String> selectedPeakHours) {
@@ -279,18 +290,22 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
           widget.reportData['attributeValues'] ?? [],
         );
 
-    // Xử lý vehicles
+    int totalVehiclesPerHour = 0;
+    int totalVehiclesPerDay = 0;
+
     selectedVehicleCalculations.forEach((vehicle, calculations) {
       for (var calc in calculations) {
         String key = '${vehicle}_$calc';
-        String amount = vehicleCalculationAmounts[key] ?? '';
-        if (amount.isNotEmpty) {
-          String unit =
-              calc == 'theo giờ'
-                  ? 'chiếc/giờ'
-                  : calc == 'theo ngày'
-                  ? 'chiếc/ngày'
-                  : 'chiếc/tuần';
+        String rawAmount =
+            vehicleCalculationAmounts[key]?.replaceAll(',', '') ?? '';
+        if (rawAmount.isNotEmpty) {
+          int amount = int.parse(rawAmount);
+          String unit = calc == 'theo giờ' ? 'người/giờ' : 'người/ngày';
+          if (vehicle == TRANSPORTATION_PEDESTRIAN) {
+            unit = calc == 'theo giờ' ? 'người/giờ' : 'người/ngày';
+          } else {
+            unit = calc == 'theo giờ' ? 'chiếc/giờ' : 'chiếc/ngày';
+          }
           String additionalInfo = '$amount $unit';
 
           final existingAttr = originalAttributeValues.firstWhere(
@@ -350,25 +365,28 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
           } else {
             attributeValues.add(newValue);
           }
+
+          if (calc == 'theo giờ') {
+            totalVehiclesPerHour += amount;
+          } else if (calc == 'theo ngày') {
+            totalVehiclesPerDay += amount;
+          }
         }
       }
     });
 
-    // Xử lý peakHours (gộp thành một bản ghi duy nhất)
     if (selectedPeakHours.isNotEmpty) {
       String combinedValue = selectedPeakHours.join(' và ');
       String additionalInfo = _generatePeakHourAdditionalInfo(
         selectedPeakHours,
       );
 
-      // Tìm bản ghi peakHour cũ trong originalAttributeValues
       final existingPeakHourAttrs =
           originalAttributeValues
               .where((attr) => attr['attributeId'] == attributeIds['peakHour'])
               .toList();
 
       if (existingPeakHourAttrs.isNotEmpty) {
-        // Nếu đã có dữ liệu cũ, cập nhật tất cả thành một bản ghi gộp
         for (var existingAttr in existingPeakHourAttrs) {
           final changeIndex = changedAttributeValues.indexWhere(
             (attr) => attr['id'] == existingAttr['id'],
@@ -397,7 +415,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
             };
           }
         }
-        // Xóa các bản ghi thừa trong attributeValues nếu có nhiều hơn 1
         final peakHourIds = existingPeakHourAttrs.map((e) => e['id']).toList();
         attributeValues.removeWhere(
           (attr) =>
@@ -405,7 +422,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
               !peakHourIds.contains(attr['id']),
         );
       } else {
-        // Nếu không có dữ liệu cũ, thêm một bản ghi mới vào newAttributeValues
         final newIndex = newAttributeValues.indexWhere(
           (attr) => attr['attributeId'] == attributeIds['peakHour'],
         );
@@ -421,7 +437,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
           newAttributeValues.add(newValue);
         }
 
-        // Cập nhật attributeValues để hiển thị UI
         final attrIndex = attributeValues.indexWhere(
           (attr) => attr['attributeId'] == attributeIds['peakHour'],
         );
@@ -432,7 +447,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
         }
       }
     } else {
-      // Nếu không có peakHours nào được chọn, xóa khỏi attributeValues và newAttributeValues
       attributeValues.removeWhere(
         (attr) => attr['attributeId'] == attributeIds['peakHour'],
       );
@@ -444,7 +458,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       );
     }
 
-    // Cập nhật reportData
     widget.setState(() {
       widget.reportData['customerFlow'] = {
         'vehicles': selectedVehicles,
@@ -461,6 +474,8 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
       widget.reportData['newAttributeValues'] = List<Map<String, dynamic>>.from(
         newAttributeValues,
       );
+      widget.reportData['totalVehiclesPerHour'] = totalVehiclesPerHour;
+      widget.reportData['totalVehiclesPerDay'] = totalVehiclesPerDay;
     });
 
     _updateDebugInfo();
@@ -527,6 +542,15 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
                     ? 'Chưa chọn'
                     : selectedVehicles.join(', '),
             theme: widget.theme,
+            showInfo: true,
+            infoTitle: 'Hướng dẫn nhập phương tiện di chuyển',
+            useBulletPoints: true,
+            bulletPoints: [
+              'Chọn các phương tiện di chuyển phổ biến của khách hàng.',
+              'Nhập số lượng phương tiện theo giờ hoặc theo ngày (chiếc/giờ hoặc chiếc/ngày).',
+              'Tổng số phương tiện không được vượt quá tổng số dân trong khu vực.',
+              'Kiểm tra thông báo nếu số liệu vượt quá giới hạn.',
+            ],
             children: [
               CustomChipGroup(
                 options: vehicleOptions,
@@ -564,26 +588,55 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
                     ...selectedVehicleCalculations[vehicle]!.map((calc) {
                       String key = '${vehicle}_$calc';
                       String unit =
-                          calc == 'theo giờ'
-                              ? 'chiếc/giờ'
-                              : calc == 'theo ngày'
-                              ? 'chiếc/ngày'
-                              : 'chiếc/tuần';
+                          calc == 'theo giờ' ? 'chiếc/giờ' : 'chiếc/ngày';
+                      if (vehicle == TRANSPORTATION_PEDESTRIAN) {
+                        unit = calc == 'theo giờ' ? 'người/giờ' : 'người/ngày';
+                      }
                       return CustomInputField(
                         key: ValueKey(key),
                         label: 'Số lượng $vehicle $calc',
-                        hintText: 'Nhập số lượng $vehicle $calc',
+                        hintText: 'Ví dụ: 1,000',
                         icon: vehicleIcons[vehicle] ?? Icons.directions_car,
                         initialValue: vehicleCalculationAmounts[key] ?? '',
                         theme: widget.theme,
                         keyboardType: TextInputType.number,
                         numbersOnly: true,
+                        formatThousands: true,
                         suffixText: unit,
                         onSaved: (value) {
                           setState(() {
-                            vehicleCalculationAmounts[key] = value ?? '';
+                            vehicleCalculationAmounts[key] = value.replaceAll(
+                              ',',
+                              '',
+                            );
+
                             _updateAttributeValues();
                           });
+                        },
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            int? inputValue = int.tryParse(
+                              value.replaceAll(',', ''),
+                            );
+                            int totalPopulation =
+                                widget.reportData['totalPopulationPerDay'] ?? 0;
+                            if (inputValue != null && totalPopulation > 0) {
+                              int totalVehicles = 0;
+                              vehicleCalculationAmounts.forEach((k, v) {
+                                if (k != key) {
+                                  int? amount = int.tryParse(
+                                    v.replaceAll(',', ''),
+                                  );
+                                  if (amount != null) totalVehicles += amount;
+                                }
+                              });
+                              totalVehicles += inputValue;
+                              if (totalVehicles > totalPopulation) {
+                                return 'Tổng số phương tiện ($totalVehicles) vượt quá tổng số dân ($totalPopulation)';
+                              }
+                            }
+                          }
+                          return null;
                         },
                       );
                     }),
@@ -601,6 +654,14 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
                     ? 'Chưa chọn'
                     : selectedPeakHours.join(', '),
             theme: widget.theme,
+            showInfo: true,
+            infoTitle: 'Hướng dẫn nhập giờ cao điểm',
+            useBulletPoints: true,
+            bulletPoints: [
+              'Chọn các khung giờ cao điểm mà khách hàng thường xuất hiện.',
+              'Có thể thêm khung giờ tùy chỉnh nếu không có trong danh sách.',
+              'Hệ thống sẽ tự động gộp các khung giờ thành một câu mô tả.',
+            ],
             children: [
               CustomChipGroup(
                 options: peakHourOptions,
@@ -613,7 +674,6 @@ class _CustomerFlowSectionState extends State<CustomerFlowSection> {
                 showOtherInputOnlyWhenSelected: true,
                 otherOptionKey: 'khác',
               ),
-              // Không render ô input cho additionalInfo
             ],
           ),
         ],
